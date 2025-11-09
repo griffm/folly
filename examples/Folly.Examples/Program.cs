@@ -42,6 +42,10 @@ GenerateTableExample(Path.Combine(outputDir, "07-table.pdf"));
 Console.WriteLine("Generating Example 8: Image Example...");
 GenerateImageExample(Path.Combine(outputDir, "08-images.pdf"));
 
+// Example 9: Lists
+Console.WriteLine("Generating Example 9: List Example...");
+GenerateListExample(Path.Combine(outputDir, "09-lists.pdf"));
+
 Console.WriteLine("\n✓ All examples generated successfully!");
 Console.WriteLine($"\nView PDFs in: {outputDir}");
 Console.WriteLine("\nValidate with qpdf:");
@@ -528,6 +532,96 @@ static void GenerateImageExample(string outputPath)
               <fo:block font-size="10pt" text-align="center">
                 Images are embedded as PDF XObjects with proper scaling.
               </fo:block>
+            </fo:flow>
+          </fo:page-sequence>
+        </fo:root>
+        """;
+
+    using var doc = FoDocument.Load(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml)));
+    doc.SavePdf(outputPath);
+}
+
+static void GenerateListExample(string outputPath)
+{
+    var foXml = """
+        <?xml version="1.0"?>
+        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+          <fo:layout-master-set>
+            <fo:simple-page-master master-name="A4" page-width="595pt" page-height="842pt">
+              <fo:region-body margin="72pt"/>
+            </fo:simple-page-master>
+          </fo:layout-master-set>
+          <fo:page-sequence master-reference="A4">
+            <fo:flow flow-name="xsl-region-body">
+              <fo:block font-size="18pt" font-family="Helvetica" text-align="center" margin-bottom="24pt">
+                List Example
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                This example demonstrates XSL-FO list blocks with labels and bodies:
+              </fo:block>
+
+              <fo:list-block provisional-distance-between-starts="36pt" provisional-label-separation="6pt" space-before="12pt" space-after="12pt">
+                <fo:list-item space-before="6pt">
+                  <fo:list-item-label>
+                    <fo:block font-family="Helvetica">1.</fo:block>
+                  </fo:list-item-label>
+                  <fo:list-item-body>
+                    <fo:block font-family="Helvetica">First item in the list demonstrates basic list functionality.</fo:block>
+                  </fo:list-item-body>
+                </fo:list-item>
+
+                <fo:list-item space-before="6pt">
+                  <fo:list-item-label>
+                    <fo:block font-family="Helvetica">2.</fo:block>
+                  </fo:list-item-label>
+                  <fo:list-item-body>
+                    <fo:block font-family="Helvetica">Second item shows proper spacing between items.</fo:block>
+                  </fo:list-item-body>
+                </fo:list-item>
+
+                <fo:list-item space-before="6pt">
+                  <fo:list-item-label>
+                    <fo:block font-family="Helvetica">3.</fo:block>
+                  </fo:list-item-label>
+                  <fo:list-item-body>
+                    <fo:block font-family="Helvetica">Third item demonstrates the provisional distance between the label start and body start.</fo:block>
+                  </fo:list-item-body>
+                </fo:list-item>
+              </fo:list-block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt" margin-top="24pt">
+                Bulleted list example:
+              </fo:block>
+
+              <fo:list-block provisional-distance-between-starts="24pt" provisional-label-separation="6pt">
+                <fo:list-item space-before="6pt">
+                  <fo:list-item-label>
+                    <fo:block font-family="Helvetica">•</fo:block>
+                  </fo:list-item-label>
+                  <fo:list-item-body>
+                    <fo:block font-family="Helvetica">Bullets can be used as labels</fo:block>
+                  </fo:list-item-body>
+                </fo:list-item>
+
+                <fo:list-item space-before="6pt">
+                  <fo:list-item-label>
+                    <fo:block font-family="Helvetica">•</fo:block>
+                  </fo:list-item-label>
+                  <fo:list-item-body>
+                    <fo:block font-family="Helvetica">The provisional-distance-between-starts property controls the indent</fo:block>
+                  </fo:list-item-body>
+                </fo:list-item>
+
+                <fo:list-item space-before="6pt">
+                  <fo:list-item-label>
+                    <fo:block font-family="Helvetica">•</fo:block>
+                  </fo:list-item-label>
+                  <fo:list-item-body>
+                    <fo:block font-family="Helvetica">The provisional-label-separation property controls the gap between label and body</fo:block>
+                  </fo:list-item-body>
+                </fo:list-item>
+              </fo:list-block>
             </fo:flow>
           </fo:page-sequence>
         </fo:root>
