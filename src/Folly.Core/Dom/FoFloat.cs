@@ -14,7 +14,7 @@ public sealed class FoFloat : FoElement
     /// Gets the float position: "start" (left), "end" (right), "before", "left", "right", etc.
     /// Most common values are "start" and "end".
     /// </summary>
-    public string Float { get; init; } = "before";
+    public string Float => Properties.GetString("float", "before");
 
     /// <summary>
     /// Gets the blocks that make up the float content.
