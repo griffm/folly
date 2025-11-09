@@ -29,6 +29,7 @@ public sealed class AreaTree
 public sealed class PageViewport
 {
     private readonly List<Area> _areas = new();
+    private readonly List<LinkArea> _links = new();
 
     /// <summary>
     /// Gets or sets the page width in points.
@@ -51,12 +52,26 @@ public sealed class PageViewport
     public IReadOnlyList<Area> Areas => _areas;
 
     /// <summary>
+    /// Gets the link areas on this page for PDF annotations.
+    /// </summary>
+    public IReadOnlyList<LinkArea> Links => _links;
+
+    /// <summary>
     /// Adds an area to the page.
     /// </summary>
     internal void AddArea(Area area)
     {
         ArgumentNullException.ThrowIfNull(area);
         _areas.Add(area);
+    }
+
+    /// <summary>
+    /// Adds a link area to the page for PDF annotation generation.
+    /// </summary>
+    internal void AddLink(LinkArea link)
+    {
+        ArgumentNullException.ThrowIfNull(link);
+        _links.Add(link);
     }
 }
 
@@ -459,4 +474,61 @@ public sealed class FloatArea : Area
         ArgumentNullException.ThrowIfNull(block);
         _blocks.Add(block);
     }
+}
+
+/// <summary>
+/// Represents a link area (from fo:basic-link).
+/// Links create clickable regions in the PDF that navigate to internal or external destinations.
+/// </summary>
+public sealed class LinkArea : Area
+{
+    /// <summary>
+    /// Gets or sets the internal destination ID.
+    /// Used for links within the document (e.g., table of contents, cross-references).
+    /// Null if this is an external link.
+    /// </summary>
+    public string? InternalDestination { get; set; }
+
+    /// <summary>
+    /// Gets or sets the external destination URI.
+    /// Used for external links (http://, mailto:, file://, etc.).
+    /// Null if this is an internal link.
+    /// </summary>
+    public string? ExternalDestination { get; set; }
+
+    /// <summary>
+    /// Gets or sets the show-destination property.
+    /// "replace" opens in same window, "new" opens in new window.
+    /// </summary>
+    public string ShowDestination { get; set; } = "replace";
+
+    /// <summary>
+    /// Gets or sets the text content of the link.
+    /// </summary>
+    public string? Text { get; set; }
+
+    /// <summary>
+    /// Gets or sets the font family for the link text.
+    /// </summary>
+    public string FontFamily { get; set; } = "Helvetica";
+
+    /// <summary>
+    /// Gets or sets the font size in points.
+    /// </summary>
+    public double FontSize { get; set; } = 12;
+
+    /// <summary>
+    /// Gets or sets the text color (typically blue for links).
+    /// </summary>
+    public string Color { get; set; } = "blue";
+
+    /// <summary>
+    /// Gets or sets the text decoration (typically underline for links).
+    /// </summary>
+    public string TextDecoration { get; set; } = "underline";
+
+    /// <summary>
+    /// Gets or sets the baseline offset for inline positioning.
+    /// </summary>
+    public double BaselineOffset { get; set; }
 }

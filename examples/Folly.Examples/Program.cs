@@ -70,6 +70,10 @@ GenerateMultiColumnExample(Path.Combine(outputDir, "14-multi-column.pdf"));
 Console.WriteLine("Generating Example 15: Footnotes...");
 GenerateFootnoteExample(Path.Combine(outputDir, "15-footnotes.pdf"));
 
+// Example 16: External Links
+Console.WriteLine("Generating Example 16: External Links...");
+GenerateLinksExample(Path.Combine(outputDir, "16-links.pdf"));
+
 Console.WriteLine("\n✓ All examples generated successfully!");
 Console.WriteLine($"\nView PDFs in: {outputDir}");
 Console.WriteLine("\nValidate with qpdf:");
@@ -1195,6 +1199,101 @@ static void GenerateFootnoteExample(string outputPath)
 
               <fo:block font-size="12pt" margin-bottom="12pt">
                 The footnote reference appears inline with the text, while the footnote body is automatically positioned at the page bottom, maintaining the document's professional appearance and readability.<fo:footnote><fo:inline>6</fo:inline><fo:footnote-body><fo:block font-size="10pt">Multiple footnotes on the same page are stacked vertically in the footnote area.</fo:block></fo:footnote-body></fo:footnote>
+              </fo:block>
+            </fo:flow>
+          </fo:page-sequence>
+        </fo:root>
+        """;
+
+    using var doc = FoDocument.Load(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml)));
+    doc.SavePdf(outputPath);
+}
+
+static void GenerateLinksExample(string outputPath)
+{
+    var foXml = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+          <fo:layout-master-set>
+            <fo:simple-page-master master-name="A4" page-width="210mm" page-height="297mm"
+                                 margin-top="1in" margin-bottom="1in"
+                                 margin-left="1in" margin-right="1in">
+              <fo:region-body margin-top="0.5in" margin-bottom="0.5in"/>
+            </fo:simple-page-master>
+          </fo:layout-master-set>
+
+          <fo:page-sequence master-reference="A4">
+            <fo:flow flow-name="xsl-region-body">
+              <fo:block font-size="24pt" font-weight="bold" margin-bottom="24pt" text-align="center">
+                XSL-FO Links Example
+              </fo:block>
+
+              <fo:block font-size="14pt" font-weight="bold" margin-bottom="12pt">
+                External Links (fo:basic-link with external-destination)
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                Links allow users to navigate to external URLs or resources. Click the links below to test:
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="8pt" margin-left="20pt">
+                • Visit the <fo:basic-link external-destination="https://www.w3.org/TR/xsl/" color="blue" text-decoration="underline">W3C XSL-FO Specification</fo:basic-link> to learn more about formatting objects.
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="8pt" margin-left="20pt">
+                • Check out <fo:basic-link external-destination="https://github.com/anthropics/folly" color="blue" text-decoration="underline">Folly on GitHub</fo:basic-link> for the source code.
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="8pt" margin-left="20pt">
+                • Send an email to <fo:basic-link external-destination="mailto:support@example.com" color="blue" text-decoration="underline">support@example.com</fo:basic-link> for assistance.
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="24pt" margin-left="20pt">
+                • Open a local file: <fo:basic-link external-destination="file:///home/user/document.pdf" color="blue" text-decoration="underline">document.pdf</fo:basic-link>
+              </fo:block>
+
+              <fo:block font-size="14pt" font-weight="bold" margin-bottom="12pt">
+                Link Styling
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                Links can be styled with different colors and text decorations:
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="8pt" margin-left="20pt">
+                • Blue underlined: <fo:basic-link external-destination="https://example.com" color="blue" text-decoration="underline">Default Style</fo:basic-link>
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="8pt" margin-left="20pt">
+                • Red underlined: <fo:basic-link external-destination="https://example.com" color="red" text-decoration="underline">Custom Color</fo:basic-link>
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="24pt" margin-left="20pt">
+                • Green no underline: <fo:basic-link external-destination="https://example.com" color="green" text-decoration="none">No Decoration</fo:basic-link>
+              </fo:block>
+
+              <fo:block font-size="14pt" font-weight="bold" margin-bottom="12pt">
+                Implementation Notes
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="8pt">
+                • External links use the /URI action in PDF annotations
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="8pt">
+                • Links are clickable rectangles overlaid on the text
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="8pt">
+                • The border property is set to [0 0 0] for invisible borders
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="8pt">
+                • show-destination controls whether links open in the same window (replace) or new window (new)
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="8pt">
+                • Internal links (internal-destination) can reference named destinations within the document
               </fo:block>
             </fo:flow>
           </fo:page-sequence>

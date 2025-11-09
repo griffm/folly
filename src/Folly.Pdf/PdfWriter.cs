@@ -237,6 +237,14 @@ internal sealed class PdfWriter : IDisposable
         WriteLine("endstream");
         EndObject();
 
+        // Write link annotation objects
+        var annotationIds = new List<int>();
+        foreach (var link in page.Links)
+        {
+            var annotId = WriteLinkAnnotation(link, page.Height);
+            annotationIds.Add(annotId);
+        }
+
         // Write the page object
         var pageId = BeginObject();
         WriteLine("<<");
@@ -275,10 +283,64 @@ internal sealed class PdfWriter : IDisposable
             WriteLine("  >>");
         }
 
+        // Write annotations array if there are links
+        if (annotationIds.Count > 0)
+        {
+            WriteLine("  /Annots [");
+            foreach (var annotId in annotationIds)
+            {
+                WriteLine($"    {annotId} 0 R");
+            }
+            WriteLine("  ]");
+        }
+
         WriteLine(">>");
         EndObject();
 
         return pageId;
+    }
+
+    /// <summary>
+    /// Writes a link annotation object and returns its object ID.
+    /// </summary>
+    private int WriteLinkAnnotation(LinkArea link, double pageHeight)
+    {
+        var annotId = BeginObject();
+        WriteLine("<<");
+        WriteLine("  /Type /Annot");
+        WriteLine("  /Subtype /Link");
+
+        // Calculate PDF rectangle coordinates (bottom-left origin)
+        var x1 = link.X;
+        var y1 = pageHeight - link.Y - link.Height;
+        var x2 = link.X + link.Width;
+        var y2 = pageHeight - link.Y;
+        WriteLine($"  /Rect [{x1:F2} {y1:F2} {x2:F2} {y2:F2}]");
+
+        // No border
+        WriteLine("  /Border [0 0 0]");
+
+        // Determine if internal or external link
+        if (!string.IsNullOrEmpty(link.ExternalDestination))
+        {
+            // External link (URI action)
+            WriteLine("  /A <<");
+            WriteLine("    /S /URI");
+            WriteLine($"    /URI ({EscapeString(link.ExternalDestination)})");
+            WriteLine("  >>");
+        }
+        else if (!string.IsNullOrEmpty(link.InternalDestination))
+        {
+            // Internal link (named destination)
+            // For MVP, we'll use a simple named destination
+            // In a full implementation, this would resolve to actual page numbers
+            WriteLine($"  /Dest /{EscapeString(link.InternalDestination)}");
+        }
+
+        WriteLine(">>");
+        EndObject();
+
+        return annotId;
     }
 
     /// <summary>
