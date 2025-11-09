@@ -34,15 +34,20 @@ internal sealed class PdfWriter : IDisposable
 
     /// <summary>
     /// Writes the document catalog and returns its object ID.
+    /// Also reserves object ID 2 for the pages tree.
     /// </summary>
     public int WriteCatalog(int pageCount)
     {
-        var catalogId = BeginObject();
+        var catalogId = BeginObject();  // Object 1
         WriteLine("<<");
         WriteLine("  /Type /Catalog");
-        WriteLine($"  /Pages {catalogId + 1} 0 R");
+        WriteLine($"  /Pages 2 0 R");  // Pages tree will be object 2
         WriteLine(">>");
         EndObject();
+
+        // Reserve object 2 for pages tree (will be written later)
+        _objectOffsets.Add(0);  // Placeholder offset for object 2
+        _nextObjectId = 3;  // Next object will be 3
 
         return catalogId;
     }
@@ -128,16 +133,15 @@ internal sealed class PdfWriter : IDisposable
     }
 
     /// <summary>
-    /// Writes the pages tree.
+    /// Writes the pages tree at object ID 2.
     /// </summary>
     public void WritePages(int pagesObjectId, List<int> pageIds, IReadOnlyList<PageViewport> pages)
     {
-        // We need to update object 2 (pages tree) which was already created
-        // For now, we'll write it at this position
-        // In a real implementation, we'd reserve the object ID and write it here
+        // Write pages tree as object 2 (reserved in WriteCatalog)
+        // Update the offset for object 2 (index 1 in _objectOffsets)
+        _objectOffsets[1] = _position;
 
-        // This is a simplified approach - we're writing the pages object now
-        BeginObject(); // This should be object 2
+        WriteLine("2 0 obj");
         WriteLine("<<");
         WriteLine("  /Type /Pages");
         Write("  /Kids [");
@@ -150,7 +154,7 @@ internal sealed class PdfWriter : IDisposable
         WriteLine("]");
         WriteLine($"  /Count {pageIds.Count}");
         WriteLine(">>");
-        EndObject();
+        WriteLine("endobj");
     }
 
     private void Write(string text)
