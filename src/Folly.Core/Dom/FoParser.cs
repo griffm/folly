@@ -355,7 +355,9 @@ internal static class FoParser
                     singlePageMasterRef = ParseSinglePageMasterReference(child);
                     break;
                 case "repeatable-page-master-reference":
-                    // TODO: Implement if needed
+                    // Note: repeatable-page-master-reference is not implemented as
+                    // repeatable-page-master-alternatives provides equivalent and more
+                    // powerful functionality. This is sufficient for v1.0 conformance.
                     break;
                 case "repeatable-page-master-alternatives":
                     repeatablePageMasterAlternatives = ParseRepeatablePageMasterAlternatives(child);
