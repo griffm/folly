@@ -13,7 +13,9 @@ Folly is a standalone .NET 8 library that transforms XSL-FO (Formatting Objects)
 - **PDF 1.7 Output** - High-quality PDF generation with font embedding and subsetting
 - **Zero Dependencies** - No external runtime dependencies beyond System.*
 - **Fluent API** - Build FO documents programmatically with a clean, intuitive API
-- **Performance** - Target: 200-page documents in under 10 seconds
+- **High Performance** - Renders 200-page documents in ~150ms (66x faster than target)
+- **Low Memory** - ~22MB footprint for 200-page documents (27x better than target)
+- **CI Performance Tests** - Automated regression detection blocks performance degradation
 - **Developer-Friendly** - Rich validation diagnostics with XPath-locatable error messages
 
 ## Quick Start
@@ -205,6 +207,14 @@ The core rendering engine is fully operational with extensive feature support:
 - 20 working example PDFs (including metadata example)
 - 100% qpdf validation success (zero errors)
 - Verified with qpdf 11.9.0
+
+**Performance:**
+- **Throughput**: ~1,333 pages/second for complex documents
+- **200-page render time**: ~150ms (66x faster than 10-second target)
+- **Memory footprint**: ~22MB for 200 pages (27x better than 600MB target)
+- **Scaling**: Linear to sub-linear O(n) performance
+- **CI Integration**: Automated performance regression tests
+- See [PERFORMANCE.md](PERFORMANCE.md) for detailed benchmarks
 
 See [PLAN.md](PLAN.md) for detailed roadmap and upcoming milestones.
 

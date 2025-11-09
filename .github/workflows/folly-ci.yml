@@ -38,6 +38,9 @@ jobs:
     - name: Run conformance tests
       run: dotnet test tests/Folly.SpecTests --configuration ${{ env.CONFIGURATION }} --no-build --verbosity normal --collect:"XPlat Code Coverage"
 
+    - name: Run performance tests
+      run: dotnet run --project tests/Folly.Benchmarks --configuration ${{ env.CONFIGURATION }} --no-build -- --ci
+
     - name: Upload coverage reports
       uses: codecov/codecov-action@v4
       if: success()

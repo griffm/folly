@@ -1,0 +1,181 @@
+// Validating benchmarks:
+// ***** BenchmarkRunner: Start   *****
+// ***** Found 2 benchmark(s) in total *****
+// ***** Building 1 exe(s) in Parallel: Start   *****
+// start dotnet  restore /p:UseSharedCompilation=false /p:BuildInParallel=false /m:1 /p:Deterministic=true /p:Optimize=true /p:IntermediateOutputPath="/home/user/folly/tests/Folly.Benchmarks/bin/Release/net8.0/ababab1a-7995-48cb-b36c-ef2006381c73/obj/Release/net8.0/" /p:OutDir="/home/user/folly/tests/Folly.Benchmarks/bin/Release/net8.0/ababab1a-7995-48cb-b36c-ef2006381c73/bin/Release/net8.0/" /p:OutputPath="/home/user/folly/tests/Folly.Benchmarks/bin/Release/net8.0/ababab1a-7995-48cb-b36c-ef2006381c73/bin/Release/net8.0/" in /home/user/folly/tests/Folly.Benchmarks/bin/Release/net8.0/ababab1a-7995-48cb-b36c-ef2006381c73
+// command took 4.42 sec and exited with 0
+// start dotnet  build -c Release --no-restore /p:UseSharedCompilation=false /p:BuildInParallel=false /m:1 /p:Deterministic=true /p:Optimize=true /p:IntermediateOutputPath="/home/user/folly/tests/Folly.Benchmarks/bin/Release/net8.0/ababab1a-7995-48cb-b36c-ef2006381c73/obj/Release/net8.0/" /p:OutDir="/home/user/folly/tests/Folly.Benchmarks/bin/Release/net8.0/ababab1a-7995-48cb-b36c-ef2006381c73/bin/Release/net8.0/" /p:OutputPath="/home/user/folly/tests/Folly.Benchmarks/bin/Release/net8.0/ababab1a-7995-48cb-b36c-ef2006381c73/bin/Release/net8.0/" --output "/home/user/folly/tests/Folly.Benchmarks/bin/Release/net8.0/ababab1a-7995-48cb-b36c-ef2006381c73/bin/Release/net8.0/" in /home/user/folly/tests/Folly.Benchmarks/bin/Release/net8.0/ababab1a-7995-48cb-b36c-ef2006381c73
+// command took 30.73 sec and exited with 0
+// ***** Done, took 00:00:35 (35.32 sec)   *****
+// Found 2 benchmarks:
+//   RenderingBenchmarks.MixedDocument_200Pages: Job-UCVPBV(IterationCount=5, RunStrategy=Throughput, WarmupCount=3)
+//   RenderingBenchmarks.MixedDocument_200Pages: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3)
+
+// **************************
+// Benchmark: RenderingBenchmarks.MixedDocument_200Pages: Job-UCVPBV(IterationCount=5, RunStrategy=Throughput, WarmupCount=3)
+// *** Execute ***
+// Launch: 1 / 1
+// Execute: dotnet ababab1a-7995-48cb-b36c-ef2006381c73.dll --anonymousPipes 116 117 --benchmarkName Folly.Benchmarks.RenderingBenchmarks.MixedDocument_200Pages --job "IterationCount=5, RunStrategy=Throughput, WarmupCount=3" --benchmarkId 0 in /home/user/folly/tests/Folly.Benchmarks/bin/Release/net8.0/ababab1a-7995-48cb-b36c-ef2006381c73/bin/Release/net8.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.14.0
+// Runtime=.NET 8.0.21 (8.0.2125.47513), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX-512F+CD+BW+DQ+VL+VBMI,AES,BMI1,BMI2,FMA,LZCNT,PCLMUL,POPCNT VectorSize=256
+// Job: Job-LRDLAY(IterationCount=5, RunStrategy=Throughput, WarmupCount=3)
+
+OverheadJitting  1: 1 op, 558337.00 ns, 558.3370 us/op
+WorkloadJitting  1: 1 op, 450392600.00 ns, 450.3926 ms/op
+
+OverheadJitting  2: 1 op, 1535.00 ns, 1.5350 us/op
+WorkloadJitting  2: 1 op, 285918025.00 ns, 285.9180 ms/op
+
+WorkloadPilot    1: 2 op, 407087429.00 ns, 203.5437 ms/op
+WorkloadPilot    2: 3 op, 531726466.00 ns, 177.2422 ms/op
+
+WorkloadWarmup   1: 3 op, 502903857.00 ns, 167.6346 ms/op
+WorkloadWarmup   2: 3 op, 453116624.00 ns, 151.0389 ms/op
+WorkloadWarmup   3: 3 op, 418034813.00 ns, 139.3449 ms/op
+
+// BeforeActualRun
+WorkloadActual   1: 3 op, 419667833.00 ns, 139.8893 ms/op
+WorkloadActual   2: 3 op, 433867323.00 ns, 144.6224 ms/op
+WorkloadActual   3: 3 op, 485192375.00 ns, 161.7308 ms/op
+WorkloadActual   4: 3 op, 452891625.00 ns, 150.9639 ms/op
+WorkloadActual   5: 3 op, 458330541.00 ns, 152.7768 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 3 op, 419667833.00 ns, 139.8893 ms/op
+WorkloadResult   2: 3 op, 433867323.00 ns, 144.6224 ms/op
+WorkloadResult   3: 3 op, 485192375.00 ns, 161.7308 ms/op
+WorkloadResult   4: 3 op, 452891625.00 ns, 150.9639 ms/op
+WorkloadResult   5: 3 op, 458330541.00 ns, 152.7768 ms/op
+// GC:  11 2 0 70078768 3
+// Threading:  0 0 3
+
+// AfterAll
+// Benchmark Process 6220 has exited with code 0.
+
+Mean = 149.997 ms, StdErr = 3.724 ms (2.48%), N = 5, StdDev = 8.328 ms
+Min = 139.889 ms, Q1 = 144.622 ms, Median = 150.964 ms, Q3 = 152.777 ms, Max = 161.731 ms
+IQR = 8.154 ms, LowerFence = 132.391 ms, UpperFence = 165.008 ms
+ConfidenceInterval = [117.930 ms; 182.063 ms] (CI 99.9%), Margin = 32.067 ms (21.38% of Mean)
+Skewness = 0.16, Kurtosis = 1.26, MValue = 2
+
+// ** Remained 1 (50.0 %) benchmark(s) to run. Estimated finish 2025-11-09 17:05 (0h 0m from now) **
+// **************************
+// Benchmark: RenderingBenchmarks.MixedDocument_200Pages: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3)
+// *** Execute ***
+// Launch: 1 / 1
+// Execute: dotnet ababab1a-7995-48cb-b36c-ef2006381c73.dll --anonymousPipes 118 119 --benchmarkName Folly.Benchmarks.RenderingBenchmarks.MixedDocument_200Pages --job ShortRun --benchmarkId 1 in /home/user/folly/tests/Folly.Benchmarks/bin/Release/net8.0/ababab1a-7995-48cb-b36c-ef2006381c73/bin/Release/net8.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.14.0
+// Runtime=.NET 8.0.21 (8.0.2125.47513), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX-512F+CD+BW+DQ+VL+VBMI,AES,BMI1,BMI2,FMA,LZCNT,PCLMUL,POPCNT VectorSize=256
+// Job: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3)
+
+OverheadJitting  1: 1 op, 509845.00 ns, 509.8450 us/op
+WorkloadJitting  1: 1 op, 470165483.00 ns, 470.1655 ms/op
+
+OverheadJitting  2: 1 op, 2014.00 ns, 2.0140 us/op
+WorkloadJitting  2: 1 op, 291702752.00 ns, 291.7028 ms/op
+
+WorkloadPilot    1: 2 op, 377602311.00 ns, 188.8012 ms/op
+WorkloadPilot    2: 3 op, 515227962.00 ns, 171.7427 ms/op
+
+WorkloadWarmup   1: 3 op, 557736859.00 ns, 185.9123 ms/op
+WorkloadWarmup   2: 3 op, 417569864.00 ns, 139.1900 ms/op
+WorkloadWarmup   3: 3 op, 392686151.00 ns, 130.8954 ms/op
+
+// BeforeActualRun
+WorkloadActual   1: 3 op, 422874076.00 ns, 140.9580 ms/op
+WorkloadActual   2: 3 op, 474715065.00 ns, 158.2384 ms/op
+WorkloadActual   3: 3 op, 427855184.00 ns, 142.6184 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 3 op, 422874076.00 ns, 140.9580 ms/op
+WorkloadResult   2: 3 op, 474715065.00 ns, 158.2384 ms/op
+WorkloadResult   3: 3 op, 427855184.00 ns, 142.6184 ms/op
+// GC:  11 2 0 70078768 3
+// Threading:  0 0 3
+
+// AfterAll
+// Benchmark Process 6232 has exited with code 0.
+
+Mean = 147.272 ms, StdErr = 5.504 ms (3.74%), N = 3, StdDev = 9.534 ms
+Min = 140.958 ms, Q1 = 141.788 ms, Median = 142.618 ms, Q3 = 150.428 ms, Max = 158.238 ms
+IQR = 8.640 ms, LowerFence = 128.828 ms, UpperFence = 163.389 ms
+ConfidenceInterval = [-26.659 ms; 321.202 ms] (CI 99.9%), Margin = 173.930 ms (118.10% of Mean)
+Skewness = 0.37, Kurtosis = 0.67, MValue = 2
+
+// ** Remained 0 (0.0 %) benchmark(s) to run. Estimated finish 2025-11-09 17:05 (0h 0m from now) **
+// ***** BenchmarkRunner: Finish  *****
+
+// * Export *
+  BenchmarkDotNet.Artifacts/results/Folly.Benchmarks.RenderingBenchmarks-report.csv
+  BenchmarkDotNet.Artifacts/results/Folly.Benchmarks.RenderingBenchmarks-report-github.md
+  BenchmarkDotNet.Artifacts/results/Folly.Benchmarks.RenderingBenchmarks-report.html
+
+// * Detailed results *
+RenderingBenchmarks.MixedDocument_200Pages: Job-UCVPBV(IterationCount=5, RunStrategy=Throughput, WarmupCount=3)
+Runtime = .NET 8.0.21 (8.0.2125.47513), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI; GC = Concurrent Workstation
+Mean = 149.997 ms, StdErr = 3.724 ms (2.48%), N = 5, StdDev = 8.328 ms
+Min = 139.889 ms, Q1 = 144.622 ms, Median = 150.964 ms, Q3 = 152.777 ms, Max = 161.731 ms
+IQR = 8.154 ms, LowerFence = 132.391 ms, UpperFence = 165.008 ms
+ConfidenceInterval = [117.930 ms; 182.063 ms] (CI 99.9%), Margin = 32.067 ms (21.38% of Mean)
+Skewness = 0.16, Kurtosis = 1.26, MValue = 2
+-------------------- Histogram --------------------
+[133.497 ms ; 142.308 ms) | @
+[142.308 ms ; 155.092 ms) | @@@
+[155.092 ms ; 168.123 ms) | @
+---------------------------------------------------
+
+RenderingBenchmarks.MixedDocument_200Pages: ShortRun(IterationCount=3, LaunchCount=1, WarmupCount=3)
+Runtime = .NET 8.0.21 (8.0.2125.47513), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI; GC = Concurrent Workstation
+Mean = 147.272 ms, StdErr = 5.504 ms (3.74%), N = 3, StdDev = 9.534 ms
+Min = 140.958 ms, Q1 = 141.788 ms, Median = 142.618 ms, Q3 = 150.428 ms, Max = 158.238 ms
+IQR = 8.640 ms, LowerFence = 128.828 ms, UpperFence = 163.389 ms
+ConfidenceInterval = [-26.659 ms; 321.202 ms] (CI 99.9%), Margin = 173.930 ms (118.10% of Mean)
+Skewness = 0.37, Kurtosis = 0.67, MValue = 2
+-------------------- Histogram --------------------
+[140.922 ms ; 158.274 ms) | @@@
+---------------------------------------------------
+
+// * Summary *
+
+BenchmarkDotNet v0.14.0, Ubuntu 24.04.3 LTS (Noble Numbat)
+unknown, 1 CPU, 16 logical and 16 physical cores
+.NET SDK 8.0.121
+  [Host]     : .NET 8.0.21 (8.0.2125.47513), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+  Job-UCVPBV : .NET 8.0.21 (8.0.2125.47513), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+  ShortRun   : .NET 8.0.21 (8.0.2125.47513), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+
+WarmupCount=3  
+
+| Method                 | Job        | IterationCount | LaunchCount | RunStrategy | Mean     | Error     | StdDev  | Gen0      | Gen1     | Allocated |
+|----------------------- |----------- |--------------- |------------ |------------ |---------:|----------:|--------:|----------:|---------:|----------:|
+| MixedDocument_200Pages | Job-UCVPBV | 5              | Default     | Throughput  | 150.0 ms |  32.07 ms | 8.33 ms | 3666.6667 | 666.6667 |  22.28 MB |
+| MixedDocument_200Pages | ShortRun   | 3              | 1           | Default     | 147.3 ms | 173.93 ms | 9.53 ms | 3666.6667 | 666.6667 |  22.28 MB |
+
+// * Legends *
+  Mean      : Arithmetic mean of all measurements
+  Error     : Half of 99.9% confidence interval
+  StdDev    : Standard deviation of all measurements
+  Gen0      : GC Generation 0 collects per 1000 operations
+  Gen1      : GC Generation 1 collects per 1000 operations
+  Allocated : Allocated memory per single operation (managed only, inclusive, 1KB = 1024B)
+  1 ms      : 1 Millisecond (0.001 sec)
+
+// * Diagnostic Output - MemoryDiagnoser *
+
+
+// ***** BenchmarkRunner: End *****
+Run time: 00:00:22 (22.3 sec), executed benchmarks: 2
+
+Global total time: 00:00:57 (57.84 sec), executed benchmarks: 2
+// * Artifacts cleanup *
+Artifacts cleanup is finished
