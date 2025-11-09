@@ -153,25 +153,30 @@ Pipeline steps:
 - [x] Build succeeds with zero warnings
 - [x] Tests pass (basic sanity checks)
 
-### M1: Basic Layout (3-4 weeks)
+### M1: Basic Layout ✅ (3-4 weeks) - **COMPLETED**
 
 **Goal**: Implement fundamental block/inline model and simple pagination
 
 **Deliverables**:
-- [ ] Block area generation
-- [ ] Inline area generation (text, inline containers)
-- [ ] Simple page master support
-- [ ] Single-column layout
-- [ ] Font metrics and text measurement
-- [ ] Basic text rendering to PDF
-- [ ] Line breaking algorithm
-- [ ] Simple margin/padding/border support
-- [ ] **Output**: "Hello World" PDF with formatted text
+- [x] Block area generation
+- [x] Inline area generation (text, inline containers)
+- [x] Simple page master support
+- [x] Single-column layout
+- [x] Font metrics and text measurement
+- [x] Basic text rendering to PDF
+- [x] Line breaking algorithm (greedy word-based)
+- [x] Margin/padding/border support (all border styles)
+- [x] Background color rendering (named and hex)
+- [x] Multi-page pagination with automatic page breaking
+- [x] Text alignment (start, center, end)
+- [x] **Output**: 6 validated example PDFs with formatted text
 
 **Success Criteria**:
-- Can render multi-page documents with text blocks
-- Correct line breaking and page breaking
-- Basic font rendering works
+- ✅ Can render multi-page documents with text blocks
+- ✅ Correct line breaking and page breaking
+- ✅ Basic font rendering works (Helvetica, Times, Courier)
+- ✅ All PDFs pass qpdf validation (100% success rate)
+- ✅ 11 passing unit tests (100% success rate)
 
 ### M2: Tables, Images, Lists (4-6 weeks)
 

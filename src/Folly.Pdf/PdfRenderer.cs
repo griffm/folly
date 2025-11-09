@@ -101,6 +101,16 @@ public sealed class PdfRenderer : IDisposable
             {
                 fonts.Add(inlineArea.FontFamily);
             }
+            else if (area is TableArea tableArea)
+            {
+                foreach (var row in tableArea.Rows)
+                {
+                    foreach (var cell in row.Cells)
+                    {
+                        CollectFontsFromAreas(cell.Children, fonts);
+                    }
+                }
+            }
         }
     }
 
@@ -120,7 +130,11 @@ public sealed class PdfRenderer : IDisposable
 
     private void RenderArea(Area area, StringBuilder content, Dictionary<string, int> fontIds)
     {
-        if (area is BlockArea blockArea)
+        if (area is TableArea tableArea)
+        {
+            RenderTable(tableArea, content, fontIds);
+        }
+        else if (area is BlockArea blockArea)
         {
             // Render background
             if (blockArea.BackgroundColor != "transparent" && !string.IsNullOrWhiteSpace(blockArea.BackgroundColor))
@@ -273,6 +287,98 @@ public sealed class PdfRenderer : IDisposable
 
         // Default to black if unable to parse
         return (0, 0, 0);
+    }
+
+    private void RenderTable(TableArea table, StringBuilder content, Dictionary<string, int> fontIds)
+    {
+        // Render each row in the table
+        foreach (var row in table.Rows)
+        {
+            RenderTableRow(row, table, content, fontIds);
+        }
+    }
+
+    private void RenderTableRow(TableRowArea row, TableArea table, StringBuilder content, Dictionary<string, int> fontIds)
+    {
+        // Render each cell in the row
+        foreach (var cell in row.Cells)
+        {
+            RenderTableCell(cell, table, row, content, fontIds);
+        }
+    }
+
+    private void RenderTableCell(TableCellArea cell, TableArea table, TableRowArea row, StringBuilder content, Dictionary<string, int> fontIds)
+    {
+        // Calculate absolute position
+        var absoluteX = table.X + cell.X;
+        var absoluteY = table.Y + row.Y + cell.Y;
+
+        // Render cell background
+        if (cell.BackgroundColor != "transparent" && !string.IsNullOrWhiteSpace(cell.BackgroundColor))
+        {
+            var (r, g, b) = ParseColor(cell.BackgroundColor);
+
+            content.AppendLine("q");
+            content.AppendLine($"{r:F3} {g:F3} {b:F3} rg");
+            content.AppendLine($"{absoluteX:F2} {absoluteY:F2} {cell.Width:F2} {cell.Height:F2} re");
+            content.AppendLine("f");
+            content.AppendLine("Q");
+        }
+
+        // Render cell border
+        if (cell.BorderStyle != "none" && cell.BorderWidth > 0)
+        {
+            var (r, g, b) = ParseColor(cell.BorderColor);
+
+            content.AppendLine("q");
+            content.AppendLine($"{r:F3} {g:F3} {b:F3} RG");
+            content.AppendLine($"{cell.BorderWidth:F2} w");
+
+            // Set line dash pattern
+            switch (cell.BorderStyle.ToLowerInvariant())
+            {
+                case "dashed":
+                    content.AppendLine("[3 2] 0 d");
+                    break;
+                case "dotted":
+                    content.AppendLine("[1 1] 0 d");
+                    break;
+                default: // solid
+                    content.AppendLine("[] 0 d");
+                    break;
+            }
+
+            var halfWidth = cell.BorderWidth / 2;
+            content.AppendLine($"{absoluteX + halfWidth:F2} {absoluteY + halfWidth:F2} {cell.Width - cell.BorderWidth:F2} {cell.Height - cell.BorderWidth:F2} re");
+            content.AppendLine("S");
+            content.AppendLine("Q");
+        }
+
+        // Render cell content (blocks)
+        // Save and restore graphics state to handle coordinate translation
+        content.AppendLine("q");
+        content.AppendLine($"1 0 0 1 {absoluteX:F2} {absoluteY:F2} cm"); // Translate to cell position
+
+        foreach (var child in cell.Children)
+        {
+            // Temporarily adjust positions for rendering within cell
+            if (child is BlockArea blockArea)
+            {
+                var originalX = blockArea.X;
+                var originalY = blockArea.Y;
+
+                RenderArea(child, content, fontIds);
+
+                blockArea.X = originalX;
+                blockArea.Y = originalY;
+            }
+            else
+            {
+                RenderArea(child, content, fontIds);
+            }
+        }
+
+        content.AppendLine("Q");
     }
 
     private static string EscapeString(string str)

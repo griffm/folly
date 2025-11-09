@@ -114,6 +114,31 @@ internal sealed class LayoutEngine
             currentY += blockArea.Height + blockArea.MarginTop + blockArea.MarginBottom;
         }
 
+        // Layout each table in the flow
+        foreach (var foTable in flow.Tables)
+        {
+            var tableArea = LayoutTable(foTable, bodyMarginLeft, currentY, bodyWidth);
+            if (tableArea == null)
+                continue;
+
+            // Check if table fits on current page
+            if (currentY + tableArea.Height > pageMaster.PageHeight - bodyMarginBottom)
+            {
+                // Table doesn't fit - add current page and create new one
+                areaTree.AddPage(currentPage);
+                pageNumber++;
+                currentPage = CreatePage(pageMaster, pageNumber);
+                currentY = bodyMarginTop;
+
+                // Re-position the table for the new page
+                tableArea.X = bodyMarginLeft;
+                tableArea.Y = currentY;
+            }
+
+            currentPage.AddArea(tableArea);
+            currentY += tableArea.Height;
+        }
+
         // Add the last page
         areaTree.AddPage(currentPage);
     }
@@ -267,5 +292,211 @@ internal sealed class LayoutEngine
         lineArea.AddInline(inlineArea);
 
         return lineArea;
+    }
+
+    private TableArea? LayoutTable(Dom.FoTable foTable, double x, double y, double availableWidth)
+    {
+        var tableArea = new TableArea
+        {
+            X = x,
+            Y = y,
+            BorderCollapse = foTable.BorderCollapse,
+            BorderSpacing = foTable.BorderSpacing
+        };
+
+        // Calculate column widths
+        var columnWidths = CalculateColumnWidths(foTable, availableWidth);
+        tableArea.ColumnWidths = columnWidths;
+
+        // Calculate total table width
+        tableArea.Width = columnWidths.Sum() + (foTable.BorderSpacing * (columnWidths.Count + 1));
+
+        var currentY = 0.0;
+
+        // Layout header rows
+        if (foTable.Header != null)
+        {
+            foreach (var foRow in foTable.Header.Rows)
+            {
+                var rowArea = LayoutTableRow(foRow, 0, currentY, columnWidths, foTable.BorderSpacing);
+                if (rowArea != null)
+                {
+                    tableArea.AddRow(rowArea);
+                    currentY += rowArea.Height;
+                }
+            }
+        }
+
+        // Layout body rows
+        if (foTable.Body != null)
+        {
+            foreach (var foRow in foTable.Body.Rows)
+            {
+                var rowArea = LayoutTableRow(foRow, 0, currentY, columnWidths, foTable.BorderSpacing);
+                if (rowArea != null)
+                {
+                    tableArea.AddRow(rowArea);
+                    currentY += rowArea.Height;
+                }
+            }
+        }
+
+        // Layout footer rows
+        if (foTable.Footer != null)
+        {
+            foreach (var foRow in foTable.Footer.Rows)
+            {
+                var rowArea = LayoutTableRow(foRow, 0, currentY, columnWidths, foTable.BorderSpacing);
+                if (rowArea != null)
+                {
+                    tableArea.AddRow(rowArea);
+                    currentY += rowArea.Height;
+                }
+            }
+        }
+
+        tableArea.Height = currentY;
+
+        return tableArea;
+    }
+
+    private List<double> CalculateColumnWidths(Dom.FoTable foTable, double availableWidth)
+    {
+        var columnWidths = new List<double>();
+
+        // If table has column specifications, use them
+        if (foTable.Columns.Count > 0)
+        {
+            foreach (var column in foTable.Columns)
+            {
+                var repeat = column.NumberColumnsRepeated;
+                for (int i = 0; i < repeat; i++)
+                {
+                    // Handle column width (simplified - support pt values)
+                    var width = column.ColumnWidth;
+                    if (width > 0)
+                    {
+                        columnWidths.Add(width);
+                    }
+                    else
+                    {
+                        // Auto width - will be calculated later
+                        columnWidths.Add(0);
+                    }
+                }
+            }
+
+            // If any columns are auto (0), distribute remaining width
+            var specifiedWidth = columnWidths.Where(w => w > 0).Sum();
+            var autoCount = columnWidths.Count(w => w == 0);
+            if (autoCount > 0)
+            {
+                var remainingWidth = availableWidth - specifiedWidth - (foTable.BorderSpacing * (columnWidths.Count + 1));
+                var autoWidth = Math.Max(50, remainingWidth / autoCount); // Minimum 50pt per column
+                for (int i = 0; i < columnWidths.Count; i++)
+                {
+                    if (columnWidths[i] == 0)
+                        columnWidths[i] = autoWidth;
+                }
+            }
+        }
+        else
+        {
+            // No column specifications - determine from first row of body
+            var cellCount = foTable.Body?.Rows.FirstOrDefault()?.Cells.Count ?? 1;
+            var spacing = foTable.BorderSpacing * (cellCount + 1);
+            var columnWidth = (availableWidth - spacing) / cellCount;
+
+            for (int i = 0; i < cellCount; i++)
+            {
+                columnWidths.Add(columnWidth);
+            }
+        }
+
+        return columnWidths;
+    }
+
+    private TableRowArea? LayoutTableRow(Dom.FoTableRow foRow, double x, double y, List<double> columnWidths, double borderSpacing)
+    {
+        var rowArea = new TableRowArea
+        {
+            X = x,
+            Y = y
+        };
+
+        var currentX = borderSpacing;
+        var maxCellHeight = 0.0;
+        int columnIndex = 0;
+
+        foreach (var foCell in foRow.Cells)
+        {
+            // Calculate cell width (sum of spanned columns)
+            var cellWidth = 0.0;
+            var colSpan = foCell.NumberColumnsSpanned;
+            for (int i = 0; i < colSpan && columnIndex + i < columnWidths.Count; i++)
+            {
+                cellWidth += columnWidths[columnIndex + i];
+            }
+            // Add spacing between spanned columns
+            if (colSpan > 1)
+                cellWidth += borderSpacing * (colSpan - 1);
+
+            var cellArea = LayoutTableCell(foCell, currentX, 0, cellWidth);
+            if (cellArea != null)
+            {
+                cellArea.ColumnIndex = columnIndex;
+                rowArea.AddCell(cellArea);
+                maxCellHeight = Math.Max(maxCellHeight, cellArea.Height);
+            }
+
+            currentX += cellWidth + borderSpacing;
+            columnIndex += colSpan;
+        }
+
+        rowArea.Height = maxCellHeight;
+        rowArea.Width = currentX;
+
+        return rowArea;
+    }
+
+    private TableCellArea? LayoutTableCell(Dom.FoTableCell foCell, double x, double y, double cellWidth)
+    {
+        var cellArea = new TableCellArea
+        {
+            X = x,
+            Y = y,
+            Width = cellWidth,
+            NumberColumnsSpanned = foCell.NumberColumnsSpanned,
+            NumberRowsSpanned = foCell.NumberRowsSpanned,
+            PaddingTop = foCell.PaddingTop,
+            PaddingBottom = foCell.PaddingBottom,
+            PaddingLeft = foCell.PaddingLeft,
+            PaddingRight = foCell.PaddingRight,
+            BorderWidth = foCell.BorderWidth,
+            BorderStyle = foCell.BorderStyle,
+            BorderColor = foCell.BorderColor,
+            BackgroundColor = foCell.BackgroundColor ?? "transparent",
+            TextAlign = foCell.TextAlign,
+            VerticalAlign = foCell.VerticalAlign
+        };
+
+        // Calculate content width (cell width minus padding)
+        var contentWidth = cellWidth - foCell.PaddingLeft - foCell.PaddingRight - (foCell.BorderWidth * 2);
+        var currentY = foCell.PaddingTop;
+
+        // Layout blocks within the cell
+        foreach (var foBlock in foCell.Blocks)
+        {
+            var blockArea = LayoutBlock(foBlock, foCell.PaddingLeft, currentY, contentWidth);
+            if (blockArea != null)
+            {
+                cellArea.AddChild(blockArea);
+                currentY += blockArea.Height + blockArea.MarginTop + blockArea.MarginBottom;
+            }
+        }
+
+        cellArea.Height = currentY + foCell.PaddingBottom;
+
+        return cellArea;
     }
 }

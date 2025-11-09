@@ -124,11 +124,20 @@ internal static class FoParser
     private static FoFlow ParseFlow(XElement element)
     {
         var blocks = new List<FoBlock>();
+        var tables = new List<FoTable>();
 
         foreach (var child in element.Elements())
         {
-            if (child.Name.LocalName == "block")
-                blocks.Add(ParseBlock(child));
+            var name = child.Name.LocalName;
+            switch (name)
+            {
+                case "block":
+                    blocks.Add(ParseBlock(child));
+                    break;
+                case "table":
+                    tables.Add(ParseTable(child));
+                    break;
+            }
         }
 
         // Also collect direct text content
@@ -141,6 +150,7 @@ internal static class FoParser
         {
             Properties = ParseProperties(element),
             Blocks = blocks,
+            Tables = tables,
             TextContent = textContent
         };
     }
@@ -166,6 +176,136 @@ internal static class FoParser
             Properties = ParseProperties(element),
             Children = children,
             TextContent = string.IsNullOrWhiteSpace(textContent) ? null : textContent
+        };
+    }
+
+    private static FoTable ParseTable(XElement element)
+    {
+        var columns = new List<FoTableColumn>();
+        FoTableHeader? header = null;
+        FoTableFooter? footer = null;
+        FoTableBody? body = null;
+
+        foreach (var child in element.Elements())
+        {
+            var name = child.Name.LocalName;
+            switch (name)
+            {
+                case "table-column":
+                    columns.Add(ParseTableColumn(child));
+                    break;
+                case "table-header":
+                    header = ParseTableHeader(child);
+                    break;
+                case "table-footer":
+                    footer = ParseTableFooter(child);
+                    break;
+                case "table-body":
+                    body = ParseTableBody(child);
+                    break;
+            }
+        }
+
+        return new FoTable
+        {
+            Properties = ParseProperties(element),
+            Columns = columns,
+            Header = header,
+            Footer = footer,
+            Body = body
+        };
+    }
+
+    private static FoTableColumn ParseTableColumn(XElement element)
+    {
+        return new FoTableColumn
+        {
+            Properties = ParseProperties(element)
+        };
+    }
+
+    private static FoTableHeader ParseTableHeader(XElement element)
+    {
+        var rows = new List<FoTableRow>();
+
+        foreach (var child in element.Elements())
+        {
+            if (child.Name.LocalName == "table-row")
+                rows.Add(ParseTableRow(child));
+        }
+
+        return new FoTableHeader
+        {
+            Properties = ParseProperties(element),
+            Rows = rows
+        };
+    }
+
+    private static FoTableFooter ParseTableFooter(XElement element)
+    {
+        var rows = new List<FoTableRow>();
+
+        foreach (var child in element.Elements())
+        {
+            if (child.Name.LocalName == "table-row")
+                rows.Add(ParseTableRow(child));
+        }
+
+        return new FoTableFooter
+        {
+            Properties = ParseProperties(element),
+            Rows = rows
+        };
+    }
+
+    private static FoTableBody ParseTableBody(XElement element)
+    {
+        var rows = new List<FoTableRow>();
+
+        foreach (var child in element.Elements())
+        {
+            if (child.Name.LocalName == "table-row")
+                rows.Add(ParseTableRow(child));
+        }
+
+        return new FoTableBody
+        {
+            Properties = ParseProperties(element),
+            Rows = rows
+        };
+    }
+
+    private static FoTableRow ParseTableRow(XElement element)
+    {
+        var cells = new List<FoTableCell>();
+
+        foreach (var child in element.Elements())
+        {
+            if (child.Name.LocalName == "table-cell")
+                cells.Add(ParseTableCell(child));
+        }
+
+        return new FoTableRow
+        {
+            Properties = ParseProperties(element),
+            Cells = cells
+        };
+    }
+
+    private static FoTableCell ParseTableCell(XElement element)
+    {
+        var blocks = new List<FoBlock>();
+
+        foreach (var child in element.Elements())
+        {
+            if (child.Name.LocalName == "block")
+                blocks.Add(ParseBlock(child));
+        }
+
+        return new FoTableCell
+        {
+            Properties = ParseProperties(element),
+            Blocks = blocks
         };
     }
 
