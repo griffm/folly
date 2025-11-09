@@ -52,3 +52,4 @@ Desktop.ini
 
 # Example outputs (generated PDFs)
 examples/**/output/
+output/
