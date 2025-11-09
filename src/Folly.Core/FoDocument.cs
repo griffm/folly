@@ -6,11 +6,13 @@ namespace Folly;
 public sealed class FoDocument : IDisposable
 {
     private readonly XDocument _foXml;
+    private readonly Dom.FoRoot _foRoot;
     private bool _disposed;
 
-    private FoDocument(XDocument foXml)
+    private FoDocument(XDocument foXml, Dom.FoRoot foRoot)
     {
         _foXml = foXml ?? throw new ArgumentNullException(nameof(foXml));
+        _foRoot = foRoot ?? throw new ArgumentNullException(nameof(foRoot));
     }
 
     /// <summary>
@@ -41,11 +43,13 @@ public sealed class FoDocument : IDisposable
 
         var doc = XDocument.Load(xml, LoadOptions.SetLineInfo | LoadOptions.PreserveWhitespace);
 
+        // Parse FO DOM
+        var foRoot = Dom.FoParser.Parse(doc);
+
         // TODO: Validate FO structure
-        // TODO: Build immutable FO DOM
         // TODO: Resolve properties and validate
 
-        return new FoDocument(doc);
+        return new FoDocument(doc, foRoot);
     }
 
     // SavePdf methods are implemented as extension methods in Folly.Pdf project
@@ -61,16 +65,9 @@ public sealed class FoDocument : IDisposable
 
         options ??= new LayoutOptions();
 
-        // TODO: Implement full layout engine
-        // - Parse FO DOM
-        // - Resolve properties with inheritance
-        // - Build block/inline model
-        // - Handle pagination, page masters
-        // - Process tables, lists, footnotes, floats
-        // - Apply keeps, breaks, white-space rules
-        // - Generate deterministic area tree
-
-        return new AreaTree();
+        // Build area tree from FO DOM using layout engine
+        var layoutEngine = new Layout.LayoutEngine(options);
+        return layoutEngine.Layout(_foRoot);
     }
 
     /// <summary>

@@ -1,0 +1,70 @@
+namespace Folly.Dom;
+
+/// <summary>
+/// Represents the fo:block element.
+/// </summary>
+public sealed class FoBlock : FoElement
+{
+    /// <inheritdoc/>
+    public override string Name => "block";
+
+    /// <summary>
+    /// Gets the font family.
+    /// </summary>
+    public string FontFamily => Properties.GetString("font-family", "Helvetica");
+
+    /// <summary>
+    /// Gets the font size in points.
+    /// </summary>
+    public double FontSize => Properties.GetLength("font-size", 12);
+
+    /// <summary>
+    /// Gets the line height in points.
+    /// </summary>
+    public double LineHeight => Properties.GetLength("line-height", FontSize * 1.2);
+
+    /// <summary>
+    /// Gets the text alignment.
+    /// </summary>
+    public string TextAlign => Properties.GetString("text-align", "start");
+
+    /// <summary>
+    /// Gets the margin-top in points.
+    /// </summary>
+    public double MarginTop => Properties.GetLength("margin-top", 0);
+
+    /// <summary>
+    /// Gets the margin-bottom in points.
+    /// </summary>
+    public double MarginBottom => Properties.GetLength("margin-bottom", 0);
+
+    /// <summary>
+    /// Gets the margin-left in points.
+    /// </summary>
+    public double MarginLeft => Properties.GetLength("margin-left", 0);
+
+    /// <summary>
+    /// Gets the margin-right in points.
+    /// </summary>
+    public double MarginRight => Properties.GetLength("margin-right", 0);
+
+    /// <summary>
+    /// Gets the padding-top in points.
+    /// </summary>
+    public double PaddingTop => Properties.GetLength("padding-top", 0);
+
+    /// <summary>
+    /// Gets the padding-bottom in points.
+    /// </summary>
+    public double PaddingBottom => Properties.GetLength("padding-bottom", 0);
+
+    /// <summary>
+    /// Gets the padding-left in points.
+    /// </summary>
+    public double PaddingLeft => Properties.GetLength("padding-left", 0);
+
+    /// <summary>
+    /// Gets the padding-right in points.
+    /// </summary>
+    public double PaddingRight => Properties.GetLength("padding-right", 0);
+}
