@@ -1,4 +1,4 @@
-
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
@@ -12,6 +12,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Folly.UnitTests", "tests\Folly.UnitTests\Folly.UnitTests.csproj", "{5A1B1C1D-1E1F-2020-2122-232425262731}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Folly.SpecTests", "tests\Folly.SpecTests\Folly.SpecTests.csproj", "{6A1B1C1D-1E1F-2020-2122-232425262732}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "examples", "examples", "{B833AF6E-15C4-468F-987C-2E7F5E2CA3D8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Folly.Examples", "examples\Folly.Examples\Folly.Examples.csproj", "{BF126CC9-C291-4CF9-9BC4-617A48F3D700}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,5 +43,12 @@ Global
 		{6A1B1C1D-1E1F-2020-2122-232425262732}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6A1B1C1D-1E1F-2020-2122-232425262732}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6A1B1C1D-1E1F-2020-2122-232425262732}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BF126CC9-C291-4CF9-9BC4-617A48F3D700}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BF126CC9-C291-4CF9-9BC4-617A48F3D700}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BF126CC9-C291-4CF9-9BC4-617A48F3D700}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BF126CC9-C291-4CF9-9BC4-617A48F3D700}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{BF126CC9-C291-4CF9-9BC4-617A48F3D700} = {B833AF6E-15C4-468F-987C-2E7F5E2CA3D8}
 	EndGlobalSection
 EndGlobal

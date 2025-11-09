@@ -1,0 +1,88 @@
+%PDF-1.7
+%????
+1 0 obj
+<<
+  /Type /Catalog
+  /Pages 2 0 R
+>>
+endobj
+2 0 obj
+<<
+  /Type /Font
+  /Subtype /Type1
+  /BaseFont /Helvetica
+>>
+endobj
+3 0 obj
+<<
+  /Length 323
+>>
+stream
+BT
+/F2 18.00 Tf
+194.92 12.92 Td
+(Text Alignment Examples) Tj
+ET
+BT
+/F2 12.00 Tf
+0.00 8.62 Td
+(This text is aligned to the start \(left in LTR languages\).) Tj
+ET
+BT
+/F2 12.00 Tf
+236.45 8.62 Td
+(This text is centered.) Tj
+ET
+BT
+/F2 12.00 Tf
+282.75 8.62 Td
+(This text is aligned to the end \(right in LTR languages\).) Tj
+ET
+
+endstream
+endobj
+4 0 obj
+<<
+  /Type /Page
+  /Parent 2 0 R
+  /MediaBox [0 0 595.00 842.00]
+  /Contents 3 0 R
+  /Resources <<
+    /Font <<
+      /F2 2 0 R
+    >>
+  >>
+>>
+endobj
+5 0 obj
+<<
+  /Type /Pages
+  /Kids [4 0 R]
+  /Count 1
+>>
+endobj
+6 0 obj
+<<
+  /Creator (Folly XSL-FO Processor)
+  /Producer (Folly)
+  /CreationDate (D:20251109094847Z)
+>>
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000015 00000 n 
+0000000068 00000 n 
+0000000144 00000 n 
+0000000520 00000 n 
+0000000678 00000 n 
+0000000741 00000 n 
+trailer
+<<
+  /Size 7
+  /Root 1 0 R
+  /Info 6 0 R
+>>
+startxref
+854
+%%EOF

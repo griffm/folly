@@ -101,16 +101,47 @@ dotnet build
 dotnet test
 ```
 
+## Examples
+
+The `examples` directory contains runnable samples demonstrating Folly's capabilities:
+
+```bash
+cd examples
+dotnet run --project Folly.Examples
+```
+
+This generates 6 example PDFs:
+- **Hello World** - Basic document with simple text
+- **Multiple Blocks** - Different fonts and sizes
+- **Text Alignment** - Start, center, and end alignment
+- **Borders and Backgrounds** - Various styling options
+- **Multi-Page Document** - Automatic pagination
+- **Invoice** - Real-world business document
+
+See [examples/README.md](examples/README.md) for details.
+
+### Validating PDFs
+
+Validate generated PDFs with qpdf:
+
+```bash
+cd examples
+./validate-pdfs.sh
+```
+
 ## Current Status
 
 **Milestone M0: Foundation** ✅ (Completed)
+**Milestone M1: Basic Layout** ✅ (Completed)
 
-The foundational structure is in place with:
-- Solution structure and build infrastructure
-- Core API skeletons (FoDocument, AreaTree, PdfRenderer)
-- CI/CD pipeline with GitHub Actions
-- Nerdbank.GitVersioning for semantic versioning
-- Initial test coverage
+The core rendering engine is operational with:
+- FO DOM parsing from XSL-FO XML
+- Multi-page layout with automatic pagination
+- Line breaking and word wrapping
+- Text alignment (start, center, end)
+- Margins, padding, borders, and backgrounds
+- PDF 1.7 output with proper structure
+- 11 passing tests
 
 See [PLAN.md](PLAN.md) for detailed roadmap and upcoming milestones.
 
