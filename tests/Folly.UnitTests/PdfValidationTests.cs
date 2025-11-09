@@ -400,14 +400,20 @@ public class PdfValidationTests
             <?xml version="1.0"?>
             <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
               <fo:layout-master-set>
-                <fo:simple-page-master master-name="A4" page-height="200pt">
+                <fo:simple-page-master master-name="A4" page-width="595pt" page-height="100pt">
                   <fo:region-body margin="10pt"/>
                 </fo:simple-page-master>
               </fo:layout-master-set>
               <fo:page-sequence master-reference="A4">
                 <fo:flow flow-name="xsl-region-body">
-                  <fo:block margin-bottom="100pt">Page 1</fo:block>
-                  <fo:block>Page 2</fo:block>
+                  <fo:block font-size="12pt">Page 1 content line 1</fo:block>
+                  <fo:block font-size="12pt">Page 1 content line 2</fo:block>
+                  <fo:block font-size="12pt">Page 1 content line 3</fo:block>
+                  <fo:block font-size="12pt">Page 1 content line 4</fo:block>
+                  <fo:block font-size="12pt">Page 1 content line 5</fo:block>
+                  <fo:block font-size="12pt">Page 2 content line 1</fo:block>
+                  <fo:block font-size="12pt">Page 2 content line 2</fo:block>
+                  <fo:block font-size="12pt">Page 2 content line 3</fo:block>
                 </fo:flow>
               </fo:page-sequence>
             </fo:root>
@@ -417,7 +423,7 @@ public class PdfValidationTests
         using var doc = FoDocument.Load(inputStream);
 
         var areaTree = doc.BuildAreaTree();
-        Assert.True(areaTree.Pages.Count >= 2, "Should generate at least 2 pages");
+        Assert.True(areaTree.Pages.Count >= 2, $"Should generate at least 2 pages, got {areaTree.Pages.Count}");
     }
 
     [Fact]
