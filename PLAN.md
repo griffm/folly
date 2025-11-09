@@ -1,0 +1,309 @@
+# Folly Development Plan
+
+This document outlines the detailed development plan, milestones, and technical specifications for the Folly XSL-FO processor.
+
+## Objectives & Constraints
+
+- **Name**: Folly — a standalone .NET 8 library
+- **Purpose**: Fully compliant XSL-FO 1.1 processor that outputs PDF 1.7 only (no XPS/SVG in v1)
+- **Platform**: .NET 8 (C#), managed code only
+- **Dependencies**: Zero runtime dependencies beyond System.* (dev/test dependencies allowed)
+- **Input**: .fo XML files and a fluent C# API (Folly.Fluent) to build FO documents in memory
+- **Output**: PDF via internal renderer
+- **CI/CD**: GitHub Actions with automatic build, test, and publish on merges to main
+- **Versioning**: Nerdbank.GitVersioning
+
+## Features
+
+### Must-Have (v1.0)
+
+#### XSL-FO 1.1 Pipeline
+- Parse FO XML → immutable FO DOM with property resolution & validation
+- Full layout engine:
+  - Pagination with conditional page masters
+  - Block/inline formatting model
+  - Tables with complex column/row spanning
+  - Footnotes and floats
+  - Markers for running headers/footers
+  - White-space handling and inheritance
+  - Keeps and breaks
+  - BiDi hooks for right-to-left text
+- Build deterministic Area Tree
+
+#### PDF Renderer (Only Backend)
+- Produce PDF 1.7 with:
+  - Font embedding/subsetting for TTF/OTF
+  - Stable text placement with precise positioning
+  - Links (internal and external)
+  - Metadata and bookmarks
+  - Images (JPEG passthrough, PNG decoding via built-in libraries)
+  - Graphic primitives: borders, backgrounds, rounded corners, fills
+
+#### Performance Targets
+- 200-page typical mixed document in <10 seconds
+- Memory footprint <600MB
+
+#### Developer Ergonomics
+- Rich validation diagnostics
+- XPath-locatable error messages
+- Clear exception messages with context
+
+### Nice-to-Have (Future Releases)
+
+- PDF/A compliance for archival
+- Tagged PDF for accessibility
+- Pluggable hyphenation dictionaries
+- CLI tools for FO diffing and visual inspection
+- Multi-threaded layout engine
+- Streaming support for extreme workloads
+
+## Repository Structure
+
+```
+/src
+  /Folly.Core      # FO DOM, property system, layout, area tree
+  /Folly.Pdf       # PDF renderer
+  /Folly.Fluent    # Fluent builder API (optional reference)
+/tests
+  /Folly.SpecTests # XSL-FO 1.1 conformance tests
+  /Folly.UnitTests # Component/unit tests
+/build
+  version.json
+  Directory.Build.props
+/.github
+  /workflows
+    folly-ci.yml
+```
+
+## Testing & Conformance Strategy
+
+### Coverage Metrics
+- FO-specific traceability matrix tied to XSL-FO 1.1 spec clauses
+- Track coverage of each formatting object and property
+- Measure which spec sections have test coverage
+
+### PDF Validation
+- Parse output PDF and validate structure
+- Assert correct font subsets and embedding
+- Verify resource usage (objects, streams, fonts)
+- Check text placement accuracy
+- Validate link destinations and metadata
+
+### Golden AreaTree Snapshots
+- Deterministic layout verification
+- Store AreaTree as JSON for each test case
+- Compare against golden snapshots to detect layout regressions
+
+### Fuzzing & Stress Testing
+- Malformed XML input handling
+- Extreme nesting (deeply nested blocks/inlines)
+- Table stress tests (large tables, complex spanning)
+- Property inheritance chains
+- Edge cases in keeps/breaks logic
+
+### CI Requirements
+- Block merge if test coverage decreases
+- Block merge if conformance tests fail
+- Block merge if performance regresses beyond threshold
+
+## Versioning & CI/CD
+
+### Nerdbank.GitVersioning
+
+Configuration via `version.json`:
+
+```json
+{
+  "version": "0.1.0",
+  "publicReleaseRefSpec": [ "^refs/heads/main$" ]
+}
+```
+
+Version format: `{major}.{minor}.{patch}+{commitsSinceVersionChange}`
+
+### GitHub Actions Workflow
+
+Triggered on:
+- Pull requests to `main`
+- Pushes to `main`
+
+Pipeline steps:
+1. Build (Release configuration)
+2. Run unit tests with coverage
+3. Run conformance tests
+4. Upload coverage to Codecov
+5. **On main branch only**:
+   - Pack NuGet packages
+   - Publish to NuGet.org
+
+## Milestones
+
+### M0: Foundation ✅ (1-2 weeks) - **COMPLETED**
+
+**Goal**: Establish project structure, build pipeline, and core skeletons
+
+**Deliverables**:
+- [x] Repository structure with solution and projects
+- [x] CI/CD pipeline with GitHub Actions
+- [x] Nerdbank.GitVersioning configuration
+- [x] Empty PDF writer skeleton
+- [x] FO parser skeleton with Load methods
+- [x] Core types: FoDocument, AreaTree, PdfRenderer, PdfWriter
+- [x] Initial test infrastructure
+- [x] Build succeeds with zero warnings
+- [x] Tests pass (basic sanity checks)
+
+### M1: Basic Layout (3-4 weeks)
+
+**Goal**: Implement fundamental block/inline model and simple pagination
+
+**Deliverables**:
+- [ ] Block area generation
+- [ ] Inline area generation (text, inline containers)
+- [ ] Simple page master support
+- [ ] Single-column layout
+- [ ] Font metrics and text measurement
+- [ ] Basic text rendering to PDF
+- [ ] Line breaking algorithm
+- [ ] Simple margin/padding/border support
+- [ ] **Output**: "Hello World" PDF with formatted text
+
+**Success Criteria**:
+- Can render multi-page documents with text blocks
+- Correct line breaking and page breaking
+- Basic font rendering works
+
+### M2: Tables, Images, Lists (4-6 weeks)
+
+**Goal**: Implement complex layout structures
+
+**Deliverables**:
+- [ ] Full table layout algorithm
+  - [ ] Column width calculation
+  - [ ] Row height calculation
+  - [ ] Cell spanning (rowspan, colspan)
+  - [ ] Border collapse model
+- [ ] Image support
+  - [ ] JPEG passthrough
+  - [ ] PNG decoding and embedding
+  - [ ] Image scaling and positioning
+- [ ] List blocks (ordered, unordered)
+- [ ] Border rendering (all styles)
+- [ ] Background colors and images
+- [ ] Keep-together and keep-with-next/previous
+- [ ] Break-before and break-after
+
+**Success Criteria**:
+- Complex tables render correctly with all border styles
+- Images embedded properly in PDF
+- Keep/break constraints honored
+
+### M3: Pagination Mastery (3-4 weeks)
+
+**Goal**: Advanced pagination features
+
+**Deliverables**:
+- [ ] Markers (retrieve-marker)
+- [ ] Footnotes with footnote-body
+- [ ] Floats (side floats)
+- [ ] Conditional page masters (page-sequence-master)
+- [ ] Multi-column layout
+- [ ] Region support (before, after, start, end, body)
+- [ ] Page number citations
+- [ ] Initial property inheritance refinement
+
+**Success Criteria**:
+- Running headers/footers work via markers
+- Footnotes placed correctly at bottom of pages
+- Conditional page masters switch correctly (first, odd, even, last)
+
+### M4: Full Spec & Polish (4-6 weeks)
+
+**Goal**: Complete XSL-FO 1.1 conformance and production readiness
+
+**Deliverables**:
+- [ ] Complete property system with full inheritance
+- [ ] All remaining formatting objects
+- [ ] BiDi text support
+- [ ] Leaders and page number formatting
+- [ ] Bookmarks (PDF outline)
+- [ ] Internal and external links
+- [ ] Complete metadata support
+- [ ] PDF compression optimization
+- [ ] Font subsetting optimization
+- [ ] Performance profiling and optimization
+- [ ] Complete test suite with high coverage
+- [ ] Documentation and samples
+- [ ] **Publish 1.0.0 to NuGet**
+
+**Success Criteria**:
+- Pass XSL-FO 1.1 conformance test suite
+- Meet performance targets (200 pages <10s, <600MB)
+- Zero critical bugs
+- API stable and documented
+- Ready for production use
+
+## Technical Architecture
+
+### FO DOM
+
+Immutable object model representing the XSL-FO tree:
+- Property resolution and inheritance
+- Validation against XSL-FO 1.1 spec
+- XPath support for error reporting
+
+### Layout Engine
+
+Transforms FO DOM into Area Tree:
+- **Refinement Phase**: Resolve all properties, expand shorthands
+- **Layout Phase**: Generate areas with dimensions and positions
+- **Line Breaking**: Knuth-Plass algorithm or similar
+- **Page Breaking**: Optimal page breaks with keep/break constraints
+
+### Area Tree
+
+Intermediate representation between FO and PDF:
+- Page viewports with regions
+- Block areas with dimensions
+- Line areas with inline areas
+- Positioned areas (floats, absolutely positioned)
+
+### PDF Renderer
+
+Transforms Area Tree into PDF 1.7:
+- PDF object generation
+- Font embedding and subsetting
+- Content stream generation
+- Graphics state management
+- Resource dictionary management
+- Cross-reference table and trailer
+
+## Performance Considerations
+
+### Memory Management
+- Streaming XML parsing where possible
+- Lazy evaluation of properties
+- Dispose pattern for large objects
+- Memory pooling for frequently allocated objects
+
+### CPU Optimization
+- Cache property resolution results
+- Optimize font metrics lookups
+- Efficient text measurement
+- Minimize string allocations
+
+### Benchmarking
+- Continuous performance tracking in CI
+- Regression detection
+- Profile hot paths regularly
+
+## Future Enhancements (Post-1.0)
+
+- **PDF/A Support**: Archival-quality PDFs
+- **Tagged PDF**: Accessibility features
+- **Hyphenation**: Line breaking with hyphenation dictionaries
+- **SVG Support**: SVG graphics in FO documents
+- **MathML**: Mathematical formulas
+- **Barcode Support**: Common barcode formats
+- **CLI Tool**: Command-line FO to PDF conversion
+- **Visual Diff Tool**: Compare FO document rendering
