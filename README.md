@@ -180,7 +180,8 @@ The core rendering engine is fully operational with extensive feature support:
 
 **PDF Rendering:**
 - PDF 1.7 output with correct structure
-- Standard Type 1 fonts (Helvetica, Times, Courier)
+- Standard Type 1 fonts (Helvetica, Times, Courier) with accurate AFM metrics
+- Font metrics from Adobe Font Metrics (AFM) files (14 base PDF fonts, 200+ characters each)
 - Text positioning with baseline alignment
 - Border rendering (solid, dashed, dotted)
 - Background colors (named and hex formats)
