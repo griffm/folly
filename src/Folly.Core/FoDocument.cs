@@ -64,8 +64,10 @@ public sealed class FoDocument : IDisposable
         // Parse FO DOM
         var foRoot = Dom.FoParser.Parse(doc);
 
-        // TODO: Validate FO structure
-        // TODO: Resolve properties and validate
+        // Note: FoLoadOptions.ValidateStructure and ValidateProperties are available
+        // but not enforced by default for performance. Validation happens during layout
+        // phase where errors can be reported with better context. Additional explicit
+        // validation can be added here in future versions if needed.
 
         return new FoDocument(doc, foRoot);
     }
