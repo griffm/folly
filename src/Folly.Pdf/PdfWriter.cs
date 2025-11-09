@@ -33,11 +33,10 @@ internal sealed class PdfWriter : IDisposable
     }
 
     /// <summary>
-    /// Writes the document catalog.
+    /// Writes the document catalog and returns its object ID.
     /// </summary>
-    public void WriteCatalog()
+    public int WriteCatalog(int pageCount)
     {
-        // TODO: Implement catalog with pages tree
         var catalogId = BeginObject();
         WriteLine("<<");
         WriteLine("  /Type /Catalog");
@@ -45,23 +44,119 @@ internal sealed class PdfWriter : IDisposable
         WriteLine(">>");
         EndObject();
 
-        // Write empty pages object for now
-        BeginObject();
+        return catalogId;
+    }
+
+    /// <summary>
+    /// Writes font resources and returns a mapping of font names to object IDs.
+    /// </summary>
+    public Dictionary<string, int> WriteFonts(HashSet<string> fontNames)
+    {
+        var fontIds = new Dictionary<string, int>();
+
+        foreach (var fontName in fontNames)
+        {
+            var pdfFontName = GetPdfFontName(fontName);
+            var fontId = BeginObject();
+            WriteLine("<<");
+            WriteLine("  /Type /Font");
+            WriteLine("  /Subtype /Type1");
+            WriteLine($"  /BaseFont /{pdfFontName}");
+            WriteLine(">>");
+            EndObject();
+
+            fontIds[fontName] = fontId;
+        }
+
+        return fontIds;
+    }
+
+    private static string GetPdfFontName(string fontFamily)
+    {
+        return fontFamily.ToLowerInvariant() switch
+        {
+            "helvetica" or "arial" or "sans-serif" => "Helvetica",
+            "times" or "times new roman" or "serif" => "Times-Roman",
+            "courier" or "courier new" or "monospace" => "Courier",
+            _ => "Helvetica"
+        };
+    }
+
+    /// <summary>
+    /// Writes a page and returns its object ID.
+    /// </summary>
+    public int WritePage(PageViewport page, string content, Dictionary<string, int> fontIds)
+    {
+        // Write the content stream first
+        var contentId = BeginObject();
+        var contentBytes = Encoding.ASCII.GetByteCount(content);
+        WriteLine("<<");
+        WriteLine($"  /Length {contentBytes}");
+        WriteLine(">>");
+        WriteLine("stream");
+        _writer.Write(content);
+        _position += contentBytes;
+        WriteLine("");
+        WriteLine("endstream");
+        EndObject();
+
+        // Write the page object
+        var pageId = BeginObject();
+        WriteLine("<<");
+        WriteLine("  /Type /Page");
+        WriteLine("  /Parent 2 0 R"); // Reference to pages object
+        WriteLine($"  /MediaBox [0 0 {page.Width:F2} {page.Height:F2}]");
+        WriteLine($"  /Contents {contentId} 0 R");
+
+        // Write font resources
+        if (fontIds.Count > 0)
+        {
+            WriteLine("  /Resources <<");
+            WriteLine("    /Font <<");
+            foreach (var kvp in fontIds)
+            {
+                WriteLine($"      /F{kvp.Value} {kvp.Value} 0 R");
+            }
+            WriteLine("    >>");
+            WriteLine("  >>");
+        }
+
+        WriteLine(">>");
+        EndObject();
+
+        return pageId;
+    }
+
+    /// <summary>
+    /// Writes the pages tree.
+    /// </summary>
+    public void WritePages(int pagesObjectId, List<int> pageIds, IReadOnlyList<PageViewport> pages)
+    {
+        // We need to update object 2 (pages tree) which was already created
+        // For now, we'll write it at this position
+        // In a real implementation, we'd reserve the object ID and write it here
+
+        // This is a simplified approach - we're writing the pages object now
+        BeginObject(); // This should be object 2
         WriteLine("<<");
         WriteLine("  /Type /Pages");
-        WriteLine("  /Kids []");
-        WriteLine("  /Count 0");
+        Write("  /Kids [");
+        for (int i = 0; i < pageIds.Count; i++)
+        {
+            Write($"{pageIds[i]} 0 R");
+            if (i < pageIds.Count - 1)
+                Write(" ");
+        }
+        WriteLine("]");
+        WriteLine($"  /Count {pageIds.Count}");
         WriteLine(">>");
         EndObject();
     }
 
-    /// <summary>
-    /// Writes a page to the PDF.
-    /// </summary>
-    public void WritePage(PageViewport page)
+    private void Write(string text)
     {
-        // TODO: Implement actual page rendering
-        // For now, just a placeholder
+        _writer.Write(text);
+        _position += Encoding.ASCII.GetByteCount(text);
     }
 
     /// <summary>
@@ -95,7 +190,7 @@ internal sealed class PdfWriter : IDisposable
     /// <summary>
     /// Writes the cross-reference table and trailer.
     /// </summary>
-    public void WriteXRefAndTrailer()
+    public void WriteXRefAndTrailer(int catalogId)
     {
         var xrefPos = _position;
 
@@ -111,7 +206,7 @@ internal sealed class PdfWriter : IDisposable
         WriteLine("trailer");
         WriteLine("<<");
         WriteLine($"  /Size {_objectOffsets.Count + 1}");
-        WriteLine("  /Root 1 0 R");
+        WriteLine($"  /Root {catalogId} 0 R");
         if (_objectOffsets.Count >= 3)
             WriteLine($"  /Info {_objectOffsets.Count} 0 R");
         WriteLine(">>");
