@@ -169,6 +169,38 @@ internal sealed class LayoutEngine
         // Calculate content width (available width minus margins and padding)
         var contentWidth = availableWidth - foBlock.MarginLeft - foBlock.MarginRight - foBlock.PaddingLeft - foBlock.PaddingRight;
 
+        var currentY = foBlock.PaddingTop;
+
+        // Check for child elements (images, nested blocks)
+        if (foBlock.Children.Count > 0)
+        {
+            foreach (var child in foBlock.Children)
+            {
+                if (child is Dom.FoExternalGraphic graphic)
+                {
+                    var imageArea = LayoutImage(graphic, foBlock.PaddingLeft, currentY, contentWidth);
+                    if (imageArea != null)
+                    {
+                        blockArea.AddChild(imageArea);
+                        currentY += imageArea.Height;
+                    }
+                }
+                else if (child is Dom.FoBlock nestedBlock)
+                {
+                    var nestedArea = LayoutBlock(nestedBlock, foBlock.PaddingLeft, currentY, contentWidth);
+                    if (nestedArea != null)
+                    {
+                        blockArea.AddChild(nestedArea);
+                        currentY += nestedArea.Height + nestedArea.MarginTop + nestedArea.MarginBottom;
+                    }
+                }
+            }
+
+            blockArea.Width = contentWidth + foBlock.PaddingLeft + foBlock.PaddingRight;
+            blockArea.Height = currentY + foBlock.PaddingBottom;
+            return blockArea;
+        }
+
         // Get text content
         var text = foBlock.TextContent;
         if (string.IsNullOrWhiteSpace(text))
@@ -189,16 +221,15 @@ internal sealed class LayoutEngine
         // Perform line breaking and create line areas
         var lines = BreakLines(text, contentWidth, fontMetrics);
 
-        var currentLineY = foBlock.PaddingTop;
         foreach (var lineText in lines)
         {
-            var lineArea = CreateLineArea(lineText, foBlock.PaddingLeft, currentLineY, contentWidth, fontMetrics, foBlock);
+            var lineArea = CreateLineArea(lineText, foBlock.PaddingLeft, currentY, contentWidth, fontMetrics, foBlock);
             blockArea.AddChild(lineArea);
-            currentLineY += foBlock.LineHeight;
+            currentY += foBlock.LineHeight;
         }
 
         blockArea.Width = contentWidth + foBlock.PaddingLeft + foBlock.PaddingRight;
-        blockArea.Height = currentLineY + foBlock.PaddingBottom;
+        blockArea.Height = currentY + foBlock.PaddingBottom;
 
         return blockArea;
     }
@@ -498,5 +529,193 @@ internal sealed class LayoutEngine
         cellArea.Height = currentY + foCell.PaddingBottom;
 
         return cellArea;
+    }
+
+    private ImageArea? LayoutImage(Dom.FoExternalGraphic graphic, double x, double y, double availableWidth)
+    {
+        var src = graphic.Src;
+        if (string.IsNullOrWhiteSpace(src))
+            return null;
+
+        // Resolve relative paths
+        var imagePath = src;
+        if (src.StartsWith("url(") && src.EndsWith(")"))
+        {
+            imagePath = src.Substring(4, src.Length - 5).Trim('\'', '"');
+        }
+
+        // Load image data
+        byte[]? imageData = null;
+        double intrinsicWidth = 0;
+        double intrinsicHeight = 0;
+        string format = "";
+
+        try
+        {
+            if (File.Exists(imagePath))
+            {
+                imageData = File.ReadAllBytes(imagePath);
+
+                // Detect format and dimensions
+                var imageInfo = DetectImageFormat(imageData);
+                format = imageInfo.Format;
+                intrinsicWidth = imageInfo.Width;
+                intrinsicHeight = imageInfo.Height;
+            }
+        }
+        catch
+        {
+            // Image not found or couldn't be loaded
+            return null;
+        }
+
+        if (imageData == null || intrinsicWidth == 0 || intrinsicHeight == 0)
+            return null;
+
+        // Calculate display dimensions
+        var (displayWidth, displayHeight) = CalculateImageDimensions(
+            graphic,
+            intrinsicWidth,
+            intrinsicHeight,
+            availableWidth);
+
+        var imageArea = new ImageArea
+        {
+            X = x,
+            Y = y,
+            Width = displayWidth,
+            Height = displayHeight,
+            Source = imagePath,
+            Format = format,
+            ImageData = imageData,
+            IntrinsicWidth = intrinsicWidth,
+            IntrinsicHeight = intrinsicHeight,
+            Scaling = graphic.Scaling
+        };
+
+        return imageArea;
+    }
+
+    private (string Format, double Width, double Height) DetectImageFormat(byte[] data)
+    {
+        // JPEG detection
+        if (data.Length > 2 && data[0] == 0xFF && data[1] == 0xD8)
+        {
+            var (width, height) = GetJpegDimensions(data);
+            return ("JPEG", width, height);
+        }
+
+        // PNG detection
+        if (data.Length > 8 &&
+            data[0] == 0x89 && data[1] == 0x50 && data[2] == 0x4E && data[3] == 0x47)
+        {
+            var (width, height) = GetPngDimensions(data);
+            return ("PNG", width, height);
+        }
+
+        return ("UNKNOWN", 0, 0);
+    }
+
+    private (double Width, double Height) GetJpegDimensions(byte[] data)
+    {
+        // Parse JPEG markers to find SOF (Start of Frame) marker
+        int offset = 2; // Skip initial FF D8
+
+        while (offset < data.Length - 1)
+        {
+            if (data[offset] != 0xFF)
+                break;
+
+            byte marker = data[offset + 1];
+            offset += 2;
+
+            // SOF markers (C0-CF except C4, C8, CC)
+            if (marker >= 0xC0 && marker <= 0xCF &&
+                marker != 0xC4 && marker != 0xC8 && marker != 0xCC)
+            {
+                // Read segment length
+                if (offset + 7 >= data.Length)
+                    break;
+
+                int height = (data[offset + 3] << 8) | data[offset + 4];
+                int width = (data[offset + 5] << 8) | data[offset + 6];
+
+                return (width, height);
+            }
+
+            // Read segment length and skip
+            if (offset + 2 > data.Length)
+                break;
+
+            int length = (data[offset] << 8) | data[offset + 1];
+            offset += length;
+        }
+
+        return (100, 100); // Default fallback
+    }
+
+    private (double Width, double Height) GetPngDimensions(byte[] data)
+    {
+        // PNG IHDR chunk is always at offset 8 and contains width/height at offset 16/20
+        if (data.Length < 24)
+            return (100, 100);
+
+        int width = (data[16] << 24) | (data[17] << 16) | (data[18] << 8) | data[19];
+        int height = (data[20] << 24) | (data[21] << 16) | (data[22] << 8) | data[23];
+
+        return (width, height);
+    }
+
+    private (double Width, double Height) CalculateImageDimensions(
+        Dom.FoExternalGraphic graphic,
+        double intrinsicWidth,
+        double intrinsicHeight,
+        double availableWidth)
+    {
+        // Parse content-width and content-height
+        var contentWidth = graphic.ContentWidth;
+        var contentHeight = graphic.ContentHeight;
+
+        double? explicitWidth = null;
+        double? explicitHeight = null;
+
+        if (contentWidth != "auto")
+        {
+            explicitWidth = Dom.LengthParser.Parse(contentWidth);
+        }
+
+        if (contentHeight != "auto")
+        {
+            explicitHeight = Dom.LengthParser.Parse(contentHeight);
+        }
+
+        // If both dimensions specified, use them
+        if (explicitWidth.HasValue && explicitHeight.HasValue)
+        {
+            return (explicitWidth.Value, explicitHeight.Value);
+        }
+
+        // If only width specified, calculate height maintaining aspect ratio
+        if (explicitWidth.HasValue)
+        {
+            var aspectRatio = intrinsicHeight / intrinsicWidth;
+            return (explicitWidth.Value, explicitWidth.Value * aspectRatio);
+        }
+
+        // If only height specified, calculate width maintaining aspect ratio
+        if (explicitHeight.HasValue)
+        {
+            var aspectRatio = intrinsicWidth / intrinsicHeight;
+            return (explicitHeight.Value * aspectRatio, explicitHeight.Value);
+        }
+
+        // Auto sizing - use intrinsic size but constrain to available width
+        if (intrinsicWidth > availableWidth)
+        {
+            var aspectRatio = intrinsicHeight / intrinsicWidth;
+            return (availableWidth, availableWidth * aspectRatio);
+        }
+
+        return (intrinsicWidth, intrinsicHeight);
     }
 }

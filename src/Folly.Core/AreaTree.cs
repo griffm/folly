@@ -232,6 +232,42 @@ public sealed class InlineArea : Area
 }
 
 /// <summary>
+/// Represents an image area (from fo:external-graphic).
+/// </summary>
+public sealed class ImageArea : Area
+{
+    /// <summary>
+    /// Gets or sets the image source path.
+    /// </summary>
+    public string Source { get; set; } = "";
+
+    /// <summary>
+    /// Gets or sets the image format (JPEG, PNG, etc.).
+    /// </summary>
+    public string Format { get; set; } = "";
+
+    /// <summary>
+    /// Gets or sets the raw image data.
+    /// </summary>
+    public byte[]? ImageData { get; set; }
+
+    /// <summary>
+    /// Gets or sets the intrinsic width of the image.
+    /// </summary>
+    public double IntrinsicWidth { get; set; }
+
+    /// <summary>
+    /// Gets or sets the intrinsic height of the image.
+    /// </summary>
+    public double IntrinsicHeight { get; set; }
+
+    /// <summary>
+    /// Gets or sets the scaling method.
+    /// </summary>
+    public string Scaling { get; set; } = "uniform";
+}
+
+/// <summary>
 /// Represents a table area (from fo:table).
 /// </summary>
 public sealed class TableArea : Area
