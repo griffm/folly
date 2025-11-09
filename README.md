@@ -174,7 +174,8 @@ The core rendering engine is fully operational with extensive feature support:
 - Links (fo:basic-link) for internal and external hyperlinks
 - Bookmarks (fo:bookmark-tree, fo:bookmark) for PDF outline navigation
 - Leaders (fo:leader) for generating dot patterns, rules, and spaces - commonly used in tables of contents
-- Advanced formatting objects (fo:page-number-citation, fo:page-number-citation-last, fo:block-container, fo:inline-container, fo:wrapper, fo:character, fo:bidi-override, fo:initial-property-set)
+- BiDi text support (fo:bidi-override) with text reordering for right-to-left text rendering
+- Advanced formatting objects (fo:page-number-citation, fo:page-number-citation-last, fo:block-container, fo:inline-container, fo:wrapper, fo:character, fo:initial-property-set)
 - Side regions (fo:region-start, fo:region-end)
 
 **PDF Rendering:**
@@ -192,7 +193,7 @@ The core rendering engine is fully operational with extensive feature support:
 **Quality Assurance:**
 - 23 passing unit tests (100% success rate)
 - 12 comprehensive property inheritance tests
-- 15 working example PDFs
+- 19 working example PDFs (including BiDi text example)
 - 100% qpdf validation success (zero errors)
 - Verified with qpdf 11.9.0
 

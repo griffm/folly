@@ -269,6 +269,12 @@ public sealed class InlineArea : Area
     /// Gets or sets the baseline offset from the line's baseline.
     /// </summary>
     public double BaselineOffset { get; set; }
+
+    /// <summary>
+    /// Gets or sets the text direction (ltr, rtl).
+    /// Used for bidirectional text rendering.
+    /// </summary>
+    public string Direction { get; set; } = "ltr";
 }
 
 /// <summary>
