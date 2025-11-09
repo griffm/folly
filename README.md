@@ -51,21 +51,32 @@ Build FO documents programmatically:
 
 ```csharp
 using Folly.Fluent;
-using static Folly.Fluent.Fo;
 
-var doc = Document(d => d
+Fo.Document(doc => doc
+    .Metadata(meta => meta
+        .Title("My Document")
+        .Author("John Doe"))
     .LayoutMasters(lm => lm
-        .SimplePageMaster("A4", a => a.PageSize(595, 842)
-            .Margins(36).RegionBody().RegionBefore(36).RegionAfter(36)))
+        .SimplePageMaster("A4", "210mm", "297mm", spm => spm
+            .RegionBody(rb => rb.Margin("1in"))
+            .RegionBefore("0.5in")
+            .RegionAfter("0.5in")))
     .PageSequence("A4", ps => ps
-        .StaticContent(Region.Before, s => s.Block("Title Page"))
-        .Flow("xsl-region-body", f => f
+        .StaticContent("xsl-region-before", sc => sc
+            .Block("Title Page"))
+        .Flow(flow => flow
             .Block("Hello Folly!")
-            .Table(t => t.Columns(3, 200, 200, 195)
+            .Table(table => table
+                .Width("100%")
+                .Column("33%")
+                .Column("33%")
+                .Column("34%")
                 .Body(body => body
-                    .Row(r => r
-                        .Cell("A").Cell("B").Cell("C")))))))
-.SavePdf("output.pdf");
+                    .Row(row => row
+                        .Cell("A")
+                        .Cell("B")
+                        .Cell("C"))))))
+).SavePdf("output.pdf");
 ```
 
 ## Architecture
