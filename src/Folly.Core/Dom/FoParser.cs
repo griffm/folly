@@ -22,7 +22,186 @@ internal static class FoParser
         if (localName != "root")
             throw new InvalidOperationException($"Expected fo:root element, found {localName}");
 
-        return ParseRoot(root);
+        var foRoot = ParseRoot(root);
+
+        // Establish parent-child relationships for property inheritance
+        EstablishParentRelationships(foRoot);
+
+        return foRoot;
+    }
+
+    /// <summary>
+    /// Recursively sets parent references for all elements in the tree.
+    /// This enables property inheritance to work correctly.
+    /// </summary>
+    private static void EstablishParentRelationships(FoElement element, FoElement? parent = null)
+    {
+        element.Parent = parent;
+
+        // Process standard children
+        foreach (var child in element.Children)
+        {
+            EstablishParentRelationships(child, element);
+        }
+
+        // Process type-specific children
+        switch (element)
+        {
+            case FoRoot root:
+                if (root.LayoutMasterSet != null)
+                    EstablishParentRelationships(root.LayoutMasterSet, root);
+                if (root.BookmarkTree != null)
+                    EstablishParentRelationships(root.BookmarkTree, root);
+                foreach (var seq in root.PageSequences)
+                    EstablishParentRelationships(seq, root);
+                break;
+
+            case FoLayoutMasterSet masterSet:
+                foreach (var master in masterSet.SimplePageMasters)
+                    EstablishParentRelationships(master, masterSet);
+                foreach (var seqMaster in masterSet.PageSequenceMasters)
+                    EstablishParentRelationships(seqMaster, masterSet);
+                break;
+
+            case FoSimplePageMaster pageMaster:
+                if (pageMaster.RegionBody != null)
+                    EstablishParentRelationships(pageMaster.RegionBody, pageMaster);
+                if (pageMaster.RegionBefore != null)
+                    EstablishParentRelationships(pageMaster.RegionBefore, pageMaster);
+                if (pageMaster.RegionAfter != null)
+                    EstablishParentRelationships(pageMaster.RegionAfter, pageMaster);
+                break;
+
+            case FoPageSequenceMaster seqMaster:
+                if (seqMaster.SinglePageMasterReference != null)
+                    EstablishParentRelationships(seqMaster.SinglePageMasterReference, seqMaster);
+                if (seqMaster.RepeatablePageMasterAlternatives != null)
+                    EstablishParentRelationships(seqMaster.RepeatablePageMasterAlternatives, seqMaster);
+                break;
+
+            case FoRepeatablePageMasterAlternatives alternatives:
+                foreach (var condRef in alternatives.ConditionalPageMasterReferences)
+                    EstablishParentRelationships(condRef, alternatives);
+                break;
+
+            case FoPageSequence pageSeq:
+                foreach (var staticContent in pageSeq.StaticContents)
+                    EstablishParentRelationships(staticContent, pageSeq);
+                if (pageSeq.Flow != null)
+                    EstablishParentRelationships(pageSeq.Flow, pageSeq);
+                break;
+
+            case FoStaticContent staticContent:
+                foreach (var block in staticContent.Blocks)
+                    EstablishParentRelationships(block, staticContent);
+                foreach (var marker in staticContent.RetrieveMarkers)
+                    EstablishParentRelationships(marker, staticContent);
+                break;
+
+            case FoFlow flow:
+                foreach (var block in flow.Blocks)
+                    EstablishParentRelationships(block, flow);
+                foreach (var table in flow.Tables)
+                    EstablishParentRelationships(table, flow);
+                foreach (var list in flow.Lists)
+                    EstablishParentRelationships(list, flow);
+                break;
+
+            case FoBlock block:
+                foreach (var footnote in block.Footnotes)
+                    EstablishParentRelationships(footnote, block);
+                foreach (var floatElem in block.Floats)
+                    EstablishParentRelationships(floatElem, block);
+                break;
+
+            case FoMarker marker:
+                foreach (var block in marker.Blocks)
+                    EstablishParentRelationships(block, marker);
+                break;
+
+            case FoFootnote footnote:
+                if (footnote.FootnoteBody != null)
+                    EstablishParentRelationships(footnote.FootnoteBody, footnote);
+                break;
+
+            case FoFootnoteBody footnoteBody:
+                foreach (var block in footnoteBody.Blocks)
+                    EstablishParentRelationships(block, footnoteBody);
+                break;
+
+            case FoFloat floatElem:
+                foreach (var block in floatElem.Blocks)
+                    EstablishParentRelationships(block, floatElem);
+                break;
+
+            case FoTable table:
+                foreach (var col in table.Columns)
+                    EstablishParentRelationships(col, table);
+                if (table.Header != null)
+                    EstablishParentRelationships(table.Header, table);
+                if (table.Footer != null)
+                    EstablishParentRelationships(table.Footer, table);
+                if (table.Body != null)
+                    EstablishParentRelationships(table.Body, table);
+                break;
+
+            case FoTableHeader header:
+                foreach (var row in header.Rows)
+                    EstablishParentRelationships(row, header);
+                break;
+
+            case FoTableFooter footer:
+                foreach (var row in footer.Rows)
+                    EstablishParentRelationships(row, footer);
+                break;
+
+            case FoTableBody body:
+                foreach (var row in body.Rows)
+                    EstablishParentRelationships(row, body);
+                break;
+
+            case FoTableRow row:
+                foreach (var cell in row.Cells)
+                    EstablishParentRelationships(cell, row);
+                break;
+
+            case FoTableCell cell:
+                foreach (var block in cell.Blocks)
+                    EstablishParentRelationships(block, cell);
+                break;
+
+            case FoListBlock listBlock:
+                foreach (var item in listBlock.Items)
+                    EstablishParentRelationships(item, listBlock);
+                break;
+
+            case FoListItem listItem:
+                if (listItem.Label != null)
+                    EstablishParentRelationships(listItem.Label, listItem);
+                if (listItem.Body != null)
+                    EstablishParentRelationships(listItem.Body, listItem);
+                break;
+
+            case FoListItemLabel label:
+                foreach (var block in label.Blocks)
+                    EstablishParentRelationships(block, label);
+                break;
+
+            case FoListItemBody body:
+                foreach (var block in body.Blocks)
+                    EstablishParentRelationships(block, body);
+                break;
+
+            case FoBookmarkTree bookmarkTree:
+                foreach (var bookmark in bookmarkTree.Bookmarks)
+                    EstablishParentRelationships(bookmark, bookmarkTree);
+                break;
+
+            case FoBookmark bookmark:
+                foreach (var child in bookmark.Children)
+                    EstablishParentRelationships(child, bookmark);
+                break;
+        }
     }
 
     private static FoRoot ParseRoot(XElement element)

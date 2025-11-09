@@ -570,9 +570,9 @@ internal sealed class LayoutEngine
                     var inlineText = inline.TextContent ?? "";
                     if (!string.IsNullOrWhiteSpace(inlineText))
                     {
-                        // Get font properties from inline or inherit from block
-                        var inlineFontFamily = !string.IsNullOrEmpty(inline.FontFamily) ? inline.FontFamily : foBlock.FontFamily;
-                        var inlineFontSize = inline.FontSize ?? foBlock.FontSize;
+                        // Get font properties (now with automatic inheritance)
+                        var inlineFontFamily = inline.FontFamily;
+                        var inlineFontSize = inline.FontSize ?? 12;
                         var inlineFontWeight = inline.FontWeight;
                         var inlineFontStyle = inline.FontStyle;
 
