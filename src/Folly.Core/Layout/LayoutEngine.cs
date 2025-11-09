@@ -262,33 +262,41 @@ internal sealed class LayoutEngine
     {
         var flow = pageSequence.Flow!;
 
+        // Helper function to calculate body margins for a given page master
+        void CalculateBodyMargins(Dom.FoSimplePageMaster pageMaster,
+            out double marginTop, out double marginBottom, out double marginLeft, out double marginRight,
+            out double width, out double height)
+        {
+            var regionBody = pageMaster.RegionBody;
+            var regionBodyMarginTop = regionBody?.MarginTop ?? 0;
+            var regionBodyMarginBottom = regionBody?.MarginBottom ?? 0;
+            var regionBodyMarginLeft = regionBody?.MarginLeft ?? 0;
+            var regionBodyMarginRight = regionBody?.MarginRight ?? 0;
+
+            // Calculate region extents
+            var regionBeforeExtent = (pageMaster.RegionBefore as Dom.FoRegionBefore)?.Extent ?? 0;
+            var regionAfterExtent = (pageMaster.RegionAfter as Dom.FoRegionAfter)?.Extent ?? 0;
+
+            // Body position and dimensions must account for:
+            // - Page margins (from simple-page-master)
+            // - Region extents (from region-before/after)
+            // - Region-body margins
+            marginTop = pageMaster.MarginTop + regionBeforeExtent + regionBodyMarginTop;
+            marginBottom = pageMaster.MarginBottom + regionAfterExtent + regionBodyMarginBottom;
+            marginLeft = pageMaster.MarginLeft + regionBodyMarginLeft;
+            marginRight = pageMaster.MarginRight + regionBodyMarginRight;
+
+            width = pageMaster.PageWidth - marginLeft - marginRight;
+            height = pageMaster.PageHeight - marginTop - marginBottom;
+        }
+
         // Get first page master to determine body dimensions
-        // Note: For simplicity, we assume body dimensions are consistent across all page masters
         var firstPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber: 1, totalPages: 999);
-
-        var regionBody = firstPageMaster.RegionBody;
-        var regionBodyMarginTop = regionBody?.MarginTop ?? 0;
-        var regionBodyMarginBottom = regionBody?.MarginBottom ?? 0;
-        var regionBodyMarginLeft = regionBody?.MarginLeft ?? 0;
-        var regionBodyMarginRight = regionBody?.MarginRight ?? 0;
-
-        // Calculate region extents
-        var regionBeforeExtent = (firstPageMaster.RegionBefore as Dom.FoRegionBefore)?.Extent ?? 0;
-        var regionAfterExtent = (firstPageMaster.RegionAfter as Dom.FoRegionAfter)?.Extent ?? 0;
-
-        // Body position and dimensions must account for:
-        // - Page margins (from simple-page-master)
-        // - Region extents (from region-before/after)
-        // - Region-body margins
-        var bodyMarginTop = firstPageMaster.MarginTop + regionBeforeExtent + regionBodyMarginTop;
-        var bodyMarginBottom = firstPageMaster.MarginBottom + regionAfterExtent + regionBodyMarginBottom;
-        var bodyMarginLeft = firstPageMaster.MarginLeft + regionBodyMarginLeft;
-        var bodyMarginRight = firstPageMaster.MarginRight + regionBodyMarginRight;
-
-        var bodyWidth = firstPageMaster.PageWidth - bodyMarginLeft - bodyMarginRight;
-        var bodyHeight = firstPageMaster.PageHeight - bodyMarginTop - bodyMarginBottom;
+        CalculateBodyMargins(firstPageMaster, out var bodyMarginTop, out var bodyMarginBottom,
+            out var bodyMarginLeft, out var bodyMarginRight, out var bodyWidth, out var bodyHeight);
 
         // Multi-column support
+        var regionBody = firstPageMaster.RegionBody;
         var columnCount = (regionBody as Dom.FoRegionBody)?.ColumnCount ?? 1;
         var columnGap = (regionBody as Dom.FoRegionBody)?.ColumnGap ?? 12;
 
@@ -320,6 +328,8 @@ internal sealed class LayoutEngine
                     areaTree.AddPage(currentPage);
                     pageNumber++;
                     currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
+                    CalculateBodyMargins(currentPageMaster, out bodyMarginTop, out bodyMarginBottom,
+                        out bodyMarginLeft, out bodyMarginRight, out bodyWidth, out bodyHeight);
                     currentPage = CreatePage(currentPageMaster, pageSequence, pageNumber);
                     currentY = bodyMarginTop;
                     currentColumn = 0;
@@ -420,6 +430,8 @@ internal sealed class LayoutEngine
                 areaTree.AddPage(currentPage);
                 pageNumber++;
                 currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
+                CalculateBodyMargins(currentPageMaster, out bodyMarginTop, out bodyMarginBottom,
+                    out bodyMarginLeft, out bodyMarginRight, out bodyWidth, out bodyHeight);
                 currentPage = CreatePage(currentPageMaster, pageSequence, pageNumber);
                 currentY = bodyMarginTop;
 
@@ -453,6 +465,8 @@ internal sealed class LayoutEngine
                 areaTree.AddPage(currentPage);
                 pageNumber++;
                 currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
+                CalculateBodyMargins(currentPageMaster, out bodyMarginTop, out bodyMarginBottom,
+                    out bodyMarginLeft, out bodyMarginRight, out bodyWidth, out bodyHeight);
                 currentPage = CreatePage(currentPageMaster, pageSequence, pageNumber);
                 currentY = bodyMarginTop;
 
