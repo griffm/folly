@@ -49,16 +49,16 @@ public sealed class PdfRenderer : IDisposable
 
         _writer.WriteHeader(_options.PdfVersion);
 
-        // Collect fonts used in the document
-        var fonts = CollectFonts(areaTree);
+        // Collect fonts used in the document and track character usage
+        var (fonts, characterUsage) = CollectFonts(areaTree);
 
         // Collect images used in the document
         var images = CollectImages(areaTree);
 
         var catalogId = _writer.WriteCatalog(areaTree.Pages.Count, bookmarkTree);
 
-        // Write font resources
-        var fontIds = _writer.WriteFonts(fonts);
+        // Write font resources with subsetting if enabled
+        var fontIds = _writer.WriteFonts(fonts, characterUsage, _options.SubsetFonts);
 
         // Write image resources
         var imageIds = _writer.WriteImages(images);
@@ -78,14 +78,17 @@ public sealed class PdfRenderer : IDisposable
         _writer.WriteXRefAndTrailer(catalogId);
     }
 
-    private HashSet<string> CollectFonts(AreaTree areaTree)
+    private (HashSet<string> Fonts, Dictionary<string, HashSet<char>> CharacterUsage) CollectFonts(AreaTree areaTree)
     {
         var fonts = new HashSet<string>();
+        var characterUsage = new Dictionary<string, HashSet<char>>();
+
         foreach (var page in areaTree.Pages)
         {
-            CollectFontsFromAreas(page.Areas, fonts);
+            CollectFontsFromAreas(page.Areas, fonts, characterUsage);
         }
-        return fonts;
+
+        return (fonts, characterUsage);
     }
 
     private Dictionary<string, (byte[] Data, string Format, int Width, int Height)> CollectImages(AreaTree areaTree)
@@ -98,30 +101,68 @@ public sealed class PdfRenderer : IDisposable
         return images;
     }
 
-    private void CollectFontsFromAreas(IEnumerable<Area> areas, HashSet<string> fonts)
+    private void CollectFontsFromAreas(IEnumerable<Area> areas, HashSet<string> fonts, Dictionary<string, HashSet<char>> characterUsage)
     {
         foreach (var area in areas)
         {
             if (area is BlockArea blockArea)
             {
                 fonts.Add(blockArea.FontFamily);
-                CollectFontsFromAreas(blockArea.Children, fonts);
+                CollectFontsFromAreas(blockArea.Children, fonts, characterUsage);
             }
             else if (area is LineArea lineArea)
             {
                 foreach (var inline in lineArea.Inlines)
                 {
                     fonts.Add(inline.FontFamily);
+
+                    // Track character usage
+                    if (!string.IsNullOrEmpty(inline.Text))
+                    {
+                        if (!characterUsage.ContainsKey(inline.FontFamily))
+                        {
+                            characterUsage[inline.FontFamily] = new HashSet<char>();
+                        }
+
+                        foreach (var ch in inline.Text)
+                        {
+                            characterUsage[inline.FontFamily].Add(ch);
+                        }
+                    }
                 }
             }
             else if (area is InlineArea inlineArea)
             {
                 fonts.Add(inlineArea.FontFamily);
+
+                // Track character usage
+                if (!string.IsNullOrEmpty(inlineArea.Text))
+                {
+                    if (!characterUsage.ContainsKey(inlineArea.FontFamily))
+                    {
+                        characterUsage[inlineArea.FontFamily] = new HashSet<char>();
+                    }
+
+                    foreach (var ch in inlineArea.Text)
+                    {
+                        characterUsage[inlineArea.FontFamily].Add(ch);
+                    }
+                }
             }
             else if (area is LeaderArea leaderArea)
             {
                 // Leaders may use fonts for dot patterns
                 fonts.Add(leaderArea.FontFamily);
+
+                // Track dot character usage
+                if (leaderArea.LeaderPattern == "dots")
+                {
+                    if (!characterUsage.ContainsKey(leaderArea.FontFamily))
+                    {
+                        characterUsage[leaderArea.FontFamily] = new HashSet<char>();
+                    }
+                    characterUsage[leaderArea.FontFamily].Add('.');
+                }
             }
             else if (area is TableArea tableArea)
             {
@@ -129,7 +170,7 @@ public sealed class PdfRenderer : IDisposable
                 {
                     foreach (var cell in row.Cells)
                     {
-                        CollectFontsFromAreas(cell.Children, fonts);
+                        CollectFontsFromAreas(cell.Children, fonts, characterUsage);
                     }
                 }
             }
@@ -184,7 +225,7 @@ public sealed class PdfRenderer : IDisposable
             RenderArea(area, content, fontIds, imageIds, page.Height);
         }
 
-        return _writer.WritePage(page, content.ToString(), fontIds, imageIds);
+        return _writer.WritePage(page, content.ToString(), fontIds, imageIds, _options.CompressStreams);
     }
 
     private void RenderArea(Area area, StringBuilder content, Dictionary<string, int> fontIds, Dictionary<string, int> imageIds, double pageHeight, double offsetX = 0, double offsetY = 0)

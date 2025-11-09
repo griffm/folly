@@ -1,3 +1,5 @@
+using System.IO.Compression;
+
 namespace Folly.Pdf;
 
 /// <summary>
@@ -207,10 +209,25 @@ internal sealed class PdfWriter : IDisposable
     /// <summary>
     /// Writes font resources and returns a mapping of font names to object IDs.
     /// </summary>
-    public Dictionary<string, int> WriteFonts(HashSet<string> fontNames)
+    public Dictionary<string, int> WriteFonts(HashSet<string> fontNames, Dictionary<string, HashSet<char>> characterUsage, bool subsetFonts)
     {
         var fontIds = new Dictionary<string, int>();
 
+        // First, write all encoding dictionaries if subsetting is enabled
+        var encodingIds = new Dictionary<string, int>();
+        if (subsetFonts)
+        {
+            foreach (var fontName in fontNames)
+            {
+                if (characterUsage.TryGetValue(fontName, out var usedChars) && usedChars.Count > 0)
+                {
+                    var encodingId = WriteCustomEncoding(usedChars);
+                    encodingIds[fontName] = encodingId;
+                }
+            }
+        }
+
+        // Now write font dictionaries
         foreach (var fontName in fontNames)
         {
             var pdfFontName = GetPdfFontName(fontName);
@@ -219,6 +236,13 @@ internal sealed class PdfWriter : IDisposable
             WriteLine("  /Type /Font");
             WriteLine("  /Subtype /Type1");
             WriteLine($"  /BaseFont /{pdfFontName}");
+
+            // Reference the encoding dictionary if one was created
+            if (encodingIds.TryGetValue(fontName, out var encodingId))
+            {
+                WriteLine($"  /Encoding {encodingId} 0 R");
+            }
+
             WriteLine(">>");
             EndObject();
 
@@ -226,6 +250,102 @@ internal sealed class PdfWriter : IDisposable
         }
 
         return fontIds;
+    }
+
+    /// <summary>
+    /// Writes a custom encoding dictionary for font subsetting.
+    /// </summary>
+    private int WriteCustomEncoding(HashSet<char> usedChars)
+    {
+        var encodingId = BeginObject();
+        WriteLine("<<");
+        WriteLine("  /Type /Encoding");
+        WriteLine("  /BaseEncoding /WinAnsiEncoding");
+
+        // Create Differences array with only used characters
+        // This optimizes the PDF by explicitly listing only needed glyphs
+        var sortedChars = usedChars.OrderBy(c => (int)c).ToList();
+
+        if (sortedChars.Count > 0)
+        {
+            WriteLine("  /Differences [");
+
+            // Group consecutive characters for more compact representation
+            var i = 0;
+            while (i < sortedChars.Count)
+            {
+                var startChar = sortedChars[i];
+                var charCode = (int)startChar;
+                Write($"    {charCode}");
+
+                // Find consecutive run
+                var j = i;
+                while (j < sortedChars.Count && (int)sortedChars[j] == charCode + (j - i))
+                {
+                    var charName = GetCharacterName(sortedChars[j]);
+                    Write($" /{charName}");
+                    j++;
+                }
+
+                WriteLine("");
+                i = j;
+            }
+
+            WriteLine("  ]");
+        }
+
+        WriteLine(">>");
+        EndObject();
+
+        return encodingId;
+    }
+
+    /// <summary>
+    /// Gets the PostScript character name for a given character.
+    /// </summary>
+    private static string GetCharacterName(char ch)
+    {
+        // Map common characters to their PostScript names
+        return ch switch
+        {
+            ' ' => "space",
+            '!' => "exclam",
+            '"' => "quotedbl",
+            '#' => "numbersign",
+            '$' => "dollar",
+            '%' => "percent",
+            '&' => "ampersand",
+            '\'' => "quotesingle",
+            '(' => "parenleft",
+            ')' => "parenright",
+            '*' => "asterisk",
+            '+' => "plus",
+            ',' => "comma",
+            '-' => "hyphen",
+            '.' => "period",
+            '/' => "slash",
+            ':' => "colon",
+            ';' => "semicolon",
+            '<' => "less",
+            '=' => "equal",
+            '>' => "greater",
+            '?' => "question",
+            '@' => "at",
+            '[' => "bracketleft",
+            '\\' => "backslash",
+            ']' => "bracketright",
+            '^' => "asciicircum",
+            '_' => "underscore",
+            '`' => "grave",
+            '{' => "braceleft",
+            '|' => "bar",
+            '}' => "braceright",
+            '~' => "asciitilde",
+            _ => ch >= '0' && ch <= '9' ? $"{ch}" :
+                 ch >= 'A' && ch <= 'Z' ? $"{ch}" :
+                 ch >= 'a' && ch <= 'z' ? $"{ch}" :
+                 $"char{(int)ch}"
+        };
     }
 
     private static string GetPdfFontName(string fontFamily)
@@ -242,17 +362,63 @@ internal sealed class PdfWriter : IDisposable
     /// <summary>
     /// Writes a page and returns its object ID.
     /// </summary>
-    public int WritePage(PageViewport page, string content, Dictionary<string, int> fontIds, Dictionary<string, int> imageIds)
+    public int WritePage(PageViewport page, string content, Dictionary<string, int> fontIds, Dictionary<string, int> imageIds, bool compressStreams = true)
     {
         // Write the content stream first
         var contentId = BeginObject();
-        var contentBytes = Encoding.ASCII.GetByteCount(content);
+
+        byte[] streamData;
+        bool isCompressed = false;
+
+        if (compressStreams)
+        {
+            // Compress the content using Flate compression
+            var uncompressedBytes = Encoding.ASCII.GetBytes(content);
+
+            using (var compressedStream = new MemoryStream())
+            {
+                // Write zlib header (for PDF FlateDecode compatibility)
+                // zlib format: CMF (Compression Method and Flags) + FLG (Flags)
+                // CMF: 0x78 = deflate with 32K window
+                // FLG: 0x9C = default compression, FCHECK bits set so (CMF * 256 + FLG) % 31 == 0
+                compressedStream.WriteByte(0x78);
+                compressedStream.WriteByte(0x9C);
+
+                // Use DeflateStream for the actual compression
+                using (var deflateStream = new DeflateStream(compressedStream, CompressionLevel.Optimal, leaveOpen: true))
+                {
+                    deflateStream.Write(uncompressedBytes, 0, uncompressedBytes.Length);
+                }
+
+                // Write Adler-32 checksum (required by zlib format)
+                var adler32 = CalculateAdler32(uncompressedBytes);
+                compressedStream.WriteByte((byte)(adler32 >> 24));
+                compressedStream.WriteByte((byte)(adler32 >> 16));
+                compressedStream.WriteByte((byte)(adler32 >> 8));
+                compressedStream.WriteByte((byte)adler32);
+
+                streamData = compressedStream.ToArray();
+                isCompressed = true;
+            }
+        }
+        else
+        {
+            streamData = Encoding.ASCII.GetBytes(content);
+        }
+
         WriteLine("<<");
-        WriteLine($"  /Length {contentBytes}");
+        WriteLine($"  /Length {streamData.Length}");
+        if (isCompressed)
+        {
+            WriteLine("  /Filter /FlateDecode");
+        }
         WriteLine(">>");
         WriteLine("stream");
-        _writer.Write(content);
-        _position += contentBytes;
+
+        // Write binary stream data
+        _output.Write(streamData, 0, streamData.Length);
+        _position += streamData.Length;
+
         WriteLine("");
         WriteLine("endstream");
         EndObject();
@@ -565,6 +731,23 @@ internal sealed class PdfWriter : IDisposable
     {
         _writer.WriteLine(line);
         _position += Encoding.ASCII.GetByteCount(line) + 1; // +1 for newline
+    }
+
+    /// <summary>
+    /// Calculates Adler-32 checksum for zlib format.
+    /// </summary>
+    private static uint CalculateAdler32(byte[] data)
+    {
+        const uint MOD_ADLER = 65521;
+        uint a = 1, b = 0;
+
+        foreach (byte bite in data)
+        {
+            a = (a + bite) % MOD_ADLER;
+            b = (b + a) % MOD_ADLER;
+        }
+
+        return (b << 16) | a;
     }
 
     private static string EscapeString(string str)
