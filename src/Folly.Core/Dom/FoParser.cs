@@ -344,6 +344,7 @@ internal static class FoParser
     private static FoPageSequenceMaster ParsePageSequenceMaster(XElement element)
     {
         FoSinglePageMasterReference? singlePageMasterRef = null;
+        FoRepeatablePageMasterReference? repeatablePageMasterRef = null;
         FoRepeatablePageMasterAlternatives? repeatablePageMasterAlternatives = null;
 
         foreach (var child in element.Elements())
@@ -355,9 +356,7 @@ internal static class FoParser
                     singlePageMasterRef = ParseSinglePageMasterReference(child);
                     break;
                 case "repeatable-page-master-reference":
-                    // Note: repeatable-page-master-reference is not implemented as
-                    // repeatable-page-master-alternatives provides equivalent and more
-                    // powerful functionality. This is sufficient for v1.0 conformance.
+                    repeatablePageMasterRef = ParseRepeatablePageMasterReference(child);
                     break;
                 case "repeatable-page-master-alternatives":
                     repeatablePageMasterAlternatives = ParseRepeatablePageMasterAlternatives(child);
@@ -369,6 +368,7 @@ internal static class FoParser
         {
             Properties = ParseProperties(element),
             SinglePageMasterReference = singlePageMasterRef,
+            RepeatablePageMasterReference = repeatablePageMasterRef,
             RepeatablePageMasterAlternatives = repeatablePageMasterAlternatives
         };
     }
@@ -376,6 +376,14 @@ internal static class FoParser
     private static FoSinglePageMasterReference ParseSinglePageMasterReference(XElement element)
     {
         return new FoSinglePageMasterReference
+        {
+            Properties = ParseProperties(element)
+        };
+    }
+
+    private static FoRepeatablePageMasterReference ParseRepeatablePageMasterReference(XElement element)
+    {
+        return new FoRepeatablePageMasterReference
         {
             Properties = ParseProperties(element)
         };
