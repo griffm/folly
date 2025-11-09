@@ -294,6 +294,7 @@ internal sealed class LayoutEngine
                     RenderFloats(currentPage, currentPageMaster, bodyMarginTop);
                     RenderFootnotes(currentPage, currentPageMaster);
                     AddLinksToPage(currentPage);
+                    CheckPageLimit(areaTree);
                     areaTree.AddPage(currentPage);
                     pageNumber++;
                     currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
@@ -337,6 +338,7 @@ internal sealed class LayoutEngine
                         RenderFloats(currentPage, currentPageMaster, bodyMarginTop);
                         RenderFootnotes(currentPage, currentPageMaster);
                         AddLinksToPage(currentPage);
+                        CheckPageLimit(areaTree);
                         areaTree.AddPage(currentPage);
                         pageNumber++;
                         currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
@@ -366,6 +368,7 @@ internal sealed class LayoutEngine
                 RenderFloats(currentPage, currentPageMaster, bodyMarginTop);
                 RenderFootnotes(currentPage, currentPageMaster);
                 AddLinksToPage(currentPage);
+                CheckPageLimit(areaTree);
                 areaTree.AddPage(currentPage);
                 pageNumber++;
                 currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
@@ -391,6 +394,7 @@ internal sealed class LayoutEngine
                 RenderFloats(currentPage, currentPageMaster, bodyMarginTop);
                 RenderFootnotes(currentPage, currentPageMaster);
                 AddLinksToPage(currentPage);
+                CheckPageLimit(areaTree);
                 areaTree.AddPage(currentPage);
                 pageNumber++;
                 currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
@@ -423,6 +427,7 @@ internal sealed class LayoutEngine
                 RenderFloats(currentPage, currentPageMaster, bodyMarginTop);
                 RenderFootnotes(currentPage, currentPageMaster);
                 AddLinksToPage(currentPage);
+                CheckPageLimit(areaTree);
                 areaTree.AddPage(currentPage);
                 pageNumber++;
                 currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
@@ -444,6 +449,7 @@ internal sealed class LayoutEngine
         RenderFloats(currentPage, currentPageMaster, bodyMarginTop);
         RenderFootnotes(currentPage, currentPageMaster);
         AddLinksToPage(currentPage);
+        CheckPageLimit(areaTree);
         areaTree.AddPage(currentPage);
     }
 
@@ -1163,6 +1169,13 @@ internal sealed class LayoutEngine
             imagePath = src.Substring(4, src.Length - 5).Trim('\'', '"');
         }
 
+        // Security: Validate image path to prevent path traversal attacks
+        if (!ValidateImagePath(imagePath))
+        {
+            // Path validation failed - reject the image
+            return null;
+        }
+
         // Load image data
         byte[]? imageData = null;
         double intrinsicWidth = 0;
@@ -1173,6 +1186,15 @@ internal sealed class LayoutEngine
         {
             if (File.Exists(imagePath))
             {
+                var fileInfo = new FileInfo(imagePath);
+
+                // Security: Check image size limit to prevent DoS
+                if (_options.MaxImageSizeBytes > 0 && fileInfo.Length > _options.MaxImageSizeBytes)
+                {
+                    // Image exceeds size limit
+                    return null;
+                }
+
                 imageData = File.ReadAllBytes(imagePath);
 
                 // Detect format and dimensions
@@ -1536,5 +1558,68 @@ internal sealed class LayoutEngine
         var chars = text.ToCharArray();
         Array.Reverse(chars);
         return new string(chars);
+    }
+
+    /// <summary>
+    /// Checks if adding a new page would exceed the maximum page limit.
+    /// Throws an exception if the limit would be exceeded.
+    /// </summary>
+    private void CheckPageLimit(AreaTree areaTree)
+    {
+        if (_options.MaxPages > 0 && areaTree.Pages.Count >= _options.MaxPages)
+        {
+            throw new InvalidOperationException(
+                $"Maximum page limit of {_options.MaxPages} exceeded. " +
+                "This limit prevents DoS attacks from malicious documents. " +
+                "Increase LayoutOptions.MaxPages if this is a legitimate large document.");
+        }
+    }
+
+    /// <summary>
+    /// Validates an image path to prevent path traversal attacks.
+    /// Returns true if the path is allowed, false otherwise.
+    /// </summary>
+    private bool ValidateImagePath(string imagePath)
+    {
+        if (string.IsNullOrWhiteSpace(imagePath))
+            return false;
+
+        try
+        {
+            // Get the full canonical path
+            var fullPath = Path.GetFullPath(imagePath);
+
+            // Check if absolute paths are allowed
+            if (Path.IsPathRooted(imagePath) && !_options.AllowAbsoluteImagePaths)
+            {
+                return false;
+            }
+
+            // If AllowedImageBasePath is set, ensure the path is within that directory
+            if (!string.IsNullOrWhiteSpace(_options.AllowedImageBasePath))
+            {
+                var basePath = Path.GetFullPath(_options.AllowedImageBasePath);
+
+                // Ensure both paths end with directory separator for proper comparison
+                if (!basePath.EndsWith(Path.DirectorySeparatorChar))
+                {
+                    basePath += Path.DirectorySeparatorChar;
+                }
+
+                // Check if the full path starts with the base path (case-insensitive on Windows)
+                var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+                if (!fullPath.StartsWith(basePath, comparison))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+        catch
+        {
+            // If path resolution fails, reject it
+            return false;
+        }
     }
 }

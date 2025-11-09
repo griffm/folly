@@ -15,6 +15,9 @@ internal sealed class PdfWriter : IDisposable
     private bool _disposed;
     private int? _infoObjectId;
 
+    // Security: Maximum allowed PNG chunk size (10MB) to prevent integer overflow attacks
+    private const int MAX_PNG_CHUNK_SIZE = 10 * 1024 * 1024;
+
     public PdfWriter(Stream output)
     {
         _output = output ?? throw new ArgumentNullException(nameof(output));
@@ -177,6 +180,20 @@ internal sealed class PdfWriter : IDisposable
                 int chunkLength = (pngData[offset] << 24) | (pngData[offset + 1] << 16) |
                                  (pngData[offset + 2] << 8) | pngData[offset + 3];
 
+                // Security: Validate chunk length to prevent integer overflow attacks
+                if (chunkLength < 0 || chunkLength > MAX_PNG_CHUNK_SIZE)
+                {
+                    // Invalid or suspiciously large chunk - abort processing
+                    break;
+                }
+
+                // Security: Ensure chunk data doesn't exceed buffer bounds
+                if (offset + 12 + chunkLength > pngData.Length)
+                {
+                    // Chunk extends beyond buffer - abort processing
+                    break;
+                }
+
                 string chunkType = Encoding.ASCII.GetString(pngData, offset + 4, 4);
 
                 if (chunkType == "IDAT")
@@ -192,7 +209,15 @@ internal sealed class PdfWriter : IDisposable
                     break;
                 }
 
-                offset += 12 + chunkLength; // Length(4) + Type(4) + Data(length) + CRC(4)
+                // Security: Check for integer overflow before updating offset
+                long nextOffset = (long)offset + 12 + chunkLength;
+                if (nextOffset > int.MaxValue)
+                {
+                    // Offset overflow - abort processing
+                    break;
+                }
+
+                offset = (int)nextOffset; // Length(4) + Type(4) + Data(length) + CRC(4)
             }
 
             // For simplicity, return compressed data with FlateDecode filter
@@ -755,14 +780,37 @@ internal sealed class PdfWriter : IDisposable
         return (b << 16) | a;
     }
 
+    /// <summary>
+    /// Escapes a string for safe inclusion in PDF string literals.
+    /// Prevents PDF metadata injection attacks by escaping special characters.
+    /// </summary>
     private static string EscapeString(string str)
     {
-        return str
+        if (string.IsNullOrEmpty(str))
+            return string.Empty;
+
+        // Security: Escape backslashes first to avoid double-escaping
+        var result = str
             .Replace("\\", "\\\\")
             .Replace("(", "\\(")
             .Replace(")", "\\)")
             .Replace("\r", "\\r")
-            .Replace("\n", "\\n");
+            .Replace("\n", "\\n")
+            .Replace("\t", "\\t");
+
+        // Security: Remove null bytes and other control characters that could break PDF structure
+        var sb = new System.Text.StringBuilder(result.Length);
+        foreach (char c in result)
+        {
+            if (c == '\0' || (c < 32 && c != '\t' && c != '\n' && c != '\r'))
+            {
+                // Skip dangerous control characters
+                continue;
+            }
+            sb.Append(c);
+        }
+
+        return sb.ToString();
     }
 
     public void Dispose()

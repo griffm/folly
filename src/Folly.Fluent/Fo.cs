@@ -71,39 +71,19 @@ public sealed class DocumentBuilder
     /// <summary>
     /// Saves the document as PDF.
     /// </summary>
+    [Obsolete("The Fluent API is not yet implemented in version 1.0.0. Use FoDocument.Load() with XSL-FO XML instead. This API is planned for a future release.", error: true)]
     public void SavePdf(string path, PdfOptions? options = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-
-        options ??= new PdfOptions();
-
-        // Apply fluent metadata if configured
-        if (_metadata != null)
-        {
-            options.Metadata = _metadata;
-        }
-
-        // TODO: Build FO XML and render to PDF
-        throw new NotImplementedException("Fluent API not yet implemented");
+        throw new NotImplementedException("Fluent API is not yet implemented. Use FoDocument.Load() with XSL-FO XML instead.");
     }
 
     /// <summary>
     /// Saves the document as PDF to a stream.
     /// </summary>
+    [Obsolete("The Fluent API is not yet implemented in version 1.0.0. Use FoDocument.Load() with XSL-FO XML instead. This API is planned for a future release.", error: true)]
     public void SavePdf(Stream output, PdfOptions? options = null)
     {
-        ArgumentNullException.ThrowIfNull(output);
-
-        options ??= new PdfOptions();
-
-        // Apply fluent metadata if configured
-        if (_metadata != null)
-        {
-            options.Metadata = _metadata;
-        }
-
-        // TODO: Build FO XML and render to PDF
-        throw new NotImplementedException("Fluent API not yet implemented");
+        throw new NotImplementedException("Fluent API is not yet implemented. Use FoDocument.Load() with XSL-FO XML instead.");
     }
 }
 

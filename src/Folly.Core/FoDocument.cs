@@ -46,7 +46,20 @@ public sealed class FoDocument : IDisposable
 
         options ??= new FoLoadOptions();
 
-        var doc = XDocument.Load(xml, LoadOptions.SetLineInfo | LoadOptions.PreserveWhitespace);
+        // Security: Use secure XML reader settings to prevent XXE attacks
+        var xmlReaderSettings = new System.Xml.XmlReaderSettings
+        {
+            DtdProcessing = System.Xml.DtdProcessing.Prohibit, // Disable DTD processing
+            XmlResolver = null, // Disable external entity resolution
+            MaxCharactersFromEntities = 1024, // Limit entity expansion
+            MaxCharactersInDocument = 100_000_000 // 100MB limit for document size
+        };
+
+        XDocument doc;
+        using (var xmlReader = System.Xml.XmlReader.Create(xml, xmlReaderSettings))
+        {
+            doc = XDocument.Load(xmlReader, LoadOptions.SetLineInfo | LoadOptions.PreserveWhitespace);
+        }
 
         // Parse FO DOM
         var foRoot = Dom.FoParser.Parse(doc);
