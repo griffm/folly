@@ -316,38 +316,44 @@ internal sealed class LayoutEngine
             var mustKeepTogether = foBlock.KeepTogether == "always";
             var blockFitsInColumn = currentY + blockTotalHeight <= currentPageMaster.PageHeight - bodyMarginBottom;
 
-            // If block doesn't fit in current column
-            if (!blockFitsInColumn && (mustKeepTogether || currentY == bodyMarginTop))
+            // If block doesn't fit in current column/page
+            if (!blockFitsInColumn)
             {
-                // Try moving to next column
-                if (currentColumn < columnCount - 1)
+                // Only add the block to overflow page if we're NOT at the top AND NOT keep-together
+                // (if we're at the top, the block is too large for any page, so we must render it anyway)
+                if (currentY > bodyMarginTop || mustKeepTogether)
                 {
-                    // Move to next column on same page
-                    currentColumn++;
-                    currentY = bodyMarginTop;
-                    columnX = bodyMarginLeft + currentColumn * (columnWidth + columnGap);
-                }
-                else
-                {
-                    // All columns filled - create new page
-                    RenderFloats(currentPage, currentPageMaster, bodyMarginTop);
-                    RenderFootnotes(currentPage, currentPageMaster);
-                    AddLinksToPage(currentPage);
-                    areaTree.AddPage(currentPage);
-                    pageNumber++;
-                    currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
-                    currentPage = CreatePage(currentPageMaster, pageSequence, pageNumber);
-                    currentY = bodyMarginTop;
-                    currentColumn = 0;
-                    columnX = bodyMarginLeft;
-                }
+                    // Try moving to next column
+                    if (currentColumn < columnCount - 1)
+                    {
+                        // Move to next column on same page
+                        currentColumn++;
+                        currentY = bodyMarginTop;
+                        columnX = bodyMarginLeft + currentColumn * (columnWidth + columnGap);
+                    }
+                    else
+                    {
+                        // All columns filled - create new page
+                        RenderFloats(currentPage, currentPageMaster, bodyMarginTop);
+                        RenderFootnotes(currentPage, currentPageMaster);
+                        AddLinksToPage(currentPage);
+                        areaTree.AddPage(currentPage);
+                        pageNumber++;
+                        currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
+                        currentPage = CreatePage(currentPageMaster, pageSequence, pageNumber);
+                        currentY = bodyMarginTop;
+                        currentColumn = 0;
+                        columnX = bodyMarginLeft;
+                    }
 
-                // Re-layout the block for the new column/page
-                blockArea = LayoutBlock(foBlock, columnX, currentY, columnWidth);
-                if (blockArea == null)
-                    continue;
+                    // Re-layout the block for the new column/page
+                    blockArea = LayoutBlock(foBlock, columnX, currentY, columnWidth);
+                    if (blockArea == null)
+                        continue;
 
-                blockTotalHeight = blockArea.Height + blockArea.MarginTop + blockArea.MarginBottom;
+                    blockTotalHeight = blockArea.Height + blockArea.MarginTop + blockArea.MarginBottom;
+                }
+                // else: block is too large for any page, render it anyway at top of current page
             }
 
             currentPage.AddArea(blockArea);
