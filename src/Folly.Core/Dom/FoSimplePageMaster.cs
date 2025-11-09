@@ -24,6 +24,26 @@ public sealed class FoSimplePageMaster : FoElement
     public double PageHeight => Properties.GetLength("page-height", 842); // Default A4 height
 
     /// <summary>
+    /// Gets the top margin in points.
+    /// </summary>
+    public double MarginTop => Properties.GetLength("margin-top", 0);
+
+    /// <summary>
+    /// Gets the bottom margin in points.
+    /// </summary>
+    public double MarginBottom => Properties.GetLength("margin-bottom", 0);
+
+    /// <summary>
+    /// Gets the left margin in points.
+    /// </summary>
+    public double MarginLeft => Properties.GetLength("margin-left", 0);
+
+    /// <summary>
+    /// Gets the right margin in points.
+    /// </summary>
+    public double MarginRight => Properties.GetLength("margin-right", 0);
+
+    /// <summary>
     /// Gets the region-body child.
     /// </summary>
     public FoRegionBody? RegionBody { get; init; }

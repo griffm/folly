@@ -74,9 +74,9 @@ internal sealed class LayoutEngine
             {
                 // Layout content in header region
                 var extent = (pageMaster.RegionBefore as Dom.FoRegionBefore)?.Extent ?? 36;
-                var y = 0.0;
-                var x = pageMaster.RegionBefore.MarginLeft;
-                var width = pageMaster.PageWidth - pageMaster.RegionBefore.MarginLeft - pageMaster.RegionBefore.MarginRight;
+                var y = pageMaster.MarginTop;
+                var x = pageMaster.MarginLeft + pageMaster.RegionBefore.MarginLeft;
+                var width = pageMaster.PageWidth - pageMaster.MarginLeft - pageMaster.MarginRight - pageMaster.RegionBefore.MarginLeft - pageMaster.RegionBefore.MarginRight;
 
                 foreach (var block in staticContent.Blocks)
                 {
@@ -107,9 +107,9 @@ internal sealed class LayoutEngine
             {
                 // Layout content in footer region
                 var extent = (pageMaster.RegionAfter as Dom.FoRegionAfter)?.Extent ?? 36;
-                var y = pageMaster.PageHeight - extent;
-                var x = pageMaster.RegionAfter.MarginLeft;
-                var width = pageMaster.PageWidth - pageMaster.RegionAfter.MarginLeft - pageMaster.RegionAfter.MarginRight;
+                var y = pageMaster.PageHeight - pageMaster.MarginBottom - extent;
+                var x = pageMaster.MarginLeft + pageMaster.RegionAfter.MarginLeft;
+                var width = pageMaster.PageWidth - pageMaster.MarginLeft - pageMaster.MarginRight - pageMaster.RegionAfter.MarginLeft - pageMaster.RegionAfter.MarginRight;
 
                 foreach (var block in staticContent.Blocks)
                 {
@@ -267,10 +267,23 @@ internal sealed class LayoutEngine
         var firstPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber: 1, totalPages: 999);
 
         var regionBody = firstPageMaster.RegionBody;
-        var bodyMarginTop = regionBody?.MarginTop ?? 72;
-        var bodyMarginBottom = regionBody?.MarginBottom ?? 72;
-        var bodyMarginLeft = regionBody?.MarginLeft ?? 72;
-        var bodyMarginRight = regionBody?.MarginRight ?? 72;
+        var regionBodyMarginTop = regionBody?.MarginTop ?? 0;
+        var regionBodyMarginBottom = regionBody?.MarginBottom ?? 0;
+        var regionBodyMarginLeft = regionBody?.MarginLeft ?? 0;
+        var regionBodyMarginRight = regionBody?.MarginRight ?? 0;
+
+        // Calculate region extents
+        var regionBeforeExtent = (firstPageMaster.RegionBefore as Dom.FoRegionBefore)?.Extent ?? 0;
+        var regionAfterExtent = (firstPageMaster.RegionAfter as Dom.FoRegionAfter)?.Extent ?? 0;
+
+        // Body position and dimensions must account for:
+        // - Page margins (from simple-page-master)
+        // - Region extents (from region-before/after)
+        // - Region-body margins
+        var bodyMarginTop = firstPageMaster.MarginTop + regionBeforeExtent + regionBodyMarginTop;
+        var bodyMarginBottom = firstPageMaster.MarginBottom + regionAfterExtent + regionBodyMarginBottom;
+        var bodyMarginLeft = firstPageMaster.MarginLeft + regionBodyMarginLeft;
+        var bodyMarginRight = firstPageMaster.MarginRight + regionBodyMarginRight;
 
         var bodyWidth = firstPageMaster.PageWidth - bodyMarginLeft - bodyMarginRight;
         var bodyHeight = firstPageMaster.PageHeight - bodyMarginTop - bodyMarginBottom;
