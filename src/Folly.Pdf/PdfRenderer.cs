@@ -122,7 +122,17 @@ public sealed class PdfRenderer : IDisposable
     {
         if (area is BlockArea blockArea)
         {
-            // TODO: Render borders and backgrounds
+            // Render background
+            if (blockArea.BackgroundColor != "transparent" && !string.IsNullOrWhiteSpace(blockArea.BackgroundColor))
+            {
+                RenderBackground(blockArea, content);
+            }
+
+            // Render borders
+            if (blockArea.BorderStyle != "none" && blockArea.BorderWidth > 0)
+            {
+                RenderBorder(blockArea, content);
+            }
 
             // Render child areas (lines)
             foreach (var child in blockArea.Children)
@@ -159,6 +169,110 @@ public sealed class PdfRenderer : IDisposable
         content.AppendLine($"{x:F2} {y:F2} Td"); // Position text
         content.AppendLine($"({EscapeString(inline.Text)}) Tj"); // Show text
         content.AppendLine("ET"); // End text
+    }
+
+    private void RenderBackground(BlockArea block, StringBuilder content)
+    {
+        // Parse color and convert to RGB
+        var (r, g, b) = ParseColor(block.BackgroundColor);
+
+        // Save graphics state
+        content.AppendLine("q");
+
+        // Set fill color
+        content.AppendLine($"{r:F3} {g:F3} {b:F3} rg");
+
+        // Draw filled rectangle
+        content.AppendLine($"{block.X:F2} {block.Y:F2} {block.Width:F2} {block.Height:F2} re");
+        content.AppendLine("f");
+
+        // Restore graphics state
+        content.AppendLine("Q");
+    }
+
+    private void RenderBorder(BlockArea block, StringBuilder content)
+    {
+        // Parse border color and convert to RGB
+        var (r, g, b) = ParseColor(block.BorderColor);
+
+        // Save graphics state
+        content.AppendLine("q");
+
+        // Set stroke color and width
+        content.AppendLine($"{r:F3} {g:F3} {b:F3} RG");
+        content.AppendLine($"{block.BorderWidth:F2} w");
+
+        // Set line dash pattern based on border style
+        switch (block.BorderStyle.ToLowerInvariant())
+        {
+            case "dashed":
+                content.AppendLine("[3 2] 0 d"); // Dashed pattern
+                break;
+            case "dotted":
+                content.AppendLine("[1 1] 0 d"); // Dotted pattern
+                break;
+            default: // solid
+                content.AppendLine("[] 0 d"); // Solid line
+                break;
+        }
+
+        // Draw rectangle border (accounting for half the line width)
+        var halfWidth = block.BorderWidth / 2;
+        content.AppendLine($"{block.X + halfWidth:F2} {block.Y + halfWidth:F2} {block.Width - block.BorderWidth:F2} {block.Height - block.BorderWidth:F2} re");
+        content.AppendLine("S");
+
+        // Restore graphics state
+        content.AppendLine("Q");
+    }
+
+    private static (double r, double g, double b) ParseColor(string color)
+    {
+        // Handle common color names
+        var normalizedColor = color.ToLowerInvariant().Trim();
+
+        return normalizedColor switch
+        {
+            "black" => (0, 0, 0),
+            "white" => (1, 1, 1),
+            "red" => (1, 0, 0),
+            "green" => (0, 1, 0),
+            "blue" => (0, 0, 1),
+            "yellow" => (1, 1, 0),
+            "cyan" => (0, 1, 1),
+            "magenta" => (1, 0, 1),
+            "gray" or "grey" => (0.5, 0.5, 0.5),
+            "silver" => (0.75, 0.75, 0.75),
+            _ => ParseHexColor(normalizedColor)
+        };
+    }
+
+    private static (double r, double g, double b) ParseHexColor(string color)
+    {
+        // Handle hex colors (#RGB or #RRGGBB)
+        if (color.StartsWith('#'))
+        {
+            var hex = color[1..];
+
+            if (hex.Length == 3)
+            {
+                // #RGB format - expand to #RRGGBB
+                var r = Convert.ToInt32(hex[0].ToString() + hex[0].ToString(), 16) / 255.0;
+                var g = Convert.ToInt32(hex[1].ToString() + hex[1].ToString(), 16) / 255.0;
+                var b = Convert.ToInt32(hex[2].ToString() + hex[2].ToString(), 16) / 255.0;
+                return (r, g, b);
+            }
+            else if (hex.Length == 6)
+            {
+                // #RRGGBB format
+                var r = Convert.ToInt32(hex[0..2], 16) / 255.0;
+                var g = Convert.ToInt32(hex[2..4], 16) / 255.0;
+                var b = Convert.ToInt32(hex[4..6], 16) / 255.0;
+                return (r, g, b);
+            }
+        }
+
+        // Default to black if unable to parse
+        return (0, 0, 0);
     }
 
     private static string EscapeString(string str)
