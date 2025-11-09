@@ -118,4 +118,10 @@ public sealed class FoBlock : FoElement
     /// Footnotes appear inline but are rendered at the bottom of the page.
     /// </summary>
     public IReadOnlyList<FoFootnote> Footnotes { get; init; } = Array.Empty<FoFootnote>();
+
+    /// <summary>
+    /// Gets the floats contained in this block.
+    /// Floats are positioned to the side with content flowing around them.
+    /// </summary>
+    public IReadOnlyList<FoFloat> Floats { get; init; } = Array.Empty<FoFloat>();
 }

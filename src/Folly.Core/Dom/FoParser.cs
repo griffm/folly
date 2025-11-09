@@ -271,6 +271,7 @@ internal static class FoParser
     {
         var children = new List<FoElement>();
         var footnotes = new List<FoFootnote>();
+        var floats = new List<FoFloat>();
 
         // Collect text content
         var textContent = string.Join("", element.Nodes()
@@ -298,6 +299,9 @@ internal static class FoParser
                 case "footnote":
                     footnotes.Add(ParseFootnote(child));
                     break;
+                case "float":
+                    floats.Add(ParseFloat(child));
+                    break;
             }
         }
 
@@ -306,6 +310,7 @@ internal static class FoParser
             Properties = ParseProperties(element),
             Children = children,
             Footnotes = footnotes,
+            Floats = floats,
             TextContent = string.IsNullOrWhiteSpace(textContent) ? null : textContent
         };
     }
@@ -389,6 +394,24 @@ internal static class FoParser
         }
 
         return new FoFootnoteBody
+        {
+            Properties = ParseProperties(element),
+            Blocks = blocks
+        };
+    }
+
+    private static FoFloat ParseFloat(XElement element)
+    {
+        var blocks = new List<FoBlock>();
+
+        // Parse block children that make up the float content
+        foreach (var child in element.Elements())
+        {
+            if (child.Name.LocalName == "block")
+                blocks.Add(ParseBlock(child));
+        }
+
+        return new FoFloat
         {
             Properties = ParseProperties(element),
             Blocks = blocks
