@@ -247,6 +247,7 @@ Pipeline steps:
 - [x] Leaders and page number formatting - fo:leader with dot patterns and rules fully implemented in layout engine and PDF renderer, fo:page-number-citation implemented
 - [x] Bookmarks (PDF outline) - fo:bookmark-tree and fo:bookmark
 - [x] Internal and external links - fo:basic-link with internal-destination and external-destination
+- [x] AFM font metrics - Accurate character widths from Adobe Font Metrics files for all 14 standard PDF fonts (200+ characters each), replacing approximate metrics with real data for improved text layout precision
 - [ ] Complete metadata support
 - [ ] PDF compression optimization
 - [ ] Font subsetting optimization

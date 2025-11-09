@@ -7,4 +7,9 @@
     <Description>Folly Core - XSL-FO 1.1 parser, DOM, property system, layout engine, and area tree builder</Description>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!-- Embed AFM files for standard PDF fonts -->
+    <EmbeddedResource Include="Fonts\fonts\base14\*.afm" />
+  </ItemGroup>
+
 </Project>
