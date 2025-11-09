@@ -139,6 +139,32 @@ internal sealed class LayoutEngine
             currentY += tableArea.Height;
         }
 
+        // Layout each list block in the flow
+        foreach (var foList in flow.Lists)
+        {
+            var listArea = LayoutListBlock(foList, bodyMarginLeft, currentY, bodyWidth);
+            if (listArea == null)
+                continue;
+
+            // Check if list fits on current page
+            if (currentY + listArea.Height > pageMaster.PageHeight - bodyMarginBottom)
+            {
+                // List doesn't fit - add current page and create new one
+                areaTree.AddPage(currentPage);
+                pageNumber++;
+                currentPage = CreatePage(pageMaster, pageNumber);
+                currentY = bodyMarginTop;
+
+                // Re-position the list for the new page
+                listArea = LayoutListBlock(foList, bodyMarginLeft, currentY, bodyWidth);
+                if (listArea == null)
+                    continue;
+            }
+
+            currentPage.AddArea(listArea);
+            currentY += listArea.Height;
+        }
+
         // Add the last page
         areaTree.AddPage(currentPage);
     }
@@ -717,5 +743,77 @@ internal sealed class LayoutEngine
         }
 
         return (intrinsicWidth, intrinsicHeight);
+    }
+
+    private BlockArea? LayoutListBlock(Dom.FoListBlock foList, double x, double y, double availableWidth)
+    {
+        var listArea = new BlockArea
+        {
+            X = x,
+            Y = y + foList.SpaceBefore,
+            Width = availableWidth,
+            Height = 0
+        };
+
+        var currentY = 0.0;
+
+        // Layout each list item
+        foreach (var foItem in foList.Items)
+        {
+            currentY += foItem.SpaceBefore;
+
+            var labelWidth = foList.ProvisionalDistanceBetweenStarts - foList.ProvisionalLabelSeparation;
+            var bodyStartX = foList.ProvisionalDistanceBetweenStarts;
+            var bodyWidth = availableWidth - bodyStartX;
+
+            double labelHeight = 0;
+            double bodyHeight = 0;
+
+            // Layout label
+            if (foItem.Label != null)
+            {
+                var labelY = 0.0;
+                foreach (var labelBlock in foItem.Label.Blocks)
+                {
+                    var labelBlockArea = LayoutBlock(labelBlock, 0, labelY, labelWidth);
+                    if (labelBlockArea != null)
+                    {
+                        // Adjust position to be relative to list item
+                        labelBlockArea.X = 0;
+                        labelBlockArea.Y = currentY + labelY;
+                        listArea.AddChild(labelBlockArea);
+                        labelY += labelBlockArea.Height + labelBlockArea.MarginTop + labelBlockArea.MarginBottom;
+                    }
+                }
+                labelHeight = labelY;
+            }
+
+            // Layout body
+            if (foItem.Body != null)
+            {
+                var bodyY = 0.0;
+                foreach (var bodyBlock in foItem.Body.Blocks)
+                {
+                    var bodyBlockArea = LayoutBlock(bodyBlock, bodyStartX, bodyY, bodyWidth);
+                    if (bodyBlockArea != null)
+                    {
+                        // Adjust position to be relative to list item
+                        bodyBlockArea.X = bodyStartX;
+                        bodyBlockArea.Y = currentY + bodyY;
+                        listArea.AddChild(bodyBlockArea);
+                        bodyY += bodyBlockArea.Height + bodyBlockArea.MarginTop + bodyBlockArea.MarginBottom;
+                    }
+                }
+                bodyHeight = bodyY;
+            }
+
+            // List item height is the maximum of label and body heights
+            var itemHeight = Math.Max(labelHeight, bodyHeight);
+            currentY += itemHeight + foItem.SpaceAfter;
+        }
+
+        listArea.Height = currentY + foList.SpaceAfter;
+
+        return listArea;
     }
 }
