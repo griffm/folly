@@ -15,7 +15,7 @@ endobj
 endobj
 4 0 obj
 <<
-  /Length 846
+  /Length 1206
 >>
 stream
 BT
@@ -65,32 +65,62 @@ q
 0.50 199.70 594.00 13.40 re
 S
 Q
+BT
+/F3 12.00 Tf
+0.00 8.62 Td
+(Item Description) Tj
+ET
 q
 0.800 0.800 0.800 RG
 1.00 w
 [] 0 d
-0.50 226.10 594.00 13.40 re
+0.50 226.10 594.00 27.00 re
 S
 Q
+BT
+/F3 10.00 Tf
+0.00 7.18 Td
+(XSL-FO Processing Service - Professional License) Tj
+ET
+BT
+/F3 10.00 Tf
+559.42 7.18 Td
+($999.00) Tj
+ET
 q
 0.800 0.800 0.800 RG
 1.00 w
 [] 0 d
-0.50 248.50 594.00 13.40 re
+0.50 262.10 594.00 27.00 re
 S
 Q
+BT
+/F3 10.00 Tf
+0.00 7.18 Td
+(Technical Support \(12 months\)) Tj
+ET
+BT
+/F3 10.00 Tf
+559.42 7.18 Td
+($299.00) Tj
+ET
 q
 0.941 0.941 0.941 rg
-0.00 282.40 595.00 14.40 re
+0.00 309.60 595.00 16.80 re
 f
 Q
 q
 0.000 0.000 0.000 RG
 2.00 w
 [] 0 d
-1.00 283.40 593.00 12.40 re
+1.00 310.60 593.00 14.80 re
 S
 Q
+BT
+/F3 14.00 Tf
+490.69 10.05 Td
+(Total: $1,298.00) Tj
+ET
 BT
 /F3 10.00 Tf
 232.45 7.18 Td
@@ -123,18 +153,18 @@ endobj
 <<
   /Creator (Folly XSL-FO Processor)
   /Producer (Folly)
-  /CreationDate (D:20251109101450Z)
+  /CreationDate (D:20251109103652Z)
 >>
 endobj
 xref
 0 7
 0000000000 65535 f 
 0000000015 00000 n 
-0000001201 00000 n 
+0000001562 00000 n 
 0000000068 00000 n 
 0000000144 00000 n 
-0000001043 00000 n 
-0000001264 00000 n 
+0000001404 00000 n 
+0000001625 00000 n 
 trailer
 <<
   /Size 7
@@ -142,5 +172,5 @@ trailer
   /Info 6 0 R
 >>
 startxref
-1377
+1738
 %%EOF

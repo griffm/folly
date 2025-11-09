@@ -51,16 +51,22 @@ public sealed class PdfRenderer : IDisposable
         // Collect fonts used in the document
         var fonts = CollectFonts(areaTree);
 
+        // Collect images used in the document
+        var images = CollectImages(areaTree);
+
         var catalogId = _writer.WriteCatalog(areaTree.Pages.Count);
 
         // Write font resources
         var fontIds = _writer.WriteFonts(fonts);
 
+        // Write image resources
+        var imageIds = _writer.WriteImages(images);
+
         // Render pages
         var pageIds = new List<int>();
         foreach (var page in areaTree.Pages)
         {
-            var pageId = RenderPage(page, fontIds);
+            var pageId = RenderPage(page, fontIds, imageIds);
             pageIds.Add(pageId);
         }
 
@@ -79,6 +85,16 @@ public sealed class PdfRenderer : IDisposable
             CollectFontsFromAreas(page.Areas, fonts);
         }
         return fonts;
+    }
+
+    private Dictionary<string, (byte[] Data, string Format, int Width, int Height)> CollectImages(AreaTree areaTree)
+    {
+        var images = new Dictionary<string, (byte[], string, int, int)>();
+        foreach (var page in areaTree.Pages)
+        {
+            CollectImagesFromAreas(page.Areas, images);
+        }
+        return images;
     }
 
     private void CollectFontsFromAreas(IEnumerable<Area> areas, HashSet<string> fonts)
@@ -114,7 +130,43 @@ public sealed class PdfRenderer : IDisposable
         }
     }
 
-    private int RenderPage(PageViewport page, Dictionary<string, int> fontIds)
+    private void CollectImagesFromAreas(IEnumerable<Area> areas, Dictionary<string, (byte[], string, int, int)> images)
+    {
+        foreach (var area in areas)
+        {
+            if (area is ImageArea imageArea)
+            {
+                if (imageArea.ImageData != null && !string.IsNullOrEmpty(imageArea.Source))
+                {
+                    if (!images.ContainsKey(imageArea.Source))
+                    {
+                        images[imageArea.Source] = (
+                            imageArea.ImageData,
+                            imageArea.Format,
+                            (int)imageArea.IntrinsicWidth,
+                            (int)imageArea.IntrinsicHeight
+                        );
+                    }
+                }
+            }
+            else if (area is BlockArea blockArea)
+            {
+                CollectImagesFromAreas(blockArea.Children, images);
+            }
+            else if (area is TableArea tableArea)
+            {
+                foreach (var row in tableArea.Rows)
+                {
+                    foreach (var cell in row.Cells)
+                    {
+                        CollectImagesFromAreas(cell.Children, images);
+                    }
+                }
+            }
+        }
+    }
+
+    private int RenderPage(PageViewport page, Dictionary<string, int> fontIds, Dictionary<string, int> imageIds)
     {
         // Build content stream
         var content = new StringBuilder();
@@ -122,21 +174,21 @@ public sealed class PdfRenderer : IDisposable
         // Render all areas on the page
         foreach (var area in page.Areas)
         {
-            RenderArea(area, content, fontIds);
+            RenderArea(area, content, fontIds, imageIds);
         }
 
-        return _writer.WritePage(page, content.ToString(), fontIds);
+        return _writer.WritePage(page, content.ToString(), fontIds, imageIds);
     }
 
-    private void RenderArea(Area area, StringBuilder content, Dictionary<string, int> fontIds)
+    private void RenderArea(Area area, StringBuilder content, Dictionary<string, int> fontIds, Dictionary<string, int> imageIds)
     {
         if (area is ImageArea imageArea)
         {
-            RenderImage(imageArea, content);
+            RenderImage(imageArea, content, imageIds);
         }
         else if (area is TableArea tableArea)
         {
-            RenderTable(tableArea, content, fontIds);
+            RenderTable(tableArea, content, fontIds, imageIds);
         }
         else if (area is BlockArea blockArea)
         {
@@ -155,7 +207,7 @@ public sealed class PdfRenderer : IDisposable
             // Render child areas (lines)
             foreach (var child in blockArea.Children)
             {
-                RenderArea(child, content, fontIds);
+                RenderArea(child, content, fontIds, imageIds);
             }
         }
         else if (area is LineArea lineArea)
@@ -293,44 +345,45 @@ public sealed class PdfRenderer : IDisposable
         return (0, 0, 0);
     }
 
-    private void RenderImage(ImageArea image, StringBuilder content)
+    private void RenderImage(ImageArea image, StringBuilder content, Dictionary<string, int> imageIds)
     {
-        // For now, render a placeholder rectangle where the image will go
-        // Full image embedding requires extending PdfWriter to create image XObjects
-        // TODO: Implement full JPEG passthrough and PNG decoding
+        // Look up the image ID
+        if (!imageIds.TryGetValue(image.Source, out var imageId))
+            return; // Image not found
 
         // Save graphics state
         content.AppendLine("q");
 
-        // Draw placeholder border
-        content.AppendLine("0.5 0.5 0.5 RG");
-        content.AppendLine("1 w");
-        content.AppendLine($"{image.X:F2} {image.Y:F2} {image.Width:F2} {image.Height:F2} re");
-        content.AppendLine("S");
+        // Translate to image position and scale to image dimensions
+        // PDF images are drawn in a 1x1 unit square, so we scale and translate
+        content.AppendLine($"{image.Width:F2} 0 0 {image.Height:F2} {image.X:F2} {image.Y:F2} cm");
+
+        // Draw the image using Do operator
+        content.AppendLine($"/Im{imageId} Do");
 
         // Restore graphics state
         content.AppendLine("Q");
     }
 
-    private void RenderTable(TableArea table, StringBuilder content, Dictionary<string, int> fontIds)
+    private void RenderTable(TableArea table, StringBuilder content, Dictionary<string, int> fontIds, Dictionary<string, int> imageIds)
     {
         // Render each row in the table
         foreach (var row in table.Rows)
         {
-            RenderTableRow(row, table, content, fontIds);
+            RenderTableRow(row, table, content, fontIds, imageIds);
         }
     }
 
-    private void RenderTableRow(TableRowArea row, TableArea table, StringBuilder content, Dictionary<string, int> fontIds)
+    private void RenderTableRow(TableRowArea row, TableArea table, StringBuilder content, Dictionary<string, int> fontIds, Dictionary<string, int> imageIds)
     {
         // Render each cell in the row
         foreach (var cell in row.Cells)
         {
-            RenderTableCell(cell, table, row, content, fontIds);
+            RenderTableCell(cell, table, row, content, fontIds, imageIds);
         }
     }
 
-    private void RenderTableCell(TableCellArea cell, TableArea table, TableRowArea row, StringBuilder content, Dictionary<string, int> fontIds)
+    private void RenderTableCell(TableCellArea cell, TableArea table, TableRowArea row, StringBuilder content, Dictionary<string, int> fontIds, Dictionary<string, int> imageIds)
     {
         // Calculate absolute position
         var absoluteX = table.X + cell.X;
@@ -390,14 +443,14 @@ public sealed class PdfRenderer : IDisposable
                 var originalX = blockArea.X;
                 var originalY = blockArea.Y;
 
-                RenderArea(child, content, fontIds);
+                RenderArea(child, content, fontIds, imageIds);
 
                 blockArea.X = originalX;
                 blockArea.Y = originalY;
             }
             else
             {
-                RenderArea(child, content, fontIds);
+                RenderArea(child, content, fontIds, imageIds);
             }
         }
 
