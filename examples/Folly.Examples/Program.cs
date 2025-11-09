@@ -50,6 +50,10 @@ GenerateListExample(Path.Combine(outputDir, "09-lists.pdf"));
 Console.WriteLine("Generating Example 10: Keep and Break Constraints...");
 GenerateKeepBreakExample(Path.Combine(outputDir, "10-keep-break.pdf"));
 
+// Example 11: Headers, Footers, and Page Numbers
+Console.WriteLine("Generating Example 11: Headers, Footers, and Page Numbers...");
+GenerateHeaderFooterExample(Path.Combine(outputDir, "11-headers-footers.pdf"));
+
 Console.WriteLine("\n✓ All examples generated successfully!");
 Console.WriteLine($"\nView PDFs in: {outputDir}");
 Console.WriteLine("\nValidate with qpdf:");
@@ -701,6 +705,88 @@ static void GenerateKeepBreakExample(string outputPath)
 
               <fo:block font-size="12pt" margin-bottom="12pt">
                 These pagination controls give you precise control over document layout and ensure professional formatting.
+              </fo:block>
+            </fo:flow>
+          </fo:page-sequence>
+        </fo:root>
+        """;
+
+    using var doc = FoDocument.Load(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml)));
+    doc.SavePdf(outputPath);
+}
+
+static void GenerateHeaderFooterExample(string outputPath)
+{
+    var foXml = """
+        <?xml version="1.0"?>
+        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+          <fo:layout-master-set>
+            <fo:simple-page-master master-name="A4" page-width="595pt" page-height="842pt">
+              <fo:region-body margin-top="72pt" margin-bottom="72pt" margin-left="72pt" margin-right="72pt"/>
+              <fo:region-before extent="36pt"/>
+              <fo:region-after extent="36pt"/>
+            </fo:simple-page-master>
+          </fo:layout-master-set>
+          <fo:page-sequence master-reference="A4">
+            <fo:static-content flow-name="xsl-region-before">
+              <fo:block font-size="10pt" font-family="Helvetica" text-align="center" padding-top="12pt">
+                Document with Headers and Footers - Page <fo:page-number/>
+              </fo:block>
+            </fo:static-content>
+
+            <fo:static-content flow-name="xsl-region-after">
+              <fo:block font-size="9pt" font-family="Helvetica" text-align="center" padding-bottom="12pt">
+                Page <fo:page-number/> - Folly XSL-FO Processor
+              </fo:block>
+            </fo:static-content>
+
+            <fo:flow flow-name="xsl-region-body">
+              <fo:block font-size="18pt" font-family="Helvetica" text-align="center" margin-bottom="24pt">
+                Headers, Footers, and Page Numbers
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                This example demonstrates static-content for repeating headers and footers with dynamic page numbers.
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                The fo:page-number element is replaced with the actual page number at layout time. This allows you to create professional documents with running headers and footers.
+              </fo:block>
+
+              <fo:block font-size="14pt" font-family="Helvetica" font-weight="bold" margin-top="24pt" margin-bottom="12pt">
+                Page 1 Content
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+              </fo:block>
+
+              <fo:block font-size="14pt" font-family="Helvetica" font-weight="bold" margin-top="24pt" margin-bottom="12pt" break-before="page">
+                Page 2 Content
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                Notice how the page number in the header and footer updates automatically for each page. This is a fundamental feature for multi-page documents like reports, books, and manuals.
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                The region-before (header) has an extent of 36pt, and the region-after (footer) also has 36pt. The region-body has margins that account for these regions.
+              </fo:block>
+
+              <fo:block font-size="14pt" font-family="Helvetica" font-weight="bold" margin-top="24pt" margin-bottom="12pt" break-before="page">
+                Page 3 Content
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                Each page displays its number in both the header and footer. This demonstrates the power of XSL-FO's static-content mechanism combined with dynamic page number generation.
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                You can use this pattern to create sophisticated document layouts with consistent branding and navigation elements across all pages.
               </fo:block>
             </fo:flow>
           </fo:page-sequence>

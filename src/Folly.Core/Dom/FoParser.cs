@@ -205,6 +205,9 @@ internal static class FoParser
                 case "external-graphic":
                     children.Add(ParseExternalGraphic(child));
                     break;
+                case "page-number":
+                    children.Add(ParsePageNumber(child));
+                    break;
             }
         }
 
@@ -219,6 +222,14 @@ internal static class FoParser
     private static FoExternalGraphic ParseExternalGraphic(XElement element)
     {
         return new FoExternalGraphic
+        {
+            Properties = ParseProperties(element)
+        };
+    }
+
+    private static FoPageNumber ParsePageNumber(XElement element)
+    {
+        return new FoPageNumber
         {
             Properties = ParseProperties(element)
         };

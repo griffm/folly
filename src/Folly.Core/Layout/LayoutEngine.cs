@@ -69,12 +69,12 @@ internal sealed class LayoutEngine
         };
 
         // Add static content for headers and footers
-        AddStaticContent(page, pageMaster, pageSequence);
+        AddStaticContent(page, pageMaster, pageSequence, pageNumber);
 
         return page;
     }
 
-    private void AddStaticContent(PageViewport page, Dom.FoSimplePageMaster pageMaster, Dom.FoPageSequence pageSequence)
+    private void AddStaticContent(PageViewport page, Dom.FoSimplePageMaster pageMaster, Dom.FoPageSequence pageSequence, int pageNumber)
     {
         foreach (var staticContent in pageSequence.StaticContents)
         {
@@ -90,7 +90,7 @@ internal sealed class LayoutEngine
 
                 foreach (var block in staticContent.Blocks)
                 {
-                    var blockArea = LayoutBlock(block, x, y, width);
+                    var blockArea = LayoutBlock(block, x, y, width, pageNumber);
                     if (blockArea != null)
                     {
                         page.AddArea(blockArea);
@@ -108,7 +108,7 @@ internal sealed class LayoutEngine
 
                 foreach (var block in staticContent.Blocks)
                 {
-                    var blockArea = LayoutBlock(block, x, y, width);
+                    var blockArea = LayoutBlock(block, x, y, width, pageNumber);
                     if (blockArea != null)
                     {
                         page.AddArea(blockArea);
@@ -253,7 +253,7 @@ internal sealed class LayoutEngine
         areaTree.AddPage(currentPage);
     }
 
-    private BlockArea? LayoutBlock(Dom.FoBlock foBlock, double x, double y, double availableWidth)
+    private BlockArea? LayoutBlock(Dom.FoBlock foBlock, double x, double y, double availableWidth, int pageNumber = 0)
     {
         var blockArea = new BlockArea
         {
@@ -281,8 +281,12 @@ internal sealed class LayoutEngine
 
         var currentY = foBlock.PaddingTop;
 
-        // Check for child elements (images, nested blocks)
-        if (foBlock.Children.Count > 0)
+        // Check for inline page number elements
+        var hasPageNumber = foBlock.Children.Any(c => c is Dom.FoPageNumber);
+        var hasBlockChildren = foBlock.Children.Any(c => c is Dom.FoBlock or Dom.FoExternalGraphic);
+
+        // Handle block-level children (images, nested blocks)
+        if (hasBlockChildren)
         {
             foreach (var child in foBlock.Children)
             {
@@ -297,7 +301,7 @@ internal sealed class LayoutEngine
                 }
                 else if (child is Dom.FoBlock nestedBlock)
                 {
-                    var nestedArea = LayoutBlock(nestedBlock, foBlock.PaddingLeft, currentY, contentWidth);
+                    var nestedArea = LayoutBlock(nestedBlock, foBlock.PaddingLeft, currentY, contentWidth, pageNumber);
                     if (nestedArea != null)
                     {
                         blockArea.AddChild(nestedArea);
@@ -311,8 +315,13 @@ internal sealed class LayoutEngine
             return blockArea;
         }
 
-        // Get text content
-        var text = foBlock.TextContent;
+        // Get text content and substitute page numbers
+        var text = foBlock.TextContent ?? "";
+        if (hasPageNumber && pageNumber > 0)
+        {
+            // Replace page number placeholder with actual page number
+            text = text + pageNumber.ToString();
+        }
         if (string.IsNullOrWhiteSpace(text))
         {
             // Empty block - set minimal height
