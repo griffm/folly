@@ -18,6 +18,10 @@ public static class FoDocumentExtensions
 
         options ??= new PdfOptions();
 
+        // Extract metadata from FO declarations and merge with options
+        // Options metadata takes precedence over declarations
+        ExtractAndMergeMetadata(document.Root.Declarations, options.Metadata);
+
         // Build the area tree from the FO document
         var areaTree = document.BuildAreaTree();
 
@@ -27,6 +31,34 @@ public static class FoDocumentExtensions
         // Render area tree to PDF
         using var renderer = new PdfRenderer(output, options);
         renderer.Render(areaTree, bookmarkTree);
+    }
+
+    /// <summary>
+    /// Extracts metadata from FO declarations and merges with existing metadata.
+    /// Existing metadata values take precedence over declarations.
+    /// </summary>
+    private static void ExtractAndMergeMetadata(Dom.FoDeclarations? declarations, PdfMetadata metadata)
+    {
+        if (declarations?.Info == null)
+            return;
+
+        var info = declarations.Info;
+
+        // Only set values that are not already specified in metadata
+        if (string.IsNullOrWhiteSpace(metadata.Title) && !string.IsNullOrWhiteSpace(info.Title))
+            metadata.Title = info.Title;
+
+        if (string.IsNullOrWhiteSpace(metadata.Author) && !string.IsNullOrWhiteSpace(info.Author))
+            metadata.Author = info.Author;
+
+        if (string.IsNullOrWhiteSpace(metadata.Subject) && !string.IsNullOrWhiteSpace(info.Subject))
+            metadata.Subject = info.Subject;
+
+        if (string.IsNullOrWhiteSpace(metadata.Keywords) && !string.IsNullOrWhiteSpace(info.Keywords))
+            metadata.Keywords = info.Keywords;
+
+        if (metadata.Creator == "Folly XSL-FO Processor" && !string.IsNullOrWhiteSpace(info.Creator))
+            metadata.Creator = info.Creator;
     }
 
     /// <summary>

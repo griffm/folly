@@ -14,6 +14,11 @@ public sealed class FoRoot : FoElement
     public FoLayoutMasterSet? LayoutMasterSet { get; init; }
 
     /// <summary>
+    /// Gets the declarations element (document metadata and other declarations).
+    /// </summary>
+    public FoDeclarations? Declarations { get; init; }
+
+    /// <summary>
     /// Gets the bookmark-tree (PDF outline structure).
     /// </summary>
     public FoBookmarkTree? BookmarkTree { get; init; }

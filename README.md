@@ -110,7 +110,7 @@ cd examples
 dotnet run --project Folly.Examples
 ```
 
-This generates 15 example PDFs showcasing Folly's capabilities:
+This generates 20 example PDFs showcasing Folly's capabilities:
 - **Hello World** - Basic document with simple text
 - **Multiple Blocks** - Different fonts and sizes
 - **Text Alignment** - Start, center, and end alignment
@@ -126,6 +126,11 @@ This generates 15 example PDFs showcasing Folly's capabilities:
 - **Conditional Page Masters** - Different layouts for first/odd/even pages
 - **Multi-Column Layout** - Newspaper-style 3-column formatting
 - **Footnotes** - Academic footnotes with inline references
+- **External Links** - Hyperlinks to web resources
+- **Bookmarks** - PDF outline/table of contents
+- **Inline Formatting** - Styled text spans
+- **BiDi Override** - Right-to-left text rendering
+- **PDF Metadata** - Document properties (title, author, subject, keywords)
 
 See [examples/README.md](examples/README.md) for details.
 
@@ -184,6 +189,7 @@ The core rendering engine is fully operational with extensive feature support:
 - Font metrics from Adobe Font Metrics (AFM) files (14 base PDF fonts, 200+ characters each)
 - **Font subsetting** - Only embeds glyphs actually used in the document (dramatically reduces file size)
 - **Stream compression** - Flate (zlib) compression for optimal PDF file sizes
+- **PDF metadata** - Document Information Dictionary (title, author, subject, keywords, creator, producer, dates)
 - Text positioning with baseline alignment
 - Border rendering (solid, dashed, dotted)
 - Background colors (named and hex formats)
@@ -194,9 +200,9 @@ The core rendering engine is fully operational with extensive feature support:
 - PDF outline/bookmarks for document navigation
 
 **Quality Assurance:**
-- 23 passing unit tests (100% success rate)
+- 29 passing unit tests (100% success rate)
 - 12 comprehensive property inheritance tests
-- 19 working example PDFs (including BiDi text example)
+- 20 working example PDFs (including metadata example)
 - 100% qpdf validation success (zero errors)
 - Verified with qpdf 11.9.0
 

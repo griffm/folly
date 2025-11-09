@@ -86,6 +86,10 @@ GenerateInlineFormattingExample(Path.Combine(outputDir, "18-inline-formatting.pd
 Console.WriteLine("Generating Example 19: BiDi Override (Right-to-Left Text)...");
 GenerateBidiOverrideExample(Path.Combine(outputDir, "19-bidi-override.pdf"));
 
+// Example 20: PDF Metadata
+Console.WriteLine("Generating Example 20: PDF Metadata...");
+GenerateMetadataExample(Path.Combine(outputDir, "20-metadata.pdf"));
+
 Console.WriteLine("\n✓ All examples generated successfully!");
 Console.WriteLine($"\nView PDFs in: {outputDir}");
 Console.WriteLine("\nValidate with qpdf:");
@@ -1661,6 +1665,146 @@ static void GenerateBidiOverrideExample(string outputPath)
               <fo:block font-size="10pt" color="gray" margin-top="24pt">
                 Note: This is a simplified BiDi implementation. For production use with complex scripts
                 (Arabic, Hebrew, etc.), a full Unicode BiDi Algorithm implementation would be required.
+              </fo:block>
+            </fo:flow>
+          </fo:page-sequence>
+        </fo:root>
+        """;
+
+    using var doc = FoDocument.Load(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml)));
+    doc.SavePdf(outputPath);
+}
+
+static void GenerateMetadataExample(string outputPath)
+{
+    var foXml = """
+        <?xml version="1.0"?>
+        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+          <fo:declarations>
+            <fo:info>
+              <title>PDF Metadata Example Document</title>
+              <author>Folly XSL-FO Processor</author>
+              <subject>Demonstration of PDF Document Information Dictionary</subject>
+              <keywords>PDF, metadata, XSL-FO, document properties, Folly</keywords>
+              <creator>Folly Examples Generator</creator>
+            </fo:info>
+          </fo:declarations>
+
+          <fo:layout-master-set>
+            <fo:simple-page-master master-name="A4" page-width="595pt" page-height="842pt"
+                                   margin-top="72pt" margin-bottom="72pt"
+                                   margin-left="72pt" margin-right="72pt">
+              <fo:region-body margin-top="36pt" margin-bottom="36pt"/>
+              <fo:region-before extent="36pt"/>
+              <fo:region-after extent="36pt"/>
+            </fo:simple-page-master>
+          </fo:layout-master-set>
+
+          <fo:page-sequence master-reference="A4">
+            <fo:static-content flow-name="xsl-region-before">
+              <fo:block text-align="center" font-size="10pt" color="#666666">
+                Example 20: PDF Metadata
+              </fo:block>
+            </fo:static-content>
+
+            <fo:static-content flow-name="xsl-region-after">
+              <fo:block text-align="center" font-size="9pt" color="#999999">
+                Page <fo:page-number/>
+              </fo:block>
+            </fo:static-content>
+
+            <fo:flow flow-name="xsl-region-body">
+              <fo:block font-size="24pt" font-weight="bold" color="#2c3e50"
+                       text-align="center" margin-bottom="24pt">
+                PDF Metadata Example
+              </fo:block>
+
+              <fo:block font-size="14pt" font-weight="bold" margin-top="18pt" margin-bottom="8pt">
+                What is PDF Metadata?
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt" text-align="justify">
+                PDF metadata is information about a document that is stored in the PDF's Document
+                Information Dictionary. This metadata is displayed in PDF viewers when you view
+                document properties (typically under File → Properties).
+              </fo:block>
+
+              <fo:block font-size="14pt" font-weight="bold" margin-top="18pt" margin-bottom="8pt">
+                Metadata in This Document
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="8pt">
+                This document demonstrates metadata support in Folly. The following metadata fields
+                were specified using XSL-FO declarations:
+              </fo:block>
+
+              <fo:block font-size="11pt" margin-left="24pt" margin-bottom="6pt">
+                • <fo:inline font-weight="bold">Title:</fo:inline> PDF Metadata Example Document
+              </fo:block>
+
+              <fo:block font-size="11pt" margin-left="24pt" margin-bottom="6pt">
+                • <fo:inline font-weight="bold">Author:</fo:inline> Folly XSL-FO Processor
+              </fo:block>
+
+              <fo:block font-size="11pt" margin-left="24pt" margin-bottom="6pt">
+                • <fo:inline font-weight="bold">Subject:</fo:inline> Demonstration of PDF Document Information Dictionary
+              </fo:block>
+
+              <fo:block font-size="11pt" margin-left="24pt" margin-bottom="6pt">
+                • <fo:inline font-weight="bold">Keywords:</fo:inline> PDF, metadata, XSL-FO, document properties, Folly
+              </fo:block>
+
+              <fo:block font-size="11pt" margin-left="24pt" margin-bottom="12pt">
+                • <fo:inline font-weight="bold">Creator:</fo:inline> Folly Examples Generator
+              </fo:block>
+
+              <fo:block font-size="14pt" font-weight="bold" margin-top="18pt" margin-bottom="8pt">
+                How to View Metadata
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="8pt">
+                To view the metadata in this PDF:
+              </fo:block>
+
+              <fo:block font-size="11pt" margin-left="24pt" margin-bottom="6pt">
+                • <fo:inline font-weight="bold">Adobe Acrobat/Reader:</fo:inline> File → Properties (Ctrl+D)
+              </fo:block>
+
+              <fo:block font-size="11pt" margin-left="24pt" margin-bottom="6pt">
+                • <fo:inline font-weight="bold">macOS Preview:</fo:inline> Tools → Show Inspector (Cmd+I)
+              </fo:block>
+
+              <fo:block font-size="11pt" margin-left="24pt" margin-bottom="6pt">
+                • <fo:inline font-weight="bold">Linux (Evince):</fo:inline> File → Properties
+              </fo:block>
+
+              <fo:block font-size="11pt" margin-left="24pt" margin-bottom="12pt">
+                • <fo:inline font-weight="bold">Command line:</fo:inline> pdfinfo 20-metadata.pdf
+              </fo:block>
+
+              <fo:block font-size="14pt" font-weight="bold" margin-top="18pt" margin-bottom="8pt">
+                Additional Metadata
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt" text-align="justify">
+                In addition to the fields specified above, Folly automatically includes:
+              </fo:block>
+
+              <fo:block font-size="11pt" margin-left="24pt" margin-bottom="6pt">
+                • <fo:inline font-weight="bold">Producer:</fo:inline> The Folly library name and version
+              </fo:block>
+
+              <fo:block font-size="11pt" margin-left="24pt" margin-bottom="6pt">
+                • <fo:inline font-weight="bold">Creation Date:</fo:inline> Timestamp when the PDF was generated
+              </fo:block>
+
+              <fo:block font-size="10pt" color="#666666" margin-top="24pt" border-top="1pt solid #cccccc"
+                       padding-top="12pt">
+                <fo:inline font-style="italic">
+                  Note: Metadata can also be specified programmatically using the PdfOptions class
+                  when calling SavePdf(). Programmatically-specified metadata takes precedence
+                  over XSL-FO declarations.
+                </fo:inline>
               </fo:block>
             </fo:flow>
           </fo:page-sequence>

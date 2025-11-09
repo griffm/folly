@@ -50,6 +50,8 @@ internal static class FoParser
             case FoRoot root:
                 if (root.LayoutMasterSet != null)
                     EstablishParentRelationships(root.LayoutMasterSet, root);
+                if (root.Declarations != null)
+                    EstablishParentRelationships(root.Declarations, root);
                 if (root.BookmarkTree != null)
                     EstablishParentRelationships(root.BookmarkTree, root);
                 foreach (var seq in root.PageSequences)
@@ -196,6 +198,11 @@ internal static class FoParser
                     EstablishParentRelationships(block, body);
                 break;
 
+            case FoDeclarations declarations:
+                if (declarations.Info != null)
+                    EstablishParentRelationships(declarations.Info, declarations);
+                break;
+
             case FoBookmarkTree bookmarkTree:
                 foreach (var bookmark in bookmarkTree.Bookmarks)
                     EstablishParentRelationships(bookmark, bookmarkTree);
@@ -231,6 +238,7 @@ internal static class FoParser
     private static FoRoot ParseRoot(XElement element)
     {
         FoLayoutMasterSet? layoutMasterSet = null;
+        FoDeclarations? declarations = null;
         FoBookmarkTree? bookmarkTree = null;
         var pageSequences = new List<FoPageSequence>();
 
@@ -241,6 +249,9 @@ internal static class FoParser
             {
                 case "layout-master-set":
                     layoutMasterSet = ParseLayoutMasterSet(child);
+                    break;
+                case "declarations":
+                    declarations = ParseDeclarations(child);
                     break;
                 case "bookmark-tree":
                     bookmarkTree = ParseBookmarkTree(child);
@@ -255,6 +266,7 @@ internal static class FoParser
         {
             Properties = ParseProperties(element),
             LayoutMasterSet = layoutMasterSet,
+            Declarations = declarations,
             BookmarkTree = bookmarkTree,
             PageSequences = pageSequences
         };
@@ -1009,6 +1021,65 @@ internal static class FoParser
             Properties = ParseProperties(element),
             Title = title,
             Children = children
+        };
+    }
+
+    private static FoDeclarations ParseDeclarations(XElement element)
+    {
+        FoInfo? info = null;
+
+        foreach (var child in element.Elements())
+        {
+            if (child.Name.LocalName == "info")
+                info = ParseInfo(child);
+        }
+
+        return new FoDeclarations
+        {
+            Properties = ParseProperties(element),
+            Info = info
+        };
+    }
+
+    private static FoInfo ParseInfo(XElement element)
+    {
+        string? title = null;
+        string? author = null;
+        string? subject = null;
+        string? keywords = null;
+        string? creator = null;
+
+        foreach (var child in element.Elements())
+        {
+            var name = child.Name.LocalName;
+            switch (name)
+            {
+                case "title":
+                    title = child.Value;
+                    break;
+                case "author":
+                    author = child.Value;
+                    break;
+                case "subject":
+                    subject = child.Value;
+                    break;
+                case "keywords":
+                    keywords = child.Value;
+                    break;
+                case "creator":
+                    creator = child.Value;
+                    break;
+            }
+        }
+
+        return new FoInfo
+        {
+            Properties = ParseProperties(element),
+            Title = title,
+            Author = author,
+            Subject = subject,
+            Keywords = keywords,
+            Creator = creator
         };
     }
 
