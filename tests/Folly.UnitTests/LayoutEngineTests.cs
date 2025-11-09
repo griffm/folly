@@ -493,4 +493,86 @@ public class LayoutEngineTests
         var page = areaTree.Pages[0];
         Assert.True(page.Areas.Count >= 2);
     }
+
+    [Fact]
+    public void FootnoteSeparator_RendersWhenDefined()
+    {
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="595pt" page-height="842pt">
+                  <fo:region-body margin="72pt"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:static-content flow-name="xsl-footnote-separator">
+                  <fo:block>
+                    <fo:leader leader-pattern="rule" leader-length="2in" rule-thickness="0.5pt"/>
+                  </fo:block>
+                </fo:static-content>
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:block font-size="12pt">
+                    This text has a footnote.<fo:footnote><fo:inline>1</fo:inline><fo:footnote-body><fo:block font-size="10pt">This is the footnote text.</fo:block></fo:footnote-body></fo:footnote>
+                  </fo:block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+        Assert.NotNull(areaTree);
+        Assert.Single(areaTree.Pages);
+
+        var page = areaTree.Pages[0];
+        // Verify that footnote separator is rendered (should have leader area)
+        // Leader areas are typically children of block areas
+        var hasLeaderArea = page.Areas.Any(a => a is LeaderArea ||
+            (a is BlockArea block && block.Children.Any(c => c is LeaderArea)));
+        Assert.True(hasLeaderArea, "Footnote separator should render a leader area");
+    }
+
+    [Fact]
+    public void FootnoteSeparator_NotRenderedWithoutFootnotes()
+    {
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="595pt" page-height="842pt">
+                  <fo:region-body margin="72pt"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:static-content flow-name="xsl-footnote-separator">
+                  <fo:block>
+                    <fo:leader leader-pattern="rule" leader-length="2in" rule-thickness="0.5pt"/>
+                  </fo:block>
+                </fo:static-content>
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:block font-size="12pt">
+                    This text has no footnote.
+                  </fo:block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+        Assert.NotNull(areaTree);
+        Assert.Single(areaTree.Pages);
+
+        var page = areaTree.Pages[0];
+        // Without footnotes, the separator should not be rendered
+        // Leader areas are typically children of block areas
+        var hasLeaderArea = page.Areas.Any(a => a is LeaderArea ||
+            (a is BlockArea block && block.Children.Any(c => c is LeaderArea)));
+        Assert.False(hasLeaderArea, "Footnote separator should not render when there are no footnotes");
+    }
 }
