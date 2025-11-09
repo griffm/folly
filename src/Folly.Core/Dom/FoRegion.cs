@@ -33,6 +33,16 @@ public sealed class FoRegionBody : FoRegion
 {
     /// <inheritdoc/>
     public override string Name => "region-body";
+
+    /// <summary>
+    /// Gets the number of columns for multi-column layout.
+    /// </summary>
+    public int ColumnCount => Properties.GetInt("column-count", 1);
+
+    /// <summary>
+    /// Gets the gap between columns in points.
+    /// </summary>
+    public double ColumnGap => Properties.GetLength("column-gap", 12);
 }
 
 /// <summary>

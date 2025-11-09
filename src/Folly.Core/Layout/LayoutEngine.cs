@@ -263,11 +263,21 @@ internal sealed class LayoutEngine
         var bodyWidth = firstPageMaster.PageWidth - bodyMarginLeft - bodyMarginRight;
         var bodyHeight = firstPageMaster.PageHeight - bodyMarginTop - bodyMarginBottom;
 
+        // Multi-column support
+        var columnCount = (regionBody as Dom.FoRegionBody)?.ColumnCount ?? 1;
+        var columnGap = (regionBody as Dom.FoRegionBody)?.ColumnGap ?? 12;
+
+        // Calculate column width: (total width - gaps) / column count
+        var columnWidth = columnCount > 1
+            ? (bodyWidth - (columnCount - 1) * columnGap) / columnCount
+            : bodyWidth;
+
         // Create first page
         var pageNumber = 1;
         var currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
         var currentPage = CreatePage(currentPageMaster, pageSequence, pageNumber);
         var currentY = bodyMarginTop;
+        var currentColumn = 0;  // Current column index (0-based)
 
         // Layout each block in the flow
         foreach (var foBlock in flow.Blocks)
@@ -276,17 +286,21 @@ internal sealed class LayoutEngine
             if (foBlock.BreakBefore == "always" || foBlock.BreakBefore == "page")
             {
                 // Force page break before this block (unless we're at the top of a new page)
-                if (currentY > bodyMarginTop)
+                if (currentY > bodyMarginTop || currentColumn > 0)
                 {
                     areaTree.AddPage(currentPage);
                     pageNumber++;
                     currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
                     currentPage = CreatePage(currentPageMaster, pageSequence, pageNumber);
                     currentY = bodyMarginTop;
+                    currentColumn = 0;
                 }
             }
 
-            var blockArea = LayoutBlock(foBlock, bodyMarginLeft, currentY, bodyWidth);
+            // Calculate X position based on current column
+            var columnX = bodyMarginLeft + currentColumn * (columnWidth + columnGap);
+
+            var blockArea = LayoutBlock(foBlock, columnX, currentY, columnWidth);
             if (blockArea == null)
                 continue;
 
@@ -294,23 +308,33 @@ internal sealed class LayoutEngine
 
             // Handle keep-together constraint
             var mustKeepTogether = foBlock.KeepTogether == "always";
-            var blockFitsOnPage = currentY + blockTotalHeight <= currentPageMaster.PageHeight - bodyMarginBottom;
+            var blockFitsInColumn = currentY + blockTotalHeight <= currentPageMaster.PageHeight - bodyMarginBottom;
 
-            // If block doesn't fit and must be kept together, move to next page
-            if (!blockFitsOnPage && (mustKeepTogether || currentY == bodyMarginTop))
+            // If block doesn't fit in current column
+            if (!blockFitsInColumn && (mustKeepTogether || currentY == bodyMarginTop))
             {
-                // Block doesn't fit - add current page and create new one
-                if (currentY > bodyMarginTop) // Only create new page if current page has content
+                // Try moving to next column
+                if (currentColumn < columnCount - 1)
                 {
+                    // Move to next column on same page
+                    currentColumn++;
+                    currentY = bodyMarginTop;
+                    columnX = bodyMarginLeft + currentColumn * (columnWidth + columnGap);
+                }
+                else
+                {
+                    // All columns filled - create new page
                     areaTree.AddPage(currentPage);
                     pageNumber++;
                     currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
                     currentPage = CreatePage(currentPageMaster, pageSequence, pageNumber);
                     currentY = bodyMarginTop;
+                    currentColumn = 0;
+                    columnX = bodyMarginLeft;
                 }
 
-                // Re-position the block for the new page
-                blockArea = LayoutBlock(foBlock, bodyMarginLeft, currentY, bodyWidth);
+                // Re-layout the block for the new column/page
+                blockArea = LayoutBlock(foBlock, columnX, currentY, columnWidth);
                 if (blockArea == null)
                     continue;
 
@@ -329,12 +353,15 @@ internal sealed class LayoutEngine
                 currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
                 currentPage = CreatePage(currentPageMaster, pageSequence, pageNumber);
                 currentY = bodyMarginTop;
+                currentColumn = 0;
             }
         }
 
         // Layout each table in the flow
+        // Note: Tables span full body width, not individual columns
         foreach (var foTable in flow.Tables)
         {
+            // Tables break columns - start from left margin
             var tableArea = LayoutTable(foTable, bodyMarginLeft, currentY, bodyWidth);
             if (tableArea == null)
                 continue;
@@ -356,11 +383,14 @@ internal sealed class LayoutEngine
 
             currentPage.AddArea(tableArea);
             currentY += tableArea.Height;
+            currentColumn = 0;  // Reset to first column after table
         }
 
         // Layout each list block in the flow
+        // Note: Lists span full body width, not individual columns
         foreach (var foList in flow.Lists)
         {
+            // Lists break columns - start from left margin
             var listArea = LayoutListBlock(foList, bodyMarginLeft, currentY, bodyWidth);
             if (listArea == null)
                 continue;
@@ -383,6 +413,7 @@ internal sealed class LayoutEngine
 
             currentPage.AddArea(listArea);
             currentY += listArea.Height;
+            currentColumn = 0;  // Reset to first column after list
         }
 
         // Add the last page
