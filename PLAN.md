@@ -244,7 +244,7 @@ Pipeline steps:
 - [x] Inline formatting (fo:inline) - text styling within blocks
 - [x] All remaining formatting objects - Added fo:leader, fo:page-number-citation, fo:page-number-citation-last, fo:block-container, fo:inline-container, fo:wrapper, fo:character, fo:bidi-override, fo:initial-property-set, fo:region-start, fo:region-end
 - [ ] BiDi text support - fo:bidi-override implemented, layout engine support pending
-- [ ] Leaders and page number formatting - fo:leader, fo:page-number-citation implemented, rendering support pending
+- [x] Leaders and page number formatting - fo:leader with dot patterns and rules fully implemented in layout engine and PDF renderer, fo:page-number-citation implemented
 - [x] Bookmarks (PDF outline) - fo:bookmark-tree and fo:bookmark
 - [x] Internal and external links - fo:basic-link with internal-destination and external-destination
 - [ ] Complete metadata support

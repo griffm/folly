@@ -118,6 +118,11 @@ public sealed class PdfRenderer : IDisposable
             {
                 fonts.Add(inlineArea.FontFamily);
             }
+            else if (area is LeaderArea leaderArea)
+            {
+                // Leaders may use fonts for dot patterns
+                fonts.Add(leaderArea.FontFamily);
+            }
             else if (area is TableArea tableArea)
             {
                 foreach (var row in tableArea.Rows)
@@ -191,6 +196,10 @@ public sealed class PdfRenderer : IDisposable
         else if (area is TableArea tableArea)
         {
             RenderTable(tableArea, content, fontIds, imageIds, pageHeight);
+        }
+        else if (area is LeaderArea leaderArea)
+        {
+            RenderLeader(leaderArea, content, fontIds, pageHeight, offsetX, offsetY);
         }
         else if (area is BlockArea blockArea)
         {
@@ -291,6 +300,83 @@ public sealed class PdfRenderer : IDisposable
             content.AppendLine("S"); // Stroke
             content.AppendLine("Q");
         }
+    }
+
+    private void RenderLeader(LeaderArea leader, StringBuilder content, Dictionary<string, int> fontIds, double pageHeight, double offsetX, double offsetY)
+    {
+        // Calculate absolute position
+        var x = offsetX + leader.X;
+        var y = offsetY + leader.Y + leader.BaselineOffset;
+
+        // Convert Y coordinate from top-down to PDF's bottom-up coordinate system
+        var pdfY = pageHeight - y;
+
+        // Parse leader color
+        var (r, g, b) = ParseColor(leader.Color);
+
+        // Save graphics state
+        content.AppendLine("q");
+        content.AppendLine($"{r:F3} {g:F3} {b:F3} RG"); // Set stroke color
+        content.AppendLine($"{r:F3} {g:F3} {b:F3} rg"); // Set fill color
+
+        switch (leader.LeaderPattern)
+        {
+            case "dots":
+                // Render dots pattern using text
+                if (fontIds.TryGetValue(leader.FontFamily, out var fontId))
+                {
+                    content.AppendLine("BT");
+                    content.AppendLine($"/F{fontId} {leader.FontSize:F2} Tf");
+
+                    // Calculate number of dots that fit
+                    var patternWidth = leader.LeaderPatternWidth;
+                    var numDots = (int)(leader.Width / patternWidth);
+
+                    // Render dots with spacing
+                    for (int i = 0; i < numDots; i++)
+                    {
+                        var dotX = x + (i * patternWidth);
+                        content.AppendLine($"1 0 0 1 {dotX:F2} {pdfY:F2} Tm");
+                        content.AppendLine("(.) Tj");
+                    }
+
+                    content.AppendLine("ET");
+                }
+                break;
+
+            case "rule":
+                // Render solid or styled line
+                var lineY = pdfY - (leader.RuleThickness / 2);
+                content.AppendLine($"{leader.RuleThickness:F2} w");
+
+                // Set dash pattern based on rule style
+                switch (leader.RuleStyle)
+                {
+                    case "dashed":
+                        content.AppendLine("[3 2] 0 d");
+                        break;
+                    case "dotted":
+                        content.AppendLine("[1 1] 0 d");
+                        break;
+                    case "solid":
+                    default:
+                        content.AppendLine("[] 0 d");
+                        break;
+                }
+
+                content.AppendLine($"{x:F2} {lineY:F2} m");
+                content.AppendLine($"{x + leader.Width:F2} {lineY:F2} l");
+                content.AppendLine("S");
+                break;
+
+            case "space":
+            default:
+                // Space pattern - render nothing (just empty space)
+                break;
+        }
+
+        // Restore graphics state
+        content.AppendLine("Q");
     }
 
     private void RenderBackground(BlockArea block, StringBuilder content, double pageHeight, double offsetX, double offsetY)
