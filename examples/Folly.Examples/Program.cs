@@ -74,6 +74,10 @@ GenerateFootnoteExample(Path.Combine(outputDir, "15-footnotes.pdf"));
 Console.WriteLine("Generating Example 16: External Links...");
 GenerateLinksExample(Path.Combine(outputDir, "16-links.pdf"));
 
+// Example 17: Bookmarks (PDF Outline)
+Console.WriteLine("Generating Example 17: Bookmarks (PDF Outline)...");
+GenerateBookmarksExample(Path.Combine(outputDir, "17-bookmarks.pdf"));
+
 Console.WriteLine("\n✓ All examples generated successfully!");
 Console.WriteLine($"\nView PDFs in: {outputDir}");
 Console.WriteLine("\nValidate with qpdf:");
@@ -1294,6 +1298,172 @@ static void GenerateLinksExample(string outputPath)
 
               <fo:block font-size="12pt" margin-bottom="8pt">
                 • Internal links (internal-destination) can reference named destinations within the document
+              </fo:block>
+            </fo:flow>
+          </fo:page-sequence>
+        </fo:root>
+        """;
+
+    using var doc = FoDocument.Load(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml)));
+    doc.SavePdf(outputPath);
+}
+
+static void GenerateBookmarksExample(string outputPath)
+{
+    var foXml = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+          <fo:layout-master-set>
+            <fo:simple-page-master master-name="A4" page-width="210mm" page-height="297mm"
+                                 margin-top="1in" margin-bottom="1in"
+                                 margin-left="1in" margin-right="1in">
+              <fo:region-body margin-top="0.5in" margin-bottom="0.5in"/>
+            </fo:simple-page-master>
+          </fo:layout-master-set>
+
+          <fo:bookmark-tree>
+            <fo:bookmark internal-destination="chapter1" starting-state="show">
+              <fo:bookmark-title>Chapter 1: Introduction</fo:bookmark-title>
+              <fo:bookmark internal-destination="section1-1">
+                <fo:bookmark-title>1.1 Getting Started</fo:bookmark-title>
+              </fo:bookmark>
+              <fo:bookmark internal-destination="section1-2">
+                <fo:bookmark-title>1.2 Basic Concepts</fo:bookmark-title>
+              </fo:bookmark>
+            </fo:bookmark>
+
+            <fo:bookmark internal-destination="chapter2" starting-state="show">
+              <fo:bookmark-title>Chapter 2: Advanced Features</fo:bookmark-title>
+              <fo:bookmark internal-destination="section2-1">
+                <fo:bookmark-title>2.1 Tables and Lists</fo:bookmark-title>
+              </fo:bookmark>
+              <fo:bookmark internal-destination="section2-2">
+                <fo:bookmark-title>2.2 Images and Graphics</fo:bookmark-title>
+              </fo:bookmark>
+              <fo:bookmark internal-destination="section2-3">
+                <fo:bookmark-title>2.3 Links and Bookmarks</fo:bookmark-title>
+              </fo:bookmark>
+            </fo:bookmark>
+
+            <fo:bookmark internal-destination="chapter3" starting-state="hide">
+              <fo:bookmark-title>Chapter 3: Reference</fo:bookmark-title>
+              <fo:bookmark internal-destination="section3-1">
+                <fo:bookmark-title>3.1 Property Index</fo:bookmark-title>
+              </fo:bookmark>
+              <fo:bookmark internal-destination="section3-2">
+                <fo:bookmark-title>3.2 Element Index</fo:bookmark-title>
+              </fo:bookmark>
+            </fo:bookmark>
+
+            <fo:bookmark external-destination="https://www.w3.org/TR/xsl/">
+              <fo:bookmark-title>External: XSL-FO Specification</fo:bookmark-title>
+            </fo:bookmark>
+          </fo:bookmark-tree>
+
+          <fo:page-sequence master-reference="A4">
+            <fo:flow flow-name="xsl-region-body">
+              <fo:block font-size="24pt" font-weight="bold" margin-bottom="24pt" text-align="center">
+                PDF Bookmarks Example
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="24pt">
+                This PDF demonstrates the bookmark (outline) feature. Open the bookmarks panel in your PDF viewer to see the table of contents structure.
+              </fo:block>
+
+              <fo:block font-size="18pt" font-weight="bold" margin-top="36pt" margin-bottom="12pt" id="chapter1">
+                Chapter 1: Introduction
+              </fo:block>
+
+              <fo:block font-size="14pt" font-weight="bold" margin-top="24pt" margin-bottom="8pt" id="section1-1">
+                1.1 Getting Started
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                The fo:bookmark-tree element contains the hierarchical structure of bookmarks that will appear in the PDF viewer's navigation pane. Each fo:bookmark represents an entry in the outline.
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                Bookmarks can reference internal destinations (pages or elements within the document) using the internal-destination attribute, which should match an id attribute on a formatting object.
+              </fo:block>
+
+              <fo:block font-size="14pt" font-weight="bold" margin-top="24pt" margin-bottom="8pt" id="section1-2">
+                1.2 Basic Concepts
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                Bookmarks create a navigational structure separate from the document content. They appear in most PDF viewers as a collapsible tree in a sidebar, allowing readers to quickly jump to different sections.
+              </fo:block>
+
+              <fo:block font-size="18pt" font-weight="bold" margin-top="36pt" margin-bottom="12pt" id="chapter2">
+                Chapter 2: Advanced Features
+              </fo:block>
+
+              <fo:block font-size="14pt" font-weight="bold" margin-top="24pt" margin-bottom="8pt" id="section2-1">
+                2.1 Tables and Lists
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                Bookmarks can have nested child bookmarks, creating a hierarchical structure. The starting-state attribute controls whether child bookmarks are initially expanded ("show") or collapsed ("hide").
+              </fo:block>
+
+              <fo:block font-size="14pt" font-weight="bold" margin-top="24pt" margin-bottom="8pt" id="section2-2">
+                2.2 Images and Graphics
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                In PDF, the bookmark count determines the visual state: positive counts mean expanded, negative means collapsed. The Folly processor handles this automatically based on the starting-state attribute.
+              </fo:block>
+
+              <fo:block font-size="14pt" font-weight="bold" margin-top="24pt" margin-bottom="8pt" id="section2-3">
+                2.3 Links and Bookmarks
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                Bookmarks are different from links: bookmarks appear in the PDF outline/navigation pane, while links (fo:basic-link) appear as clickable areas in the document content itself.
+              </fo:block>
+
+              <fo:block font-size="18pt" font-weight="bold" margin-top="36pt" margin-bottom="12pt" id="chapter3">
+                Chapter 3: Reference
+              </fo:block>
+
+              <fo:block font-size="14pt" font-weight="bold" margin-top="24pt" margin-bottom="8pt" id="section3-1">
+                3.1 Property Index
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="8pt">
+                Key bookmark properties:
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="8pt" margin-left="20pt">
+                • internal-destination: Links to an id within the document
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="8pt" margin-left="20pt">
+                • external-destination: Links to an external URI
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="24pt" margin-left="20pt">
+                • starting-state: Controls initial expansion (show/hide)
+              </fo:block>
+
+              <fo:block font-size="14pt" font-weight="bold" margin-top="24pt" margin-bottom="8pt" id="section3-2">
+                3.2 Element Index
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="8pt">
+                Bookmark elements:
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="8pt" margin-left="20pt">
+                • fo:bookmark-tree: Root of the bookmark hierarchy
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="8pt" margin-left="20pt">
+                • fo:bookmark: Individual bookmark entry (can be nested)
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="8pt" margin-left="20pt">
+                • fo:bookmark-title: The text displayed in the outline
               </fo:block>
             </fo:flow>
           </fo:page-sequence>

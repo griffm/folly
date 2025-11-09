@@ -26,7 +26,8 @@ public sealed class PdfRenderer : IDisposable
     /// Renders the area tree to PDF.
     /// </summary>
     /// <param name="areaTree">The area tree to render.</param>
-    public void Render(AreaTree areaTree)
+    /// <param name="bookmarkTree">Optional bookmark tree for PDF outline.</param>
+    public void Render(AreaTree areaTree, Dom.FoBookmarkTree? bookmarkTree = null)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(areaTree);
@@ -54,7 +55,7 @@ public sealed class PdfRenderer : IDisposable
         // Collect images used in the document
         var images = CollectImages(areaTree);
 
-        var catalogId = _writer.WriteCatalog(areaTree.Pages.Count);
+        var catalogId = _writer.WriteCatalog(areaTree.Pages.Count, bookmarkTree);
 
         // Write font resources
         var fontIds = _writer.WriteFonts(fonts);

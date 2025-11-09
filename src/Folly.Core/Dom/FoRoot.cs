@@ -14,6 +14,11 @@ public sealed class FoRoot : FoElement
     public FoLayoutMasterSet? LayoutMasterSet { get; init; }
 
     /// <summary>
+    /// Gets the bookmark-tree (PDF outline structure).
+    /// </summary>
+    public FoBookmarkTree? BookmarkTree { get; init; }
+
+    /// <summary>
     /// Gets the page-sequence children.
     /// </summary>
     public IReadOnlyList<FoPageSequence> PageSequences { get; init; } = Array.Empty<FoPageSequence>();

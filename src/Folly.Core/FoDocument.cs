@@ -9,6 +9,11 @@ public sealed class FoDocument : IDisposable
     private readonly Dom.FoRoot _foRoot;
     private bool _disposed;
 
+    /// <summary>
+    /// Gets the parsed FO root element.
+    /// </summary>
+    public Dom.FoRoot Root => _foRoot;
+
     private FoDocument(XDocument foXml, Dom.FoRoot foRoot)
     {
         _foXml = foXml ?? throw new ArgumentNullException(nameof(foXml));

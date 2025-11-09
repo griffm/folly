@@ -28,6 +28,7 @@ internal static class FoParser
     private static FoRoot ParseRoot(XElement element)
     {
         FoLayoutMasterSet? layoutMasterSet = null;
+        FoBookmarkTree? bookmarkTree = null;
         var pageSequences = new List<FoPageSequence>();
 
         foreach (var child in element.Elements())
@@ -37,6 +38,9 @@ internal static class FoParser
             {
                 case "layout-master-set":
                     layoutMasterSet = ParseLayoutMasterSet(child);
+                    break;
+                case "bookmark-tree":
+                    bookmarkTree = ParseBookmarkTree(child);
                     break;
                 case "page-sequence":
                     pageSequences.Add(ParsePageSequence(child));
@@ -48,6 +52,7 @@ internal static class FoParser
         {
             Properties = ParseProperties(element),
             LayoutMasterSet = layoutMasterSet,
+            BookmarkTree = bookmarkTree,
             PageSequences = pageSequences
         };
     }
@@ -661,6 +666,50 @@ internal static class FoParser
         {
             Properties = ParseProperties(element),
             Blocks = blocks
+        };
+    }
+
+    private static FoBookmarkTree ParseBookmarkTree(XElement element)
+    {
+        var bookmarks = new List<FoBookmark>();
+
+        foreach (var child in element.Elements())
+        {
+            if (child.Name.LocalName == "bookmark")
+                bookmarks.Add(ParseBookmark(child));
+        }
+
+        return new FoBookmarkTree
+        {
+            Properties = ParseProperties(element),
+            Bookmarks = bookmarks
+        };
+    }
+
+    private static FoBookmark ParseBookmark(XElement element)
+    {
+        string? title = null;
+        var children = new List<FoBookmark>();
+
+        foreach (var child in element.Elements())
+        {
+            var name = child.Name.LocalName;
+            switch (name)
+            {
+                case "bookmark-title":
+                    title = child.Value;
+                    break;
+                case "bookmark":
+                    children.Add(ParseBookmark(child));
+                    break;
+            }
+        }
+
+        return new FoBookmark
+        {
+            Properties = ParseProperties(element),
+            Title = title,
+            Children = children
         };
     }
 

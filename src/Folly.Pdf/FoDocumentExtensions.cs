@@ -21,9 +21,12 @@ public static class FoDocumentExtensions
         // Build the area tree from the FO document
         var areaTree = document.BuildAreaTree();
 
+        // Get the bookmark tree (if any)
+        var bookmarkTree = document.Root.BookmarkTree;
+
         // Render area tree to PDF
         using var renderer = new PdfRenderer(output, options);
-        renderer.Render(areaTree);
+        renderer.Render(areaTree, bookmarkTree);
     }
 
     /// <summary>
