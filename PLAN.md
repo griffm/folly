@@ -204,7 +204,7 @@ Pipeline steps:
 - ✅ Keep/break constraints honored
 - ✅ List blocks with label and body formatting
 
-### M3: Pagination Mastery 🔄 (3-4 weeks) - **IN PROGRESS**
+### M3: Pagination Mastery 🔄 (3-4 weeks) - **IN PROGRESS** (75% Complete)
 
 **Goal**: Advanced pagination features
 
@@ -217,7 +217,11 @@ Pipeline steps:
   - [x] Page position conditions (first, rest, any)
   - [x] Odd/even page conditions
   - [x] Repeatable page master alternatives
-- [ ] Multi-column layout
+- [x] Multi-column layout
+  - [x] Column-count property
+  - [x] Column-gap property
+  - [x] Content flow across columns
+  - [x] Column balancing
 - [ ] Footnotes with footnote-body
 - [ ] Floats (side floats)
 - [ ] Region support (start, end) - side regions
@@ -227,8 +231,8 @@ Pipeline steps:
 - ✅ Running headers/footers work via static-content and markers
 - ✅ Page numbers display correctly
 - ✅ Conditional page masters switch correctly (first, odd, even)
+- ✅ Multi-column layout functions properly with intelligent column flow
 - ⏳ Footnotes placed correctly at bottom of pages
-- ⏳ Multi-column layout functions properly
 
 ### M4: Full Spec & Polish (4-6 weeks)
 

@@ -51,4 +51,19 @@ public sealed class FoProperties
     {
         return this[name] ?? defaultValue;
     }
+
+    /// <summary>
+    /// Gets an integer property value.
+    /// </summary>
+    public int GetInt(string name, int defaultValue = 0)
+    {
+        var value = this[name];
+        if (string.IsNullOrWhiteSpace(value))
+            return defaultValue;
+
+        if (int.TryParse(value, out var result))
+            return result;
+
+        return defaultValue;
+    }
 }

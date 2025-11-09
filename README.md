@@ -110,7 +110,7 @@ cd examples
 dotnet run --project Folly.Examples
 ```
 
-This generates 13 example PDFs showcasing Folly's capabilities:
+This generates 14 example PDFs showcasing Folly's capabilities:
 - **Hello World** - Basic document with simple text
 - **Multiple Blocks** - Different fonts and sizes
 - **Text Alignment** - Start, center, and end alignment
@@ -124,6 +124,7 @@ This generates 13 example PDFs showcasing Folly's capabilities:
 - **Headers and Footers** - Static content with page numbers
 - **Markers** - Dynamic headers with chapter titles
 - **Conditional Page Masters** - Different layouts for first/odd/even pages
+- **Multi-Column Layout** - Newspaper-style 3-column formatting
 
 See [examples/README.md](examples/README.md) for details.
 
@@ -141,7 +142,7 @@ cd examples
 **Milestone M0: Foundation** ✅ (Completed)
 **Milestone M1: Basic Layout** ✅ (Completed)
 **Milestone M2: Tables, Images, Lists** ✅ (Completed)
-**Milestone M3: Pagination Mastery** 🔄 (In Progress - 60% complete)
+**Milestone M3: Pagination Mastery** 🔄 (In Progress - 75% complete)
 
 The core rendering engine is fully operational with extensive feature support:
 
@@ -164,6 +165,7 @@ The core rendering engine is fully operational with extensive feature support:
 - Keep-together and break-before/after constraints
 - Static-content for headers and footers
 - Markers for dynamic content (fo:marker, fo:retrieve-marker)
+- Multi-column layout (column-count, column-gap)
 
 **PDF Rendering:**
 - PDF 1.7 output with correct structure
@@ -177,7 +179,7 @@ The core rendering engine is fully operational with extensive feature support:
 
 **Quality Assurance:**
 - 11 passing unit tests (100% success rate)
-- 13 working example PDFs
+- 14 working example PDFs
 - 100% qpdf validation success (zero errors)
 - Verified with qpdf 11.9.0
 

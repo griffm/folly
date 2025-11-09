@@ -62,6 +62,10 @@ GenerateMarkerExample(Path.Combine(outputDir, "12-markers.pdf"));
 Console.WriteLine("Generating Example 13: Conditional Page Masters...");
 GenerateConditionalPageMastersExample(Path.Combine(outputDir, "13-conditional-page-masters.pdf"));
 
+// Example 14: Multi-Column Layout
+Console.WriteLine("Generating Example 14: Multi-Column Layout...");
+GenerateMultiColumnExample(Path.Combine(outputDir, "14-multi-column.pdf"));
+
 Console.WriteLine("\n✓ All examples generated successfully!");
 Console.WriteLine($"\nView PDFs in: {outputDir}");
 Console.WriteLine("\nValidate with qpdf:");
@@ -1017,6 +1021,105 @@ static void GenerateConditionalPageMastersExample(string outputPath)
 
               <fo:block font-size="12pt" margin-bottom="12pt">
                 This feature is essential for professional publishing where page layout varies based on position in the document.
+              </fo:block>
+            </fo:flow>
+          </fo:page-sequence>
+        </fo:root>
+        """;
+
+    using var doc = FoDocument.Load(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml)));
+    doc.SavePdf(outputPath);
+}
+
+static void GenerateMultiColumnExample(string outputPath)
+{
+    var foXml = """
+        <?xml version="1.0"?>
+        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+          <fo:layout-master-set>
+            <fo:simple-page-master master-name="A4-3col" page-width="595pt" page-height="842pt">
+              <fo:region-body margin="72pt" column-count="3" column-gap="12pt"/>
+              <fo:region-before extent="36pt"/>
+              <fo:region-after extent="36pt"/>
+            </fo:simple-page-master>
+          </fo:layout-master-set>
+
+          <fo:page-sequence master-reference="A4-3col">
+            <fo:static-content flow-name="xsl-region-before">
+              <fo:block font-size="10pt" font-family="Helvetica" text-align="center" padding-top="12pt" font-weight="bold">
+                Multi-Column Layout Example
+              </fo:block>
+            </fo:static-content>
+
+            <fo:static-content flow-name="xsl-region-after">
+              <fo:block font-size="9pt" font-family="Helvetica" text-align="center" padding-bottom="12pt">
+                Page <fo:page-number/>
+              </fo:block>
+            </fo:static-content>
+
+            <fo:flow flow-name="xsl-region-body">
+              <fo:block font-size="18pt" font-family="Helvetica" font-weight="bold" text-align="center" margin-bottom="18pt">
+                The Power of Multi-Column Layout
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                Multi-column layout is a fundamental feature in professional publishing, particularly for newspapers, magazines, academic journals, and newsletters. XSL-FO provides powerful support for multi-column formatting through the column-count and column-gap properties.
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                This document demonstrates a three-column layout. Notice how the text flows naturally from one column to the next, just like in a newspaper. When one column fills up, the content automatically continues in the next column on the same page.
+              </fo:block>
+
+              <fo:block font-size="14pt" font-family="Helvetica" font-weight="bold" margin-top="18pt" margin-bottom="12pt">
+                Key Features
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                The column-count property specifies the number of columns, while column-gap defines the space between columns. These properties work together to create balanced, readable layouts that maximize page real estate while maintaining readability.
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                Content flows vertically down the first column until it reaches the bottom margin. At that point, it continues at the top of the second column. This process repeats for all columns before moving to the next page.
+              </fo:block>
+
+              <fo:block font-size="14pt" font-family="Helvetica" font-weight="bold" margin-top="18pt" margin-bottom="12pt">
+                Common Applications
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                Newspapers use multi-column layouts extensively to pack more information into limited space. The narrow columns are easier to read than full-width text blocks, as the eye doesn't have to travel as far horizontally.
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                Academic journals often use two-column layouts to create a more formal, scholarly appearance. This format has been a standard in academic publishing for decades.
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                Newsletters benefit from multi-column layouts by creating visual interest and allowing for flexible content organization. Different stories can be placed side by side, making the layout more dynamic.
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                The column gap should be wide enough to clearly separate columns but not so wide that it wastes valuable page space. A gap of 12 to 18 points is typical for most applications.
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                Font size also matters in multi-column layouts. With narrower columns, smaller fonts may become difficult to read, so it's important to maintain adequate font sizes for readability.
+              </fo:block>
+
+              <fo:block font-size="14pt" font-family="Helvetica" font-weight="bold" margin-top="18pt" margin-bottom="12pt">
+                Technical Implementation
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                In XSL-FO, multi-column layout is achieved by setting the column-count property on the fo:region-body element within the fo:simple-page-master. The layout engine automatically handles the flow of content between columns.
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                The Folly XSL-FO processor implements intelligent column balancing, ensuring that content flows smoothly from one column to the next. Block elements that don't fit in the remaining space of a column are moved to the top of the next column.
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                Multi-column layout is an essential tool in the document designer's toolkit. By understanding how to effectively use column-count and column-gap properties, you can create professional, readable documents that make the best use of available page space.
               </fo:block>
             </fo:flow>
           </fo:page-sequence>
