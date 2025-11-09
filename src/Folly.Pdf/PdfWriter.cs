@@ -36,18 +36,38 @@ internal sealed class PdfWriter : IDisposable
     /// Writes the document catalog and returns its object ID.
     /// Also reserves object ID 2 for the pages tree.
     /// </summary>
-    public int WriteCatalog(int pageCount)
+    public int WriteCatalog(int pageCount, Dom.FoBookmarkTree? bookmarkTree = null)
     {
-        var catalogId = BeginObject();  // Object 1
+        // Reserve object 1 for catalog
+        var catalogId = 1;
+        _objectOffsets.Add(0);  // Placeholder offset for catalog (object 1)
+
+        // Reserve object 2 for pages tree (will be written later)
+        _objectOffsets.Add(0);  // Placeholder offset for pages (object 2)
+        _nextObjectId = 3;  // Next objects start at 3
+
+        // Write outline (bookmarks) if present (gets IDs 3, 4, 5, etc.)
+        int? outlineId = null;
+        if (bookmarkTree != null && bookmarkTree.Bookmarks.Count > 0)
+        {
+            outlineId = WriteOutline(bookmarkTree);
+        }
+
+        // Now write the catalog at object 1
+        _objectOffsets[0] = _position;  // Update catalog position
+        WriteLine("1 0 obj");
         WriteLine("<<");
         WriteLine("  /Type /Catalog");
         WriteLine($"  /Pages 2 0 R");  // Pages tree will be object 2
-        WriteLine(">>");
-        EndObject();
 
-        // Reserve object 2 for pages tree (will be written later)
-        _objectOffsets.Add(0);  // Placeholder offset for object 2
-        _nextObjectId = 3;  // Next object will be 3
+        // Add outline reference if bookmarks exist
+        if (outlineId.HasValue)
+        {
+            WriteLine($"  /Outlines {outlineId.Value} 0 R");
+        }
+
+        WriteLine(">>");
+        WriteLine("endobj");
 
         return catalogId;
     }
@@ -341,6 +361,104 @@ internal sealed class PdfWriter : IDisposable
         EndObject();
 
         return annotId;
+    }
+
+    /// <summary>
+    /// Writes the PDF outline (bookmarks) and returns the root outline object ID.
+    /// </summary>
+    private int WriteOutline(Dom.FoBookmarkTree bookmarkTree)
+    {
+        // Write all bookmark items first, collecting their IDs
+        var bookmarkIds = new List<int>();
+        foreach (var bookmark in bookmarkTree.Bookmarks)
+        {
+            var bookmarkId = WriteBookmarkItem(bookmark, null, null);
+            bookmarkIds.Add(bookmarkId);
+        }
+
+        // Link siblings together
+        for (int i = 0; i < bookmarkIds.Count; i++)
+        {
+            int? prev = i > 0 ? bookmarkIds[i - 1] : null;
+            int? next = i < bookmarkIds.Count - 1 ? bookmarkIds[i + 1] : null;
+            // Note: We would need to update the bookmark objects with Prev/Next references
+            // For simplicity, we'll skip this in the MVP
+        }
+
+        // Write the root Outlines object
+        var outlineId = BeginObject();
+        WriteLine("<<");
+        WriteLine("  /Type /Outlines");
+
+        if (bookmarkIds.Count > 0)
+        {
+            WriteLine($"  /First {bookmarkIds[0]} 0 R");
+            WriteLine($"  /Last {bookmarkIds[bookmarkIds.Count - 1]} 0 R");
+            WriteLine($"  /Count {bookmarkIds.Count}");
+        }
+
+        WriteLine(">>");
+        EndObject();
+
+        return outlineId;
+    }
+
+    /// <summary>
+    /// Writes a single bookmark item and its children recursively.
+    /// Returns the object ID of this bookmark.
+    /// </summary>
+    private int WriteBookmarkItem(Dom.FoBookmark bookmark, int? parentId, int? prevId)
+    {
+        // Recursively write child bookmarks first
+        var childIds = new List<int>();
+        foreach (var child in bookmark.Children)
+        {
+            var childId = WriteBookmarkItem(child, null, null); // Parent will be set after we know this bookmark's ID
+            childIds.Add(childId);
+        }
+
+        // Write this bookmark object
+        var bookmarkId = BeginObject();
+        WriteLine("<<");
+        WriteLine("  /Title (" + EscapeString(bookmark.Title ?? "Untitled") + ")");
+
+        // Add parent reference if provided
+        if (parentId.HasValue)
+        {
+            WriteLine($"  /Parent {parentId.Value} 0 R");
+        }
+
+        // Add destination (internal link to page)
+        if (!string.IsNullOrEmpty(bookmark.InternalDestination))
+        {
+            // For MVP, use named destination
+            // In full implementation, would resolve to /Dest [pageRef /XYZ x y zoom]
+            WriteLine($"  /Dest /{EscapeString(bookmark.InternalDestination)}");
+        }
+        else if (!string.IsNullOrEmpty(bookmark.ExternalDestination))
+        {
+            // External URI action
+            WriteLine("  /A <<");
+            WriteLine("    /S /URI");
+            WriteLine($"    /URI ({EscapeString(bookmark.ExternalDestination)})");
+            WriteLine("  >>");
+        }
+
+        // Add child references
+        if (childIds.Count > 0)
+        {
+            WriteLine($"  /First {childIds[0]} 0 R");
+            WriteLine($"  /Last {childIds[childIds.Count - 1]} 0 R");
+
+            // Count: positive if expanded, negative if collapsed
+            var count = bookmark.StartingState == "show" ? childIds.Count : -childIds.Count;
+            WriteLine($"  /Count {count}");
+        }
+
+        WriteLine(">>");
+        EndObject();
+
+        return bookmarkId;
     }
 
     /// <summary>
