@@ -500,6 +500,7 @@ internal sealed class LayoutEngine
         // Check for inline page number and link elements
         var hasPageNumber = foBlock.Children.Any(c => c is Dom.FoPageNumber);
         var hasBasicLink = foBlock.Children.Any(c => c is Dom.FoBasicLink);
+        var hasInline = foBlock.Children.Any(c => c is Dom.FoInline);
         var hasBlockChildren = foBlock.Children.Any(c => c is Dom.FoBlock or Dom.FoExternalGraphic);
 
         // Handle block-level children (images, nested blocks)
@@ -538,6 +539,126 @@ internal sealed class LayoutEngine
             FamilyName = foBlock.FontFamily,
             Size = foBlock.FontSize
         };
+
+        // Handle inline elements with formatting
+        if (hasInline)
+        {
+            var lineArea = new LineArea
+            {
+                X = foBlock.PaddingLeft,
+                Y = currentY,
+                Width = contentWidth,
+                Height = foBlock.LineHeight
+            };
+
+            double currentX = 0;
+
+            // Process mixed content (text nodes + inline elements)
+            var blockText = foBlock.TextContent ?? "";
+            var inlineIndex = 0;
+
+            foreach (var child in foBlock.Children)
+            {
+                if (child is Dom.FoInline inline)
+                {
+                    var inlineText = inline.TextContent ?? "";
+                    if (!string.IsNullOrWhiteSpace(inlineText))
+                    {
+                        // Get font properties from inline or inherit from block
+                        var inlineFontFamily = !string.IsNullOrEmpty(inline.FontFamily) ? inline.FontFamily : foBlock.FontFamily;
+                        var inlineFontSize = inline.FontSize ?? foBlock.FontSize;
+                        var inlineFontWeight = inline.FontWeight;
+                        var inlineFontStyle = inline.FontStyle;
+
+                        // Apply font-weight by using bold variant
+                        if (!string.IsNullOrEmpty(inlineFontWeight) && (inlineFontWeight == "bold" || int.TryParse(inlineFontWeight, out var weight) && weight >= 700))
+                        {
+                            inlineFontFamily = inlineFontFamily switch
+                            {
+                                "Helvetica" => "Helvetica-Bold",
+                                "Times" or "Times-Roman" => "Times-Bold",
+                                "Courier" => "Courier-Bold",
+                                _ => inlineFontFamily + "-Bold"
+                            };
+                        }
+
+                        // Apply font-style by using italic/oblique variant
+                        if (!string.IsNullOrEmpty(inlineFontStyle) && (inlineFontStyle == "italic" || inlineFontStyle == "oblique"))
+                        {
+                            if (inlineFontFamily.EndsWith("-Bold"))
+                            {
+                                inlineFontFamily = inlineFontFamily.Replace("-Bold", "-BoldOblique");
+                            }
+                            else
+                            {
+                                inlineFontFamily = inlineFontFamily switch
+                                {
+                                    "Helvetica" => "Helvetica-Oblique",
+                                    "Times" or "Times-Roman" => "Times-Italic",
+                                    "Courier" => "Courier-Oblique",
+                                    _ => inlineFontFamily + "-Oblique"
+                                };
+                            }
+                        }
+
+                        var inlineFontMetrics = new Fonts.FontMetrics
+                        {
+                            FamilyName = inlineFontFamily,
+                            Size = inlineFontSize
+                        };
+
+                        var textWidth = inlineFontMetrics.MeasureWidth(inlineText);
+
+                        var inlineArea = new InlineArea
+                        {
+                            X = currentX,
+                            Y = 0, // Relative to line
+                            Width = textWidth,
+                            Height = inlineFontSize,
+                            Text = inlineText,
+                            FontFamily = inlineFontFamily,
+                            FontSize = inlineFontSize,
+                            FontWeight = inlineFontWeight,
+                            FontStyle = inlineFontStyle,
+                            Color = inline.Color,
+                            TextDecoration = inline.TextDecoration,
+                            BackgroundColor = inline.BackgroundColor,
+                            BaselineOffset = inlineFontMetrics.GetAscent() + inline.BaselineShift
+                        };
+
+                        lineArea.AddInline(inlineArea);
+                        currentX += textWidth;
+                    }
+                    inlineIndex++;
+                }
+            }
+
+            // Add any remaining block text that's not in an inline
+            if (!string.IsNullOrWhiteSpace(blockText))
+            {
+                var textWidth = fontMetrics.MeasureWidth(blockText);
+                var inlineArea = new InlineArea
+                {
+                    X = currentX,
+                    Y = 0,
+                    Width = textWidth,
+                    Height = foBlock.FontSize,
+                    Text = blockText,
+                    FontFamily = foBlock.FontFamily,
+                    FontSize = foBlock.FontSize,
+                    BaselineOffset = fontMetrics.GetAscent()
+                };
+
+                lineArea.AddInline(inlineArea);
+            }
+
+            blockArea.AddChild(lineArea);
+            currentY += foBlock.LineHeight;
+
+            blockArea.Width = contentWidth + foBlock.PaddingLeft + foBlock.PaddingRight;
+            blockArea.Height = currentY + foBlock.PaddingBottom;
+            return blockArea;
+        }
 
         // Handle inline basic-link elements
         if (hasBasicLink)

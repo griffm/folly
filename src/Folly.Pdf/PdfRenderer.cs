@@ -239,13 +239,58 @@ public sealed class PdfRenderer : IDisposable
         // Convert Y coordinate from top-down to PDF's bottom-up coordinate system
         var pdfY = pageHeight - y;
 
+        // Render background color if specified
+        if (!string.IsNullOrEmpty(inline.BackgroundColor) && inline.BackgroundColor != "transparent")
+        {
+            var (bgR, bgG, bgB) = ParseColor(inline.BackgroundColor);
+            content.AppendLine("q");
+            content.AppendLine($"{bgR:F3} {bgG:F3} {bgB:F3} rg");
+            var bgY = pageHeight - (offsetY + line.Y);
+            content.AppendLine($"{x:F2} {bgY - line.Height:F2} {inline.Width:F2} {line.Height:F2} re");
+            content.AppendLine("f");
+            content.AppendLine("Q");
+        }
+
         // PDF text positioning and rendering
         // Use Tm (set text matrix) for absolute positioning instead of Td (relative positioning)
         content.AppendLine("BT"); // Begin text
         content.AppendLine($"/F{fontId} {inline.FontSize:F2} Tf"); // Set font and size
+
+        // Set text color if specified
+        if (!string.IsNullOrEmpty(inline.Color))
+        {
+            var (r, g, b) = ParseColor(inline.Color);
+            content.AppendLine($"{r:F3} {g:F3} {b:F3} rg"); // Set text color
+        }
+
         content.AppendLine($"1 0 0 1 {x:F2} {pdfY:F2} Tm"); // Set text matrix (absolute position)
         content.AppendLine($"({EscapeString(inline.Text)}) Tj"); // Show text
         content.AppendLine("ET"); // End text
+
+        // Render text decoration (underline, overline, line-through)
+        if (!string.IsNullOrEmpty(inline.TextDecoration) && inline.TextDecoration != "none")
+        {
+            var (decorR, decorG, decorB) = !string.IsNullOrEmpty(inline.Color)
+                ? ParseColor(inline.Color)
+                : (0.0, 0.0, 0.0); // Default to black
+
+            content.AppendLine("q");
+            content.AppendLine($"{decorR:F3} {decorG:F3} {decorB:F3} RG"); // Set stroke color
+            content.AppendLine("0.5 w"); // Set line width
+
+            var decorationY = inline.TextDecoration switch
+            {
+                "underline" => pdfY - 2, // Below baseline
+                "overline" => pdfY + inline.FontSize, // Above text
+                "line-through" => pdfY + (inline.FontSize * 0.3), // Middle of text
+                _ => pdfY - 2
+            };
+
+            content.AppendLine($"{x:F2} {decorationY:F2} m"); // Move to start
+            content.AppendLine($"{x + inline.Width:F2} {decorationY:F2} l"); // Line to end
+            content.AppendLine("S"); // Stroke
+            content.AppendLine("Q");
+        }
     }
 
     private void RenderBackground(BlockArea block, StringBuilder content, double pageHeight, double offsetX, double offsetY)

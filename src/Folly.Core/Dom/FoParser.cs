@@ -310,6 +310,9 @@ internal static class FoParser
                 case "basic-link":
                     children.Add(ParseBasicLink(child));
                     break;
+                case "inline":
+                    children.Add(ParseInline(child));
+                    break;
             }
         }
 
@@ -454,6 +457,41 @@ internal static class FoParser
         }
 
         return new FoBasicLink
+        {
+            Properties = ParseProperties(element),
+            Children = children,
+            TextContent = string.IsNullOrWhiteSpace(textContent) ? null : textContent
+        };
+    }
+
+    private static FoInline ParseInline(XElement element)
+    {
+        var children = new List<FoElement>();
+
+        // Collect text content
+        var textContent = string.Join("", element.Nodes()
+            .OfType<XText>()
+            .Select(t => t.Value));
+
+        // Parse child elements (inline can contain nested inlines, page-numbers, etc.)
+        foreach (var child in element.Elements())
+        {
+            var name = child.Name.LocalName;
+            switch (name)
+            {
+                case "inline":
+                    children.Add(ParseInline(child));
+                    break;
+                case "page-number":
+                    children.Add(ParsePageNumber(child));
+                    break;
+                case "basic-link":
+                    children.Add(ParseBasicLink(child));
+                    break;
+            }
+        }
+
+        return new FoInline
         {
             Properties = ParseProperties(element),
             Children = children,
