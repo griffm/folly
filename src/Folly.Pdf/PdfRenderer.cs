@@ -47,28 +47,129 @@ public sealed class PdfRenderer : IDisposable
         // - Write trailer
 
         _writer.WriteHeader(_options.PdfVersion);
-        _writer.WriteCatalog();
+
+        // Collect fonts used in the document
+        var fonts = CollectFonts(areaTree);
+
+        var catalogId = _writer.WriteCatalog(areaTree.Pages.Count);
+
+        // Write font resources
+        var fontIds = _writer.WriteFonts(fonts);
 
         // Render pages
+        var pageIds = new List<int>();
         foreach (var page in areaTree.Pages)
         {
-            RenderPage(page);
+            var pageId = RenderPage(page, fontIds);
+            pageIds.Add(pageId);
         }
 
+        // Update pages tree
+        _writer.WritePages(catalogId + 1, pageIds, areaTree.Pages);
+
         _writer.WriteMetadata(_options.Metadata);
-        _writer.WriteXRefAndTrailer();
+        _writer.WriteXRefAndTrailer(catalogId);
     }
 
-    private void RenderPage(PageViewport page)
+    private HashSet<string> CollectFonts(AreaTree areaTree)
     {
-        // TODO: Implement page rendering
-        // - Create page object
-        // - Set page dimensions
-        // - Create content stream
-        // - Render regions (body, before, after, start, end)
-        // - Render areas with proper positioning
+        var fonts = new HashSet<string>();
+        foreach (var page in areaTree.Pages)
+        {
+            CollectFontsFromAreas(page.Areas, fonts);
+        }
+        return fonts;
+    }
 
-        _writer.WritePage(page);
+    private void CollectFontsFromAreas(IEnumerable<Area> areas, HashSet<string> fonts)
+    {
+        foreach (var area in areas)
+        {
+            if (area is BlockArea blockArea)
+            {
+                fonts.Add(blockArea.FontFamily);
+                CollectFontsFromAreas(blockArea.Children, fonts);
+            }
+            else if (area is LineArea lineArea)
+            {
+                foreach (var inline in lineArea.Inlines)
+                {
+                    fonts.Add(inline.FontFamily);
+                }
+            }
+            else if (area is InlineArea inlineArea)
+            {
+                fonts.Add(inlineArea.FontFamily);
+            }
+        }
+    }
+
+    private int RenderPage(PageViewport page, Dictionary<string, int> fontIds)
+    {
+        // Build content stream
+        var content = new StringBuilder();
+
+        // Render all areas on the page
+        foreach (var area in page.Areas)
+        {
+            RenderArea(area, content, fontIds);
+        }
+
+        return _writer.WritePage(page, content.ToString(), fontIds);
+    }
+
+    private void RenderArea(Area area, StringBuilder content, Dictionary<string, int> fontIds)
+    {
+        if (area is BlockArea blockArea)
+        {
+            // TODO: Render borders and backgrounds
+
+            // Render child areas (lines)
+            foreach (var child in blockArea.Children)
+            {
+                RenderArea(child, content, fontIds);
+            }
+        }
+        else if (area is LineArea lineArea)
+        {
+            // Render inline areas (text)
+            foreach (var inline in lineArea.Inlines)
+            {
+                RenderInline(inline, lineArea, content, fontIds);
+            }
+        }
+    }
+
+    private void RenderInline(InlineArea inline, LineArea line, StringBuilder content, Dictionary<string, int> fontIds)
+    {
+        if (string.IsNullOrEmpty(inline.Text))
+            return;
+
+        // Get font resource name
+        if (!fontIds.TryGetValue(inline.FontFamily, out var fontId))
+            return;
+
+        // Calculate absolute position (line position + inline offset)
+        var x = line.X + inline.X;
+        var y = line.Y + inline.BaselineOffset;
+
+        // PDF text positioning and rendering
+        content.AppendLine("BT"); // Begin text
+        content.AppendLine($"/F{fontId} {inline.FontSize:F2} Tf"); // Set font and size
+        content.AppendLine($"{x:F2} {y:F2} Td"); // Position text
+        content.AppendLine($"({EscapeString(inline.Text)}) Tj"); // Show text
+        content.AppendLine("ET"); // End text
+    }
+
+    private static string EscapeString(string str)
+    {
+        return str
+            .Replace("\\", "\\\\")
+            .Replace("(", "\\(")
+            .Replace(")", "\\)")
+            .Replace("\r", "\\r")
+            .Replace("\n", "\\n")
+            .Replace("\t", "\\t");
     }
 
     /// <summary>
