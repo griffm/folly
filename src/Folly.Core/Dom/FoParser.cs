@@ -104,20 +104,44 @@ internal static class FoParser
     private static FoPageSequence ParsePageSequence(XElement element)
     {
         FoFlow? flow = null;
+        var staticContents = new List<FoStaticContent>();
 
         foreach (var child in element.Elements())
         {
-            if (child.Name.LocalName == "flow")
+            var name = child.Name.LocalName;
+            switch (name)
             {
-                flow = ParseFlow(child);
-                break;
+                case "static-content":
+                    staticContents.Add(ParseStaticContent(child));
+                    break;
+                case "flow":
+                    flow = ParseFlow(child);
+                    break;
             }
         }
 
         return new FoPageSequence
         {
             Properties = ParseProperties(element),
+            StaticContents = staticContents,
             Flow = flow
+        };
+    }
+
+    private static FoStaticContent ParseStaticContent(XElement element)
+    {
+        var blocks = new List<FoBlock>();
+
+        foreach (var child in element.Elements())
+        {
+            if (child.Name.LocalName == "block")
+                blocks.Add(ParseBlock(child));
+        }
+
+        return new FoStaticContent
+        {
+            Properties = ParseProperties(element),
+            Blocks = blocks
         };
     }
 

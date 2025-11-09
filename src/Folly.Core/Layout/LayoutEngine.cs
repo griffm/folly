@@ -56,20 +56,70 @@ internal sealed class LayoutEngine
             return;
 
         // Layout the flow content, creating pages as needed
-        LayoutFlowWithPagination(areaTree, pageMaster, flow);
+        LayoutFlowWithPagination(areaTree, pageMaster, pageSequence);
     }
 
-    private PageViewport CreatePage(Dom.FoSimplePageMaster pageMaster, int pageNumber)
+    private PageViewport CreatePage(Dom.FoSimplePageMaster pageMaster, Dom.FoPageSequence pageSequence, int pageNumber)
     {
-        return new PageViewport
+        var page = new PageViewport
         {
             Width = pageMaster.PageWidth,
             Height = pageMaster.PageHeight,
             PageNumber = pageNumber
         };
+
+        // Add static content for headers and footers
+        AddStaticContent(page, pageMaster, pageSequence);
+
+        return page;
     }
 
-    private void LayoutFlowWithPagination(AreaTree areaTree, Dom.FoSimplePageMaster pageMaster, Dom.FoFlow flow)
+    private void AddStaticContent(PageViewport page, Dom.FoSimplePageMaster pageMaster, Dom.FoPageSequence pageSequence)
+    {
+        foreach (var staticContent in pageSequence.StaticContents)
+        {
+            var flowName = staticContent.FlowName;
+
+            if (flowName == "xsl-region-before" && pageMaster.RegionBefore != null)
+            {
+                // Layout content in header region
+                var extent = (pageMaster.RegionBefore as Dom.FoRegionBefore)?.Extent ?? 36;
+                var y = 0.0;
+                var x = pageMaster.RegionBefore.MarginLeft;
+                var width = pageMaster.PageWidth - pageMaster.RegionBefore.MarginLeft - pageMaster.RegionBefore.MarginRight;
+
+                foreach (var block in staticContent.Blocks)
+                {
+                    var blockArea = LayoutBlock(block, x, y, width);
+                    if (blockArea != null)
+                    {
+                        page.AddArea(blockArea);
+                        y += blockArea.Height + blockArea.MarginTop + blockArea.MarginBottom;
+                    }
+                }
+            }
+            else if (flowName == "xsl-region-after" && pageMaster.RegionAfter != null)
+            {
+                // Layout content in footer region
+                var extent = (pageMaster.RegionAfter as Dom.FoRegionAfter)?.Extent ?? 36;
+                var y = pageMaster.PageHeight - extent;
+                var x = pageMaster.RegionAfter.MarginLeft;
+                var width = pageMaster.PageWidth - pageMaster.RegionAfter.MarginLeft - pageMaster.RegionAfter.MarginRight;
+
+                foreach (var block in staticContent.Blocks)
+                {
+                    var blockArea = LayoutBlock(block, x, y, width);
+                    if (blockArea != null)
+                    {
+                        page.AddArea(blockArea);
+                        y += blockArea.Height + blockArea.MarginTop + blockArea.MarginBottom;
+                    }
+                }
+            }
+        }
+    }
+
+    private void LayoutFlowWithPagination(AreaTree areaTree, Dom.FoSimplePageMaster pageMaster, Dom.FoPageSequence pageSequence)
     {
         // Calculate the body region dimensions
         var regionBody = pageMaster.RegionBody;
@@ -81,8 +131,10 @@ internal sealed class LayoutEngine
         var bodyWidth = pageMaster.PageWidth - bodyMarginLeft - bodyMarginRight;
         var bodyHeight = pageMaster.PageHeight - bodyMarginTop - bodyMarginBottom;
 
+        var flow = pageSequence.Flow!;
+
         // Create first page
-        var currentPage = CreatePage(pageMaster, pageNumber: 1);
+        var currentPage = CreatePage(pageMaster, pageSequence, pageNumber: 1);
         var currentY = bodyMarginTop;
         var pageNumber = 1;
 
@@ -97,7 +149,7 @@ internal sealed class LayoutEngine
                 {
                     areaTree.AddPage(currentPage);
                     pageNumber++;
-                    currentPage = CreatePage(pageMaster, pageNumber);
+                    currentPage = CreatePage(pageMaster, pageSequence, pageNumber);
                     currentY = bodyMarginTop;
                 }
             }
@@ -120,7 +172,7 @@ internal sealed class LayoutEngine
                 {
                     areaTree.AddPage(currentPage);
                     pageNumber++;
-                    currentPage = CreatePage(pageMaster, pageNumber);
+                    currentPage = CreatePage(pageMaster, pageSequence, pageNumber);
                     currentY = bodyMarginTop;
                 }
 
@@ -141,7 +193,7 @@ internal sealed class LayoutEngine
                 // Force page break after this block
                 areaTree.AddPage(currentPage);
                 pageNumber++;
-                currentPage = CreatePage(pageMaster, pageNumber);
+                currentPage = CreatePage(pageMaster, pageSequence, pageNumber);
                 currentY = bodyMarginTop;
             }
         }
@@ -159,7 +211,7 @@ internal sealed class LayoutEngine
                 // Table doesn't fit - add current page and create new one
                 areaTree.AddPage(currentPage);
                 pageNumber++;
-                currentPage = CreatePage(pageMaster, pageNumber);
+                currentPage = CreatePage(pageMaster, pageSequence, pageNumber);
                 currentY = bodyMarginTop;
 
                 // Re-position the table for the new page
@@ -184,7 +236,7 @@ internal sealed class LayoutEngine
                 // List doesn't fit - add current page and create new one
                 areaTree.AddPage(currentPage);
                 pageNumber++;
-                currentPage = CreatePage(pageMaster, pageNumber);
+                currentPage = CreatePage(pageMaster, pageSequence, pageNumber);
                 currentY = bodyMarginTop;
 
                 // Re-position the list for the new page
