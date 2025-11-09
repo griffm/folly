@@ -67,4 +67,24 @@ public sealed class FoBlock : FoElement
     /// Gets the padding-right in points.
     /// </summary>
     public double PaddingRight => Properties.GetLength("padding-right", 0);
+
+    /// <summary>
+    /// Gets the background color in CSS format (e.g., "#FF0000", "red", "transparent").
+    /// </summary>
+    public string BackgroundColor => Properties.GetString("background-color", "transparent");
+
+    /// <summary>
+    /// Gets the border width in points.
+    /// </summary>
+    public double BorderWidth => Properties.GetLength("border-width", 0);
+
+    /// <summary>
+    /// Gets the border color in CSS format.
+    /// </summary>
+    public string BorderColor => Properties.GetString("border-color", "black");
+
+    /// <summary>
+    /// Gets the border style (solid, dashed, dotted, etc.).
+    /// </summary>
+    public string BorderStyle => Properties.GetString("border-style", "none");
 }

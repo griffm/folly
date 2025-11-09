@@ -55,14 +55,8 @@ internal sealed class LayoutEngine
         if (flow == null)
             return;
 
-        // For now, create a single page with all content
-        // TODO: Implement proper page breaking
-        var page = CreatePage(pageMaster, pageNumber: 1);
-
-        // Layout the flow content into the page
-        LayoutFlow(page, pageMaster, flow);
-
-        areaTree.AddPage(page);
+        // Layout the flow content, creating pages as needed
+        LayoutFlowWithPagination(areaTree, pageMaster, flow);
     }
 
     private PageViewport CreatePage(Dom.FoSimplePageMaster pageMaster, int pageNumber)
@@ -75,7 +69,7 @@ internal sealed class LayoutEngine
         };
     }
 
-    private void LayoutFlow(PageViewport page, Dom.FoSimplePageMaster pageMaster, Dom.FoFlow flow)
+    private void LayoutFlowWithPagination(AreaTree areaTree, Dom.FoSimplePageMaster pageMaster, Dom.FoFlow flow)
     {
         // Calculate the body region dimensions
         var regionBody = pageMaster.RegionBody;
@@ -84,26 +78,44 @@ internal sealed class LayoutEngine
         var bodyMarginLeft = regionBody?.MarginLeft ?? 72;
         var bodyMarginRight = regionBody?.MarginRight ?? 72;
 
-        var bodyWidth = page.Width - bodyMarginLeft - bodyMarginRight;
-        var bodyHeight = page.Height - bodyMarginTop - bodyMarginBottom;
+        var bodyWidth = pageMaster.PageWidth - bodyMarginLeft - bodyMarginRight;
+        var bodyHeight = pageMaster.PageHeight - bodyMarginTop - bodyMarginBottom;
 
-        // Track current Y position for block placement
+        // Create first page
+        var currentPage = CreatePage(pageMaster, pageNumber: 1);
         var currentY = bodyMarginTop;
+        var pageNumber = 1;
 
         // Layout each block in the flow
         foreach (var foBlock in flow.Blocks)
         {
             var blockArea = LayoutBlock(foBlock, bodyMarginLeft, currentY, bodyWidth);
-            if (blockArea != null)
-            {
-                page.AddArea(blockArea);
-                currentY += blockArea.Height + blockArea.MarginTop + blockArea.MarginBottom;
+            if (blockArea == null)
+                continue;
 
-                // TODO: Check if we've exceeded page height and need a new page
-                if (currentY > page.Height - bodyMarginBottom)
-                    break; // For now, just stop adding blocks
+            var blockTotalHeight = blockArea.Height + blockArea.MarginTop + blockArea.MarginBottom;
+
+            // Check if block fits on current page
+            if (currentY + blockTotalHeight > pageMaster.PageHeight - bodyMarginBottom)
+            {
+                // Block doesn't fit - add current page and create new one
+                areaTree.AddPage(currentPage);
+                pageNumber++;
+                currentPage = CreatePage(pageMaster, pageNumber);
+                currentY = bodyMarginTop;
+
+                // Re-position the block for the new page
+                blockArea = LayoutBlock(foBlock, bodyMarginLeft, currentY, bodyWidth);
+                if (blockArea == null)
+                    continue;
             }
+
+            currentPage.AddArea(blockArea);
+            currentY += blockArea.Height + blockArea.MarginTop + blockArea.MarginBottom;
         }
+
+        // Add the last page
+        areaTree.AddPage(currentPage);
     }
 
     private BlockArea? LayoutBlock(Dom.FoBlock foBlock, double x, double y, double availableWidth)
@@ -122,7 +134,11 @@ internal sealed class LayoutEngine
             PaddingTop = foBlock.PaddingTop,
             PaddingBottom = foBlock.PaddingBottom,
             PaddingLeft = foBlock.PaddingLeft,
-            PaddingRight = foBlock.PaddingRight
+            PaddingRight = foBlock.PaddingRight,
+            BackgroundColor = foBlock.BackgroundColor,
+            BorderWidth = foBlock.BorderWidth,
+            BorderColor = foBlock.BorderColor,
+            BorderStyle = foBlock.BorderStyle
         };
 
         // Calculate content width (available width minus margins and padding)

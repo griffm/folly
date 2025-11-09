@@ -149,6 +149,26 @@ public sealed class BlockArea : Area
     public double PaddingRight { get; set; }
 
     /// <summary>
+    /// Gets or sets the background color.
+    /// </summary>
+    public string BackgroundColor { get; set; } = "transparent";
+
+    /// <summary>
+    /// Gets or sets the border width.
+    /// </summary>
+    public double BorderWidth { get; set; }
+
+    /// <summary>
+    /// Gets or sets the border color.
+    /// </summary>
+    public string BorderColor { get; set; } = "black";
+
+    /// <summary>
+    /// Gets or sets the border style.
+    /// </summary>
+    public string BorderStyle { get; set; } = "none";
+
+    /// <summary>
     /// Gets the child areas (typically line areas).
     /// </summary>
     public IReadOnlyList<Area> Children => _children;
