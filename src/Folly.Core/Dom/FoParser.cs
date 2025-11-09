@@ -131,17 +131,27 @@ internal static class FoParser
     private static FoStaticContent ParseStaticContent(XElement element)
     {
         var blocks = new List<FoBlock>();
+        var retrieveMarkers = new List<FoRetrieveMarker>();
 
         foreach (var child in element.Elements())
         {
-            if (child.Name.LocalName == "block")
-                blocks.Add(ParseBlock(child));
+            var name = child.Name.LocalName;
+            switch (name)
+            {
+                case "block":
+                    blocks.Add(ParseBlock(child));
+                    break;
+                case "retrieve-marker":
+                    retrieveMarkers.Add(ParseRetrieveMarker(child));
+                    break;
+            }
         }
 
         return new FoStaticContent
         {
             Properties = ParseProperties(element),
-            Blocks = blocks
+            Blocks = blocks,
+            RetrieveMarkers = retrieveMarkers
         };
     }
 
@@ -208,6 +218,9 @@ internal static class FoParser
                 case "page-number":
                     children.Add(ParsePageNumber(child));
                     break;
+                case "marker":
+                    children.Add(ParseMarker(child));
+                    break;
             }
         }
 
@@ -230,6 +243,31 @@ internal static class FoParser
     private static FoPageNumber ParsePageNumber(XElement element)
     {
         return new FoPageNumber
+        {
+            Properties = ParseProperties(element)
+        };
+    }
+
+    private static FoMarker ParseMarker(XElement element)
+    {
+        var blocks = new List<FoBlock>();
+
+        foreach (var child in element.Elements())
+        {
+            if (child.Name.LocalName == "block")
+                blocks.Add(ParseBlock(child));
+        }
+
+        return new FoMarker
+        {
+            Properties = ParseProperties(element),
+            Blocks = blocks
+        };
+    }
+
+    private static FoRetrieveMarker ParseRetrieveMarker(XElement element)
+    {
+        return new FoRetrieveMarker
         {
             Properties = ParseProperties(element)
         };

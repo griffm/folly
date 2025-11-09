@@ -19,4 +19,9 @@ public sealed class FoStaticContent : FoElement
     /// Gets the block children.
     /// </summary>
     public IReadOnlyList<FoBlock> Blocks { get; init; } = Array.Empty<FoBlock>();
+
+    /// <summary>
+    /// Gets the retrieve-marker children.
+    /// </summary>
+    public IReadOnlyList<FoRetrieveMarker> RetrieveMarkers { get; init; } = Array.Empty<FoRetrieveMarker>();
 }
