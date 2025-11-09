@@ -34,6 +34,10 @@ GenerateMultiPageDocument(Path.Combine(outputDir, "05-multi-page.pdf"));
 Console.WriteLine("Generating Example 6: Sample Invoice...");
 GenerateInvoice(Path.Combine(outputDir, "06-invoice.pdf"));
 
+// Example 7: Table
+Console.WriteLine("Generating Example 7: Table Example...");
+GenerateTableExample(Path.Combine(outputDir, "07-table.pdf"));
+
 Console.WriteLine("\n✓ All examples generated successfully!");
 Console.WriteLine($"\nView PDFs in: {outputDir}");
 Console.WriteLine("\nValidate with qpdf:");
@@ -352,6 +356,130 @@ static void GenerateInvoice(string outputPath)
               <fo:block font-size="10pt" margin-top="24pt" text-align="center">
                 Thank you for your business!
               </fo:block>
+            </fo:flow>
+          </fo:page-sequence>
+        </fo:root>
+        """;
+
+    using var doc = FoDocument.Load(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml)));
+    doc.SavePdf(outputPath);
+}
+
+static void GenerateTableExample(string outputPath)
+{
+    var foXml = """
+        <?xml version="1.0"?>
+        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+          <fo:layout-master-set>
+            <fo:simple-page-master master-name="A4" page-width="595pt" page-height="842pt">
+              <fo:region-body margin="72pt"/>
+            </fo:simple-page-master>
+          </fo:layout-master-set>
+          <fo:page-sequence master-reference="A4">
+            <fo:flow flow-name="xsl-region-body">
+              <fo:block font-size="18pt" font-family="Helvetica" text-align="center" margin-bottom="24pt">
+                Table Example
+              </fo:block>
+
+              <fo:table border-collapse="separate" border-spacing="2pt">
+                <fo:table-column column-width="150pt"/>
+                <fo:table-column column-width="150pt"/>
+                <fo:table-column column-width="150pt"/>
+
+                <fo:table-header>
+                  <fo:table-row>
+                    <fo:table-cell padding="8pt" border-width="1pt" border-style="solid"
+                                   border-color="black" background-color="#E0E0E0">
+                      <fo:block font-family="Helvetica" font-size="12pt">
+                        Product
+                      </fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt" border-width="1pt" border-style="solid"
+                                   border-color="black" background-color="#E0E0E0">
+                      <fo:block font-family="Helvetica" font-size="12pt">
+                        Quantity
+                      </fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt" border-width="1pt" border-style="solid"
+                                   border-color="black" background-color="#E0E0E0">
+                      <fo:block font-family="Helvetica" font-size="12pt" text-align="end">
+                        Price
+                      </fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>
+                </fo:table-header>
+
+                <fo:table-body>
+                  <fo:table-row>
+                    <fo:table-cell padding="8pt" border-width="1pt" border-style="solid" border-color="black">
+                      <fo:block font-size="10pt">
+                        Widget A
+                      </fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt" border-width="1pt" border-style="solid" border-color="black">
+                      <fo:block font-size="10pt" text-align="center">
+                        5
+                      </fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt" border-width="1pt" border-style="solid" border-color="black">
+                      <fo:block font-size="10pt" text-align="end">
+                        $25.00
+                      </fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>
+
+                  <fo:table-row>
+                    <fo:table-cell padding="8pt" border-width="1pt" border-style="solid" border-color="black">
+                      <fo:block font-size="10pt">
+                        Widget B
+                      </fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt" border-width="1pt" border-style="solid" border-color="black">
+                      <fo:block font-size="10pt" text-align="center">
+                        3
+                      </fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt" border-width="1pt" border-style="solid" border-color="black">
+                      <fo:block font-size="10pt" text-align="end">
+                        $45.00
+                      </fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>
+
+                  <fo:table-row>
+                    <fo:table-cell padding="8pt" border-width="1pt" border-style="solid" border-color="black">
+                      <fo:block font-size="10pt">
+                        Widget C
+                      </fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt" border-width="1pt" border-style="solid" border-color="black">
+                      <fo:block font-size="10pt" text-align="center">
+                        7
+                      </fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt" border-width="1pt" border-style="solid" border-color="black">
+                      <fo:block font-size="10pt" text-align="end">
+                        $35.00
+                      </fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>
+
+                  <fo:table-row>
+                    <fo:table-cell padding="8pt" border-width="2pt" border-style="solid" border-color="black"
+                                   background-color="#F0F0F0" number-columns-spanned="2">
+                      <fo:block font-size="12pt" font-family="Helvetica" text-align="end">
+                        Total:
+                      </fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt" border-width="2pt" border-style="solid" border-color="black"
+                                   background-color="#F0F0F0">
+                      <fo:block font-size="12pt" font-family="Helvetica" text-align="end">
+                        $105.00
+                      </fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>
+                </fo:table-body>
+              </fo:table>
             </fo:flow>
           </fo:page-sequence>
         </fo:root>

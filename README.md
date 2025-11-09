@@ -134,14 +134,35 @@ cd examples
 **Milestone M0: Foundation** ✅ (Completed)
 **Milestone M1: Basic Layout** ✅ (Completed)
 
-The core rendering engine is operational with:
-- FO DOM parsing from XSL-FO XML
+The core rendering engine is fully operational with:
+
+**FO Document Processing:**
+- XSL-FO 1.1 XML parsing with namespace support
+- Immutable FO DOM representation
+- Property inheritance and resolution
+- Layout master sets and page masters
+
+**Layout Engine:**
 - Multi-page layout with automatic pagination
-- Line breaking and word wrapping
+- Greedy line breaking with word wrapping
 - Text alignment (start, center, end)
 - Margins, padding, borders, and backgrounds
-- PDF 1.7 output with proper structure
-- 11 passing tests
+- Font metrics and text measurement
+- Block and inline area generation
+
+**PDF Rendering:**
+- PDF 1.7 output with correct structure
+- Standard Type 1 fonts (Helvetica, Times, Courier)
+- Text positioning with baseline alignment
+- Border rendering (solid, dashed, dotted)
+- Background colors (named and hex formats)
+- Graphics state management
+
+**Quality Assurance:**
+- 11 passing unit tests (100% success rate)
+- 6 working example PDFs
+- 100% qpdf validation success (zero errors)
+- Verified with qpdf 11.9.0
 
 See [PLAN.md](PLAN.md) for detailed roadmap and upcoming milestones.
 

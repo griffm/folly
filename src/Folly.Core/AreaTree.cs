@@ -230,3 +230,149 @@ public sealed class InlineArea : Area
     /// </summary>
     public double BaselineOffset { get; set; }
 }
+
+/// <summary>
+/// Represents a table area (from fo:table).
+/// </summary>
+public sealed class TableArea : Area
+{
+    private readonly List<TableRowArea> _rows = new();
+
+    /// <summary>
+    /// Gets or sets the border collapse model.
+    /// </summary>
+    public string BorderCollapse { get; set; } = "separate";
+
+    /// <summary>
+    /// Gets or sets the border spacing.
+    /// </summary>
+    public double BorderSpacing { get; set; }
+
+    /// <summary>
+    /// Gets or sets the column widths.
+    /// </summary>
+    public List<double> ColumnWidths { get; set; } = new();
+
+    /// <summary>
+    /// Gets the table rows.
+    /// </summary>
+    public IReadOnlyList<TableRowArea> Rows => _rows;
+
+    /// <summary>
+    /// Adds a row to the table.
+    /// </summary>
+    internal void AddRow(TableRowArea row)
+    {
+        ArgumentNullException.ThrowIfNull(row);
+        _rows.Add(row);
+    }
+}
+
+/// <summary>
+/// Represents a table row area.
+/// </summary>
+public sealed class TableRowArea : Area
+{
+    private readonly List<TableCellArea> _cells = new();
+
+    /// <summary>
+    /// Gets the cells in this row.
+    /// </summary>
+    public IReadOnlyList<TableCellArea> Cells => _cells;
+
+    /// <summary>
+    /// Adds a cell to the row.
+    /// </summary>
+    internal void AddCell(TableCellArea cell)
+    {
+        ArgumentNullException.ThrowIfNull(cell);
+        _cells.Add(cell);
+    }
+}
+
+/// <summary>
+/// Represents a table cell area.
+/// </summary>
+public sealed class TableCellArea : Area
+{
+    private readonly List<Area> _children = new();
+
+    /// <summary>
+    /// Gets or sets the number of columns this cell spans.
+    /// </summary>
+    public int NumberColumnsSpanned { get; set; } = 1;
+
+    /// <summary>
+    /// Gets or sets the number of rows this cell spans.
+    /// </summary>
+    public int NumberRowsSpanned { get; set; } = 1;
+
+    /// <summary>
+    /// Gets or sets the column index (0-based).
+    /// </summary>
+    public int ColumnIndex { get; set; }
+
+    /// <summary>
+    /// Gets or sets padding top.
+    /// </summary>
+    public double PaddingTop { get; set; }
+
+    /// <summary>
+    /// Gets or sets padding bottom.
+    /// </summary>
+    public double PaddingBottom { get; set; }
+
+    /// <summary>
+    /// Gets or sets padding left.
+    /// </summary>
+    public double PaddingLeft { get; set; }
+
+    /// <summary>
+    /// Gets or sets padding right.
+    /// </summary>
+    public double PaddingRight { get; set; }
+
+    /// <summary>
+    /// Gets or sets border width.
+    /// </summary>
+    public double BorderWidth { get; set; }
+
+    /// <summary>
+    /// Gets or sets border style.
+    /// </summary>
+    public string BorderStyle { get; set; } = "none";
+
+    /// <summary>
+    /// Gets or sets border color.
+    /// </summary>
+    public string BorderColor { get; set; } = "black";
+
+    /// <summary>
+    /// Gets or sets the background color.
+    /// </summary>
+    public string BackgroundColor { get; set; } = "transparent";
+
+    /// <summary>
+    /// Gets or sets the text alignment.
+    /// </summary>
+    public string TextAlign { get; set; } = "start";
+
+    /// <summary>
+    /// Gets or sets the vertical alignment.
+    /// </summary>
+    public string VerticalAlign { get; set; } = "top";
+
+    /// <summary>
+    /// Gets the child areas (blocks within the cell).
+    /// </summary>
+    public IReadOnlyList<Area> Children => _children;
+
+    /// <summary>
+    /// Adds a child area to the cell.
+    /// </summary>
+    internal void AddChild(Area area)
+    {
+        ArgumentNullException.ThrowIfNull(area);
+        _children.Add(area);
+    }
+}
