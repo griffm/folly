@@ -36,28 +36,14 @@ internal sealed class LayoutEngine
 
     private void LayoutPageSequence(AreaTree areaTree, Dom.FoRoot foRoot, Dom.FoPageSequence pageSequence)
     {
-        // Find the page master
-        var masterRef = pageSequence.MasterReference;
-        var pageMaster = foRoot.LayoutMasterSet?.FindPageMaster(masterRef);
-
-        if (pageMaster == null)
-        {
-            // Default page if no master found
-            pageMaster = new Dom.FoSimplePageMaster
-            {
-                Properties = new Dom.FoProperties()
-            };
-            pageMaster.Properties["page-width"] = "595pt";  // A4 width
-            pageMaster.Properties["page-height"] = "842pt"; // A4 height
-        }
-
         // Get the flow
         var flow = pageSequence.Flow;
         if (flow == null)
             return;
 
         // Layout the flow content, creating pages as needed
-        LayoutFlowWithPagination(areaTree, pageMaster, pageSequence);
+        // Pass foRoot to allow dynamic page master selection
+        LayoutFlowWithPagination(areaTree, foRoot, pageSequence);
     }
 
     private PageViewport CreatePage(Dom.FoSimplePageMaster pageMaster, Dom.FoPageSequence pageSequence, int pageNumber)
@@ -182,24 +168,106 @@ internal sealed class LayoutEngine
         return selectedMarker?.Blocks ?? Array.Empty<Dom.FoBlock>();
     }
 
-    private void LayoutFlowWithPagination(AreaTree areaTree, Dom.FoSimplePageMaster pageMaster, Dom.FoPageSequence pageSequence)
+    private Dom.FoSimplePageMaster SelectPageMaster(Dom.FoRoot foRoot, Dom.FoPageSequence pageSequence, int pageNumber, int totalPages)
     {
-        // Calculate the body region dimensions
-        var regionBody = pageMaster.RegionBody;
+        var masterRef = pageSequence.MasterReference;
+
+        // First try to find a simple-page-master directly
+        var simpleMaster = foRoot.LayoutMasterSet?.FindPageMaster(masterRef);
+        if (simpleMaster != null)
+            return simpleMaster;
+
+        // Then try to find a page-sequence-master
+        var pageSequenceMaster = foRoot.LayoutMasterSet?.FindPageSequenceMaster(masterRef);
+        if (pageSequenceMaster != null)
+        {
+            // Use repeatable-page-master-alternatives to select based on conditions
+            if (pageSequenceMaster.RepeatablePageMasterAlternatives != null)
+            {
+                var alternatives = pageSequenceMaster.RepeatablePageMasterAlternatives;
+                foreach (var conditionalRef in alternatives.ConditionalPageMasterReferences)
+                {
+                    if (MatchesConditions(conditionalRef, pageNumber, totalPages))
+                    {
+                        var masterReference = conditionalRef.MasterReference;
+                        var selectedMaster = foRoot.LayoutMasterSet?.FindPageMaster(masterReference);
+                        if (selectedMaster != null)
+                            return selectedMaster;
+                    }
+                }
+            }
+
+            // Use single-page-master-reference if available
+            if (pageSequenceMaster.SinglePageMasterReference != null)
+            {
+                var masterReference = pageSequenceMaster.SinglePageMasterReference.MasterReference;
+                var selectedMaster = foRoot.LayoutMasterSet?.FindPageMaster(masterReference);
+                if (selectedMaster != null)
+                    return selectedMaster;
+            }
+        }
+
+        // Default page if no master found
+        var defaultMaster = new Dom.FoSimplePageMaster
+        {
+            Properties = new Dom.FoProperties()
+        };
+        defaultMaster.Properties["page-width"] = "595pt";  // A4 width
+        defaultMaster.Properties["page-height"] = "842pt"; // A4 height
+        return defaultMaster;
+    }
+
+    private bool MatchesConditions(Dom.FoConditionalPageMasterReference conditionalRef, int pageNumber, int totalPages)
+    {
+        // Check page-position
+        var pagePosition = conditionalRef.PagePosition;
+        if (pagePosition != "any")
+        {
+            if (pagePosition == "first" && pageNumber != 1)
+                return false;
+            if (pagePosition == "last" && pageNumber != totalPages)
+                return false;
+            if (pagePosition == "rest" && pageNumber == 1)
+                return false;
+        }
+
+        // Check odd-or-even
+        var oddOrEven = conditionalRef.OddOrEven;
+        if (oddOrEven != "any")
+        {
+            bool isOdd = (pageNumber % 2) == 1;
+            if (oddOrEven == "odd" && !isOdd)
+                return false;
+            if (oddOrEven == "even" && isOdd)
+                return false;
+        }
+
+        // All conditions match
+        return true;
+    }
+
+    private void LayoutFlowWithPagination(AreaTree areaTree, Dom.FoRoot foRoot, Dom.FoPageSequence pageSequence)
+    {
+        var flow = pageSequence.Flow!;
+
+        // Get first page master to determine body dimensions
+        // Note: For simplicity, we assume body dimensions are consistent across all page masters
+        var firstPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber: 1, totalPages: 999);
+
+        var regionBody = firstPageMaster.RegionBody;
         var bodyMarginTop = regionBody?.MarginTop ?? 72;
         var bodyMarginBottom = regionBody?.MarginBottom ?? 72;
         var bodyMarginLeft = regionBody?.MarginLeft ?? 72;
         var bodyMarginRight = regionBody?.MarginRight ?? 72;
 
-        var bodyWidth = pageMaster.PageWidth - bodyMarginLeft - bodyMarginRight;
-        var bodyHeight = pageMaster.PageHeight - bodyMarginTop - bodyMarginBottom;
-
-        var flow = pageSequence.Flow!;
+        var bodyWidth = firstPageMaster.PageWidth - bodyMarginLeft - bodyMarginRight;
+        var bodyHeight = firstPageMaster.PageHeight - bodyMarginTop - bodyMarginBottom;
 
         // Create first page
-        var currentPage = CreatePage(pageMaster, pageSequence, pageNumber: 1);
-        var currentY = bodyMarginTop;
         var pageNumber = 1;
+        var currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
+        var currentPage = CreatePage(currentPageMaster, pageSequence, pageNumber);
+        var currentY = bodyMarginTop;
 
         // Layout each block in the flow
         foreach (var foBlock in flow.Blocks)
@@ -212,7 +280,8 @@ internal sealed class LayoutEngine
                 {
                     areaTree.AddPage(currentPage);
                     pageNumber++;
-                    currentPage = CreatePage(pageMaster, pageSequence, pageNumber);
+                    currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
+                    currentPage = CreatePage(currentPageMaster, pageSequence, pageNumber);
                     currentY = bodyMarginTop;
                 }
             }
@@ -225,7 +294,7 @@ internal sealed class LayoutEngine
 
             // Handle keep-together constraint
             var mustKeepTogether = foBlock.KeepTogether == "always";
-            var blockFitsOnPage = currentY + blockTotalHeight <= pageMaster.PageHeight - bodyMarginBottom;
+            var blockFitsOnPage = currentY + blockTotalHeight <= currentPageMaster.PageHeight - bodyMarginBottom;
 
             // If block doesn't fit and must be kept together, move to next page
             if (!blockFitsOnPage && (mustKeepTogether || currentY == bodyMarginTop))
@@ -235,7 +304,8 @@ internal sealed class LayoutEngine
                 {
                     areaTree.AddPage(currentPage);
                     pageNumber++;
-                    currentPage = CreatePage(pageMaster, pageSequence, pageNumber);
+                    currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
+                    currentPage = CreatePage(currentPageMaster, pageSequence, pageNumber);
                     currentY = bodyMarginTop;
                 }
 
@@ -256,7 +326,8 @@ internal sealed class LayoutEngine
                 // Force page break after this block
                 areaTree.AddPage(currentPage);
                 pageNumber++;
-                currentPage = CreatePage(pageMaster, pageSequence, pageNumber);
+                currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
+                currentPage = CreatePage(currentPageMaster, pageSequence, pageNumber);
                 currentY = bodyMarginTop;
             }
         }
@@ -269,12 +340,13 @@ internal sealed class LayoutEngine
                 continue;
 
             // Check if table fits on current page
-            if (currentY + tableArea.Height > pageMaster.PageHeight - bodyMarginBottom)
+            if (currentY + tableArea.Height > currentPageMaster.PageHeight - bodyMarginBottom)
             {
                 // Table doesn't fit - add current page and create new one
                 areaTree.AddPage(currentPage);
                 pageNumber++;
-                currentPage = CreatePage(pageMaster, pageSequence, pageNumber);
+                currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
+                currentPage = CreatePage(currentPageMaster, pageSequence, pageNumber);
                 currentY = bodyMarginTop;
 
                 // Re-position the table for the new page
@@ -294,12 +366,13 @@ internal sealed class LayoutEngine
                 continue;
 
             // Check if list fits on current page
-            if (currentY + listArea.Height > pageMaster.PageHeight - bodyMarginBottom)
+            if (currentY + listArea.Height > currentPageMaster.PageHeight - bodyMarginBottom)
             {
                 // List doesn't fit - add current page and create new one
                 areaTree.AddPage(currentPage);
                 pageNumber++;
-                currentPage = CreatePage(pageMaster, pageSequence, pageNumber);
+                currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
+                currentPage = CreatePage(currentPageMaster, pageSequence, pageNumber);
                 currentY = bodyMarginTop;
 
                 // Re-position the list for the new page

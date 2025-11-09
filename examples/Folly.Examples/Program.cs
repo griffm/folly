@@ -58,6 +58,10 @@ GenerateHeaderFooterExample(Path.Combine(outputDir, "11-headers-footers.pdf"));
 Console.WriteLine("Generating Example 12: Markers for Dynamic Headers...");
 GenerateMarkerExample(Path.Combine(outputDir, "12-markers.pdf"));
 
+// Example 13: Conditional Page Masters
+Console.WriteLine("Generating Example 13: Conditional Page Masters...");
+GenerateConditionalPageMastersExample(Path.Combine(outputDir, "13-conditional-page-masters.pdf"));
+
 Console.WriteLine("\n✓ All examples generated successfully!");
 Console.WriteLine($"\nView PDFs in: {outputDir}");
 Console.WriteLine("\nValidate with qpdf:");
@@ -872,6 +876,147 @@ static void GenerateMarkerExample(string outputPath)
 
               <fo:block font-size="12pt" margin-bottom="12pt">
                 This feature is one of the most powerful aspects of XSL-FO for creating sophisticated, professional documents with dynamic headers and footers.
+              </fo:block>
+            </fo:flow>
+          </fo:page-sequence>
+        </fo:root>
+        """;
+
+    using var doc = FoDocument.Load(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml)));
+    doc.SavePdf(outputPath);
+}
+
+static void GenerateConditionalPageMastersExample(string outputPath)
+{
+    var foXml = """
+        <?xml version="1.0"?>
+        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+          <fo:layout-master-set>
+            <!-- Define page masters for first, odd, and even pages -->
+            <fo:simple-page-master master-name="first-page" page-width="595pt" page-height="842pt">
+              <fo:region-body margin-top="144pt" margin-bottom="72pt" margin-left="72pt" margin-right="72pt"/>
+              <fo:region-before extent="108pt"/>
+              <fo:region-after extent="36pt"/>
+            </fo:simple-page-master>
+
+            <fo:simple-page-master master-name="odd-page" page-width="595pt" page-height="842pt">
+              <fo:region-body margin-top="72pt" margin-bottom="72pt" margin-left="72pt" margin-right="72pt"/>
+              <fo:region-before extent="36pt"/>
+              <fo:region-after extent="36pt"/>
+            </fo:simple-page-master>
+
+            <fo:simple-page-master master-name="even-page" page-width="595pt" page-height="842pt">
+              <fo:region-body margin-top="72pt" margin-bottom="72pt" margin-left="72pt" margin-right="72pt"/>
+              <fo:region-before extent="36pt"/>
+              <fo:region-after extent="36pt"/>
+            </fo:simple-page-master>
+
+            <!-- Define conditional page sequence master -->
+            <fo:page-sequence-master master-name="document">
+              <fo:repeatable-page-master-alternatives>
+                <fo:conditional-page-master-reference master-reference="first-page" page-position="first"/>
+                <fo:conditional-page-master-reference master-reference="odd-page" odd-or-even="odd"/>
+                <fo:conditional-page-master-reference master-reference="even-page" odd-or-even="even"/>
+              </fo:repeatable-page-master-alternatives>
+            </fo:page-sequence-master>
+          </fo:layout-master-set>
+
+          <fo:page-sequence master-reference="document">
+            <!-- Headers for different page types -->
+            <fo:static-content flow-name="xsl-region-before">
+              <fo:block font-size="14pt" font-family="Helvetica" font-weight="bold" text-align="center" padding-top="36pt">
+                Conditional Page Masters Example
+              </fo:block>
+              <fo:block font-size="10pt" font-family="Helvetica" text-align="center" margin-top="6pt">
+                Page <fo:page-number/>
+              </fo:block>
+            </fo:static-content>
+
+            <fo:static-content flow-name="xsl-region-after">
+              <fo:block font-size="9pt" font-family="Helvetica" text-align="center" padding-bottom="12pt">
+                Footer - Page <fo:page-number/>
+              </fo:block>
+            </fo:static-content>
+
+            <fo:flow flow-name="xsl-region-body">
+              <fo:block font-size="24pt" font-family="Helvetica" font-weight="bold" text-align="center" margin-bottom="24pt">
+                First Page Layout
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                This is the first page, which uses the "first-page" master. Notice the larger top margin to accommodate a title area.
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                Conditional page masters allow different layouts for:
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-left="24pt" margin-bottom="6pt">
+                • First page (page-position="first")
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-left="24pt" margin-bottom="6pt">
+                • Odd pages (odd-or-even="odd")
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-left="24pt" margin-bottom="12pt">
+                • Even pages (odd-or-even="even")
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                This is commonly used in books where left and right pages have mirrored layouts for binding, or where the first page needs special treatment like a cover or title page.
+              </fo:block>
+
+              <fo:block font-size="18pt" font-family="Helvetica" font-weight="bold" margin-top="36pt" margin-bottom="18pt" break-before="page">
+                Second Page (Even)
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                This is page 2, an even page. It uses the "even-page" master with standard margins.
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                In a real book layout, even pages (left-hand pages) might have the page number on the left, while odd pages (right-hand pages) have the page number on the right.
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                The repeatable-page-master-alternatives element allows the XSL-FO processor to automatically select the appropriate page master based on the page number and position.
+              </fo:block>
+
+              <fo:block font-size="18pt" font-family="Helvetica" font-weight="bold" margin-top="36pt" margin-bottom="18pt" break-before="page">
+                Third Page (Odd)
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                This is page 3, an odd page using the "odd-page" master.
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                The conditional page master reference checks conditions in order and selects the first match. The conditions checked are:
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-left="24pt" margin-bottom="6pt">
+                1. page-position (first, last, rest, any)
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-left="24pt" margin-bottom="6pt">
+                2. odd-or-even (odd, even, any)
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-left="24pt" margin-bottom="12pt">
+                3. blank-or-not-blank (blank, not-blank, any)
+              </fo:block>
+
+              <fo:block font-size="18pt" font-family="Helvetica" font-weight="bold" margin-top="36pt" margin-bottom="18pt" break-before="page">
+                Fourth Page (Even)
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                Page 4 demonstrates that the pattern continues - this even page again uses the "even-page" master.
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                This feature is essential for professional publishing where page layout varies based on position in the document.
               </fo:block>
             </fo:flow>
           </fo:page-sequence>

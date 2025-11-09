@@ -55,17 +55,27 @@ internal static class FoParser
     private static FoLayoutMasterSet ParseLayoutMasterSet(XElement element)
     {
         var pageMasters = new List<FoSimplePageMaster>();
+        var pageSequenceMasters = new List<FoPageSequenceMaster>();
 
         foreach (var child in element.Elements())
         {
-            if (child.Name.LocalName == "simple-page-master")
-                pageMasters.Add(ParseSimplePageMaster(child));
+            var name = child.Name.LocalName;
+            switch (name)
+            {
+                case "simple-page-master":
+                    pageMasters.Add(ParseSimplePageMaster(child));
+                    break;
+                case "page-sequence-master":
+                    pageSequenceMasters.Add(ParsePageSequenceMaster(child));
+                    break;
+            }
         }
 
         return new FoLayoutMasterSet
         {
             Properties = ParseProperties(element),
-            SimplePageMasters = pageMasters
+            SimplePageMasters = pageMasters,
+            PageSequenceMasters = pageSequenceMasters
         };
     }
 
@@ -98,6 +108,69 @@ internal static class FoParser
             RegionBody = regionBody,
             RegionBefore = regionBefore,
             RegionAfter = regionAfter
+        };
+    }
+
+    private static FoPageSequenceMaster ParsePageSequenceMaster(XElement element)
+    {
+        FoSinglePageMasterReference? singlePageMasterRef = null;
+        FoRepeatablePageMasterAlternatives? repeatablePageMasterAlternatives = null;
+
+        foreach (var child in element.Elements())
+        {
+            var name = child.Name.LocalName;
+            switch (name)
+            {
+                case "single-page-master-reference":
+                    singlePageMasterRef = ParseSinglePageMasterReference(child);
+                    break;
+                case "repeatable-page-master-reference":
+                    // TODO: Implement if needed
+                    break;
+                case "repeatable-page-master-alternatives":
+                    repeatablePageMasterAlternatives = ParseRepeatablePageMasterAlternatives(child);
+                    break;
+            }
+        }
+
+        return new FoPageSequenceMaster
+        {
+            Properties = ParseProperties(element),
+            SinglePageMasterReference = singlePageMasterRef,
+            RepeatablePageMasterAlternatives = repeatablePageMasterAlternatives
+        };
+    }
+
+    private static FoSinglePageMasterReference ParseSinglePageMasterReference(XElement element)
+    {
+        return new FoSinglePageMasterReference
+        {
+            Properties = ParseProperties(element)
+        };
+    }
+
+    private static FoRepeatablePageMasterAlternatives ParseRepeatablePageMasterAlternatives(XElement element)
+    {
+        var conditionalRefs = new List<FoConditionalPageMasterReference>();
+
+        foreach (var child in element.Elements())
+        {
+            if (child.Name.LocalName == "conditional-page-master-reference")
+                conditionalRefs.Add(ParseConditionalPageMasterReference(child));
+        }
+
+        return new FoRepeatablePageMasterAlternatives
+        {
+            Properties = ParseProperties(element),
+            ConditionalPageMasterReferences = conditionalRefs
+        };
+    }
+
+    private static FoConditionalPageMasterReference ParseConditionalPageMasterReference(XElement element)
+    {
+        return new FoConditionalPageMasterReference
+        {
+            Properties = ParseProperties(element)
         };
     }
 
