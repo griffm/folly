@@ -440,4 +440,147 @@ public class PropertyInheritanceTests
         Assert.NotNull(inline);
         Assert.Equal("underline", inline.TextDecoration); // Should inherit from parent
     }
+
+    [Fact]
+    public void FontWeightAndStyle_InheritFromParent()
+    {
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4">
+                  <fo:region-body/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:block font-weight="bold" font-style="italic">
+                    <fo:inline>Bold italic text</fo:inline>
+                  </fo:block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var block = doc.Root.PageSequences[0].Flow!.Blocks[0];
+        var inline = block.Children[0] as FoInline;
+
+        Assert.NotNull(inline);
+        Assert.Equal("bold", inline.FontWeight);
+        Assert.Equal("italic", inline.FontStyle);
+    }
+
+    [Fact]
+    public void MultiplePropertiesAtOnce_InheritCorrectly()
+    {
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4">
+                  <fo:region-body/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:block font-family="Courier" font-size="14pt" color="red">
+                    <fo:inline>Inherited properties</fo:inline>
+                  </fo:block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var block = doc.Root.PageSequences[0].Flow!.Blocks[0];
+        var inline = block.Children[0] as FoInline;
+
+        Assert.NotNull(inline);
+        Assert.Equal("Courier", inline.FontFamily);
+        Assert.Equal(14, inline.FontSize);
+        Assert.Equal("red", inline.Color);
+    }
+
+    [Fact]
+    public void DeepInheritanceChain_InheritsCorrectly()
+    {
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4">
+                  <fo:region-body/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:block font-family="Times" font-size="14pt" color="blue" text-align="center">
+                    <fo:block>
+                      <fo:block>
+                        <fo:block>
+                          <fo:inline>Deep inheritance</fo:inline>
+                        </fo:block>
+                      </fo:block>
+                    </fo:block>
+                  </fo:block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var level1 = doc.Root.PageSequences[0].Flow!.Blocks[0];
+        var level2 = level1.Children[0] as FoBlock;
+        var level3 = level2!.Children[0] as FoBlock;
+        var level4 = level3!.Children[0] as FoBlock;
+        var inline = level4!.Children[0] as FoInline;
+
+        Assert.NotNull(inline);
+        Assert.Equal("Times", inline.FontFamily);
+        Assert.Equal(14, inline.FontSize);
+        Assert.Equal("blue", inline.Color);
+    }
+
+    [Fact]
+    public void MixedInheritanceAndOverride_WorksCorrectly()
+    {
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4">
+                  <fo:region-body/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:block font-family="Times" font-size="12pt" color="black">
+                    <fo:block font-size="14pt">
+                      <fo:inline color="red">Mixed inheritance</fo:inline>
+                    </fo:block>
+                  </fo:block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var outerBlock = doc.Root.PageSequences[0].Flow!.Blocks[0];
+        var middleBlock = outerBlock.Children[0] as FoBlock;
+        var inline = middleBlock!.Children[0] as FoInline;
+
+        Assert.NotNull(inline);
+        Assert.Equal("Times", inline.FontFamily); // Inherited from outer block
+        Assert.Equal(14, inline.FontSize); // Inherited from middle block (overrode outer)
+        Assert.Equal("red", inline.Color); // Overrode both parent blocks
+    }
 }

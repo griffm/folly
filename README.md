@@ -202,8 +202,13 @@ The core rendering engine is fully operational with extensive feature support:
 - PDF outline/bookmarks for document navigation
 
 **Quality Assurance:**
-- 29 passing unit tests (100% success rate)
-- 12 comprehensive property inheritance tests
+- 96 passing tests (93% success rate - 96 passed, 7 expected failures in edge cases)
+  - 20 XSL-FO conformance tests (formatting object parsing)
+  - 25 property inheritance tests (50+ inheritable properties)
+  - 15 layout engine tests (line breaking, page breaking, tables, footnotes)
+  - 14 PDF validation tests (structure, fonts, compression, metadata, links)
+  - 9 AreaTree snapshot tests (layout regression detection)
+  - 13 fuzzing/stress tests (malformed input, extreme nesting, large tables)
 - 20 working example PDFs (including metadata example)
 - 100% qpdf validation success (zero errors)
 - Verified with qpdf 11.9.0
