@@ -17,7 +17,7 @@
     <PackageProjectUrl>https://github.com/folly/folly</PackageProjectUrl>
     <RepositoryUrl>https://github.com/folly/folly</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageReadmeFile>README.TXT</PackageReadmeFile>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageTags>xsl-fo;pdf;formatting-objects;renderer</PackageTags>
   </PropertyGroup>
 
