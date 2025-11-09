@@ -49,3 +49,6 @@ bld/
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+# Example outputs (generated PDFs)
+examples/**/output/
