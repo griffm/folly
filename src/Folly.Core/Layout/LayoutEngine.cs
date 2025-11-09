@@ -200,6 +200,15 @@ internal sealed class LayoutEngine
                 }
             }
 
+            // Use repeatable-page-master-reference if available
+            if (pageSequenceMaster.RepeatablePageMasterReference != null)
+            {
+                var masterReference = pageSequenceMaster.RepeatablePageMasterReference.MasterReference;
+                var selectedMaster = foRoot.LayoutMasterSet?.FindPageMaster(masterReference);
+                if (selectedMaster != null)
+                    return selectedMaster;
+            }
+
             // Use single-page-master-reference if available
             if (pageSequenceMaster.SinglePageMasterReference != null)
             {

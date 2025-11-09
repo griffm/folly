@@ -663,4 +663,42 @@ public class ConformanceTests
         Assert.NotNull(masterSet);
         Assert.NotEmpty(masterSet.PageSequenceMasters);
     }
+
+    [Fact]
+    public void RepeatablePageMasterReference_ParsesAndLayoutsCorrectly()
+    {
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="letter" page-width="8.5in" page-height="11in">
+                  <fo:region-body margin="1in"/>
+                </fo:simple-page-master>
+                <fo:page-sequence-master master-name="my-sequence">
+                  <fo:repeatable-page-master-reference master-reference="letter"/>
+                </fo:page-sequence-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="my-sequence">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:block>Test content using repeatable-page-master-reference</fo:block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        // Verify parsing
+        var pageSeqMaster = doc.Root.LayoutMasterSet?.PageSequenceMasters[0];
+        Assert.NotNull(pageSeqMaster);
+        Assert.NotNull(pageSeqMaster.RepeatablePageMasterReference);
+        Assert.Equal("letter", pageSeqMaster.RepeatablePageMasterReference.MasterReference);
+
+        // Verify layout produces correct page dimensions (US Letter = 612pt × 792pt)
+        var areaTree = doc.BuildAreaTree();
+        Assert.Single(areaTree.Pages);
+        Assert.Equal(612, areaTree.Pages[0].Width, 1); // 8.5in = 612pt
+        Assert.Equal(792, areaTree.Pages[0].Height, 1); // 11in = 792pt
+    }
 }

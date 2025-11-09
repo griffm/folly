@@ -224,6 +224,7 @@ Pipeline steps:
   - [x] Column balancing
 - [x] Footnotes with footnote-body
 - [x] Floats (side floats) - Basic implementation with start/end positioning
+- [x] Repeatable-page-master-reference - Full support for repeating page masters
 - [ ] Region support (start, end) - side regions (deferred to M4)
 - [ ] Initial property inheritance refinement (deferred to M4)
 

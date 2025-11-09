@@ -20,6 +20,11 @@ public sealed class FoPageSequenceMaster : FoElement
     public FoSinglePageMasterReference? SinglePageMasterReference { get; init; }
 
     /// <summary>
+    /// Gets the repeatable-page-master-reference (for repeating a single master).
+    /// </summary>
+    public FoRepeatablePageMasterReference? RepeatablePageMasterReference { get; init; }
+
+    /// <summary>
     /// Gets the repeatable-page-master-alternatives.
     /// </summary>
     public FoRepeatablePageMasterAlternatives? RepeatablePageMasterAlternatives { get; init; }
@@ -38,6 +43,26 @@ public sealed class FoSinglePageMasterReference : FoElement
     /// Gets the master reference.
     /// </summary>
     public string MasterReference => Properties.GetString("master-reference");
+}
+
+/// <summary>
+/// Represents the fo:repeatable-page-master-reference element.
+/// References a page master that repeats for all remaining pages.
+/// </summary>
+public sealed class FoRepeatablePageMasterReference : FoElement
+{
+    /// <inheritdoc/>
+    public override string Name => "repeatable-page-master-reference";
+
+    /// <summary>
+    /// Gets the master reference.
+    /// </summary>
+    public string MasterReference => Properties.GetString("master-reference");
+
+    /// <summary>
+    /// Gets the maximum-repeats value (default is "no-limit").
+    /// </summary>
+    public string MaximumRepeats => Properties.GetString("maximum-repeats", "no-limit");
 }
 
 /// <summary>
