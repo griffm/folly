@@ -1,0 +1,87 @@
+%PDF-1.7
+%????
+1 0 obj
+<<
+  /Type /Catalog
+  /Pages 2 0 R
+>>
+endobj
+2 0 obj
+<<
+  /Type /Font
+  /Subtype /Type1
+  /BaseFont /Helvetica
+>>
+endobj
+3 0 obj
+<<
+  /Type /Font
+  /Subtype /Type1
+  /BaseFont /Times-Roman
+>>
+endobj
+4 0 obj
+<<
+  /Length 164
+>>
+stream
+BT
+/F2 24.00 Tf
+225.44 17.23 Td
+(Hello, Folly!) Tj
+ET
+BT
+/F3 12.00 Tf
+0.00 8.20 Td
+(This is a simple XSL-FO document rendered to PDF by the Folly processor.) Tj
+ET
+
+endstream
+endobj
+5 0 obj
+<<
+  /Type /Page
+  /Parent 2 0 R
+  /MediaBox [0 0 595.00 842.00]
+  /Contents 4 0 R
+  /Resources <<
+    /Font <<
+      /F2 2 0 R
+      /F3 3 0 R
+    >>
+  >>
+>>
+endobj
+6 0 obj
+<<
+  /Type /Pages
+  /Kids [5 0 R]
+  /Count 1
+>>
+endobj
+7 0 obj
+<<
+  /Creator (Folly XSL-FO Processor)
+  /Producer (Folly)
+  /CreationDate (D:20251109094847Z)
+>>
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000015 00000 n 
+0000000068 00000 n 
+0000000144 00000 n 
+0000000222 00000 n 
+0000000439 00000 n 
+0000000613 00000 n 
+0000000676 00000 n 
+trailer
+<<
+  /Size 8
+  /Root 1 0 R
+  /Info 7 0 R
+>>
+startxref
+789
+%%EOF

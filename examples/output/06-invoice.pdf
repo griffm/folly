@@ -1,0 +1,146 @@
+%PDF-1.7
+%????
+1 0 obj
+<<
+  /Type /Catalog
+  /Pages 2 0 R
+>>
+endobj
+2 0 obj
+<<
+  /Type /Font
+  /Subtype /Type1
+  /BaseFont /Helvetica
+>>
+endobj
+3 0 obj
+<<
+  /Length 846
+>>
+stream
+BT
+/F2 24.00 Tf
+246.13 17.23 Td
+(INVOICE) Tj
+ET
+BT
+/F2 10.00 Tf
+0.00 7.18 Td
+(Invoice Number: INV-2024-001) Tj
+ET
+BT
+/F2 10.00 Tf
+0.00 7.18 Td
+(Date: January 15, 2024) Tj
+ET
+BT
+/F2 12.00 Tf
+0.00 8.62 Td
+(Bill To:) Tj
+ET
+BT
+/F2 10.00 Tf
+0.00 7.18 Td
+(Acme Corporation) Tj
+ET
+BT
+/F2 10.00 Tf
+0.00 7.18 Td
+(123 Business Street) Tj
+ET
+BT
+/F2 10.00 Tf
+0.00 7.18 Td
+(San Francisco, CA 94107) Tj
+ET
+q
+0.878 0.878 0.878 rg
+0.00 199.20 595.00 14.40 re
+f
+Q
+q
+0.000 0.000 0.000 RG
+1.00 w
+[] 0 d
+0.50 199.70 594.00 13.40 re
+S
+Q
+q
+0.800 0.800 0.800 RG
+1.00 w
+[] 0 d
+0.50 226.10 594.00 13.40 re
+S
+Q
+q
+0.800 0.800 0.800 RG
+1.00 w
+[] 0 d
+0.50 248.50 594.00 13.40 re
+S
+Q
+q
+0.941 0.941 0.941 rg
+0.00 282.40 595.00 14.40 re
+f
+Q
+q
+0.000 0.000 0.000 RG
+2.00 w
+[] 0 d
+1.00 283.40 593.00 12.40 re
+S
+Q
+BT
+/F2 10.00 Tf
+232.45 7.18 Td
+(Thank you for your business!) Tj
+ET
+
+endstream
+endobj
+4 0 obj
+<<
+  /Type /Page
+  /Parent 2 0 R
+  /MediaBox [0 0 595.00 842.00]
+  /Contents 3 0 R
+  /Resources <<
+    /Font <<
+      /F2 2 0 R
+    >>
+  >>
+>>
+endobj
+5 0 obj
+<<
+  /Type /Pages
+  /Kids [4 0 R]
+  /Count 1
+>>
+endobj
+6 0 obj
+<<
+  /Creator (Folly XSL-FO Processor)
+  /Producer (Folly)
+  /CreationDate (D:20251109094847Z)
+>>
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000015 00000 n 
+0000000068 00000 n 
+0000000144 00000 n 
+0000001043 00000 n 
+0000001201 00000 n 
+0000001264 00000 n 
+trailer
+<<
+  /Size 7
+  /Root 1 0 R
+  /Info 6 0 R
+>>
+startxref
+1377
+%%EOF
