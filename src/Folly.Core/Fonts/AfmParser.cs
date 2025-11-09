@@ -23,7 +23,7 @@ internal static class AfmParser
     /// <summary>
     /// Parses an AFM file from embedded resources.
     /// </summary>
-    /// <param name="resourcePath">Path to the AFM resource (e.g., "fonts.base14.Helvetica.afm")</param>
+    /// <param name="resourcePath">Path to the AFM resource (e.g., "base14.Helvetica.afm")</param>
     /// <returns>Parsed AFM data</returns>
     public static AfmData Parse(string resourcePath)
     {
@@ -135,7 +135,7 @@ internal static class AfmParser
     /// <summary>
     /// Parses an AFM file and loads character widths into a StandardFont.
     /// </summary>
-    /// <param name="resourcePath">Path to the AFM resource (e.g., "fonts.base14.Helvetica.afm")</param>
+    /// <param name="resourcePath">Path to the AFM resource (e.g., "base14.Helvetica.afm")</param>
     /// <returns>A StandardFont with accurate metrics from the AFM file</returns>
     public static StandardFont LoadFont(string resourcePath)
     {
