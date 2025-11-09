@@ -144,6 +144,7 @@ cd examples
 **Milestone M1: Basic Layout** ✅ (Completed)
 **Milestone M2: Tables, Images, Lists** ✅ (Completed)
 **Milestone M3: Pagination Mastery** ✅ (Completed)
+**Milestone M4: Full Spec & Polish** 🚧 (In Progress)
 
 The core rendering engine is fully operational with extensive feature support:
 
@@ -161,6 +162,7 @@ The core rendering engine is fully operational with extensive feature support:
 - Margins, padding, borders, and backgrounds
 - Font metrics and text measurement
 - Block and inline area generation
+- Inline formatting (fo:inline) for styled text spans
 - Table layout with column/row spanning
 - List formatting (fo:list-block)
 - Keep-together and break-before/after constraints
@@ -169,6 +171,8 @@ The core rendering engine is fully operational with extensive feature support:
 - Multi-column layout (column-count, column-gap)
 - Footnotes (fo:footnote, fo:footnote-body)
 - Floats (fo:float) for side-positioned content
+- Links (fo:basic-link) for internal and external hyperlinks
+- Bookmarks (fo:bookmark-tree, fo:bookmark) for PDF outline navigation
 
 **PDF Rendering:**
 - PDF 1.7 output with correct structure
@@ -179,6 +183,8 @@ The core rendering engine is fully operational with extensive feature support:
 - Graphics state management
 - Image embedding (JPEG passthrough, PNG decoding)
 - Page numbers (fo:page-number)
+- Hyperlinks (internal and external via fo:basic-link)
+- PDF outline/bookmarks for document navigation
 
 **Quality Assurance:**
 - 11 passing unit tests (100% success rate)
