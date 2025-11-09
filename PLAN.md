@@ -235,17 +235,18 @@ Pipeline steps:
 - ✅ Footnotes placed correctly at bottom of pages
 - ✅ Floats positioned to left/right sides of content
 
-### M4: Full Spec & Polish (4-6 weeks)
+### M4: Full Spec & Polish 🚧 (4-6 weeks) - **IN PROGRESS**
 
 **Goal**: Complete XSL-FO 1.1 conformance and production readiness
 
 **Deliverables**:
 - [ ] Complete property system with full inheritance
+- [x] Inline formatting (fo:inline) - text styling within blocks
 - [ ] All remaining formatting objects
 - [ ] BiDi text support
 - [ ] Leaders and page number formatting
-- [ ] Bookmarks (PDF outline)
-- [ ] Internal and external links
+- [x] Bookmarks (PDF outline) - fo:bookmark-tree and fo:bookmark
+- [x] Internal and external links - fo:basic-link with internal-destination and external-destination
 - [ ] Complete metadata support
 - [ ] PDF compression optimization
 - [ ] Font subsetting optimization
