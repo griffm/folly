@@ -248,7 +248,7 @@ Pipeline steps:
 - [x] Bookmarks (PDF outline) - fo:bookmark-tree and fo:bookmark
 - [x] Internal and external links - fo:basic-link with internal-destination and external-destination
 - [x] AFM font metrics - Accurate character widths from Adobe Font Metrics files for all 14 standard PDF fonts (200+ characters each), replacing approximate metrics with real data for improved text layout precision
-- [ ] Complete metadata support
+- [x] Complete metadata support - PDF Document Information Dictionary with title, author, subject, keywords, creator, producer, and creation date; XSL-FO fo:declarations/fo:info parsing; fluent API for metadata; programmatic metadata via PdfOptions
 - [x] PDF compression optimization - Flate (zlib) compression for PDF content streams, dramatically reducing file sizes
 - [x] Font subsetting optimization - Only embeds the glyphs actually used in each document, further reducing file sizes
 - [ ] Performance profiling and optimization

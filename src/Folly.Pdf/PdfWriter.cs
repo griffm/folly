@@ -13,6 +13,7 @@ internal sealed class PdfWriter : IDisposable
     private int _nextObjectId = 1;
     private long _position;
     private bool _disposed;
+    private int? _infoObjectId;
 
     public PdfWriter(Stream output)
     {
@@ -659,11 +660,13 @@ internal sealed class PdfWriter : IDisposable
     }
 
     /// <summary>
-    /// Writes document metadata.
+    /// Writes document metadata and returns the Info object ID.
     /// </summary>
-    public void WriteMetadata(PdfMetadata metadata)
+    public int WriteMetadata(PdfMetadata metadata)
     {
         var infoId = BeginObject();
+        _infoObjectId = infoId;
+
         WriteLine("<<");
 
         if (!string.IsNullOrWhiteSpace(metadata.Title))
@@ -684,6 +687,8 @@ internal sealed class PdfWriter : IDisposable
 
         WriteLine(">>");
         EndObject();
+
+        return infoId;
     }
 
     /// <summary>
@@ -706,8 +711,8 @@ internal sealed class PdfWriter : IDisposable
         WriteLine("<<");
         WriteLine($"  /Size {_objectOffsets.Count + 1}");
         WriteLine($"  /Root {catalogId} 0 R");
-        if (_objectOffsets.Count >= 3)
-            WriteLine($"  /Info {_objectOffsets.Count} 0 R");
+        if (_infoObjectId.HasValue)
+            WriteLine($"  /Info {_infoObjectId.Value} 0 R");
         WriteLine(">>");
         WriteLine("startxref");
         WriteLine(xrefPos.ToString());
