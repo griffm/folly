@@ -110,13 +110,20 @@ cd examples
 dotnet run --project Folly.Examples
 ```
 
-This generates 6 example PDFs:
+This generates 13 example PDFs showcasing Folly's capabilities:
 - **Hello World** - Basic document with simple text
 - **Multiple Blocks** - Different fonts and sizes
 - **Text Alignment** - Start, center, and end alignment
 - **Borders and Backgrounds** - Various styling options
 - **Multi-Page Document** - Automatic pagination
 - **Invoice** - Real-world business document
+- **Tables** - Complex table layouts with spanning
+- **Images** - JPEG and PNG embedding
+- **Lists** - Ordered and unordered list formatting
+- **Keep/Break Constraints** - Page break control
+- **Headers and Footers** - Static content with page numbers
+- **Markers** - Dynamic headers with chapter titles
+- **Conditional Page Masters** - Different layouts for first/odd/even pages
 
 See [examples/README.md](examples/README.md) for details.
 
@@ -133,14 +140,17 @@ cd examples
 
 **Milestone M0: Foundation** ✅ (Completed)
 **Milestone M1: Basic Layout** ✅ (Completed)
+**Milestone M2: Tables, Images, Lists** ✅ (Completed)
+**Milestone M3: Pagination Mastery** 🔄 (In Progress - 60% complete)
 
-The core rendering engine is fully operational with:
+The core rendering engine is fully operational with extensive feature support:
 
 **FO Document Processing:**
 - XSL-FO 1.1 XML parsing with namespace support
 - Immutable FO DOM representation
 - Property inheritance and resolution
 - Layout master sets and page masters
+- Conditional page masters (first, odd, even pages)
 
 **Layout Engine:**
 - Multi-page layout with automatic pagination
@@ -149,6 +159,11 @@ The core rendering engine is fully operational with:
 - Margins, padding, borders, and backgrounds
 - Font metrics and text measurement
 - Block and inline area generation
+- Table layout with column/row spanning
+- List formatting (fo:list-block)
+- Keep-together and break-before/after constraints
+- Static-content for headers and footers
+- Markers for dynamic content (fo:marker, fo:retrieve-marker)
 
 **PDF Rendering:**
 - PDF 1.7 output with correct structure
@@ -157,10 +172,12 @@ The core rendering engine is fully operational with:
 - Border rendering (solid, dashed, dotted)
 - Background colors (named and hex formats)
 - Graphics state management
+- Image embedding (JPEG passthrough, PNG decoding)
+- Page numbers (fo:page-number)
 
 **Quality Assurance:**
 - 11 passing unit tests (100% success rate)
-- 6 working example PDFs
+- 13 working example PDFs
 - 100% qpdf validation success (zero errors)
 - Verified with qpdf 11.9.0
 

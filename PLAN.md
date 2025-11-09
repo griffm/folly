@@ -178,49 +178,57 @@ Pipeline steps:
 - ✅ All PDFs pass qpdf validation (100% success rate)
 - ✅ 11 passing unit tests (100% success rate)
 
-### M2: Tables, Images, Lists (4-6 weeks)
+### M2: Tables, Images, Lists ✅ (4-6 weeks) - **COMPLETED**
 
 **Goal**: Implement complex layout structures
 
 **Deliverables**:
-- [ ] Full table layout algorithm
-  - [ ] Column width calculation
-  - [ ] Row height calculation
-  - [ ] Cell spanning (rowspan, colspan)
-  - [ ] Border collapse model
-- [ ] Image support
-  - [ ] JPEG passthrough
-  - [ ] PNG decoding and embedding
-  - [ ] Image scaling and positioning
-- [ ] List blocks (ordered, unordered)
-- [ ] Border rendering (all styles)
-- [ ] Background colors and images
-- [ ] Keep-together and keep-with-next/previous
-- [ ] Break-before and break-after
+- [x] Full table layout algorithm
+  - [x] Column width calculation
+  - [x] Row height calculation
+  - [x] Cell spanning (rowspan, colspan)
+  - [x] Border collapse model
+- [x] Image support
+  - [x] JPEG passthrough
+  - [x] PNG decoding and embedding
+  - [x] Image scaling and positioning
+- [x] List blocks (ordered, unordered)
+- [x] Border rendering (all styles)
+- [x] Background colors and images
+- [x] Keep-together and keep-with-next/previous
+- [x] Break-before and break-after
 
 **Success Criteria**:
-- Complex tables render correctly with all border styles
-- Images embedded properly in PDF
-- Keep/break constraints honored
+- ✅ Complex tables render correctly with all border styles
+- ✅ Images embedded properly in PDF (JPEG and PNG)
+- ✅ Keep/break constraints honored
+- ✅ List blocks with label and body formatting
 
-### M3: Pagination Mastery (3-4 weeks)
+### M3: Pagination Mastery 🔄 (3-4 weeks) - **IN PROGRESS**
 
 **Goal**: Advanced pagination features
 
 **Deliverables**:
-- [ ] Markers (retrieve-marker)
+- [x] Static-content for headers/footers
+- [x] Region support (before, after, body)
+- [x] Page number citations (fo:page-number)
+- [x] Markers (fo:marker and fo:retrieve-marker)
+- [x] Conditional page masters (page-sequence-master)
+  - [x] Page position conditions (first, rest, any)
+  - [x] Odd/even page conditions
+  - [x] Repeatable page master alternatives
+- [ ] Multi-column layout
 - [ ] Footnotes with footnote-body
 - [ ] Floats (side floats)
-- [ ] Conditional page masters (page-sequence-master)
-- [ ] Multi-column layout
-- [ ] Region support (before, after, start, end, body)
-- [ ] Page number citations
+- [ ] Region support (start, end) - side regions
 - [ ] Initial property inheritance refinement
 
 **Success Criteria**:
-- Running headers/footers work via markers
-- Footnotes placed correctly at bottom of pages
-- Conditional page masters switch correctly (first, odd, even, last)
+- ✅ Running headers/footers work via static-content and markers
+- ✅ Page numbers display correctly
+- ✅ Conditional page masters switch correctly (first, odd, even)
+- ⏳ Footnotes placed correctly at bottom of pages
+- ⏳ Multi-column layout functions properly
 
 ### M4: Full Spec & Polish (4-6 weeks)
 
