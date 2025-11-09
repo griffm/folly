@@ -32,21 +32,7 @@ public sealed class PdfRenderer : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(areaTree);
 
-        // TODO: Implement full PDF rendering
-        // - Write PDF header
-        // - Create document catalog
-        // - Process fonts and create font descriptors
-        // - Embed/subset fonts as needed
-        // - Create pages
-        // - Render each page from area tree
-        // - Handle images (JPEG passthrough, PNG decode)
-        // - Draw borders, backgrounds, graphics
-        // - Place text with correct positioning
-        // - Create bookmarks and links
-        // - Write metadata
-        // - Create cross-reference table
-        // - Write trailer
-
+        // Write PDF header
         _writer.WriteHeader(_options.PdfVersion);
 
         // Collect fonts used in the document and track character usage
