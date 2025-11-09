@@ -301,7 +301,7 @@ internal sealed class LayoutEngine
                 if (currentY > bodyMarginTop || currentColumn > 0)
                 {
                     RenderFloats(currentPage, currentPageMaster, bodyMarginTop);
-                    RenderFootnotes(currentPage, currentPageMaster);
+                    RenderFootnotes(currentPage, currentPageMaster, pageSequence);
                     AddLinksToPage(currentPage);
                     CheckPageLimit(areaTree);
                     areaTree.AddPage(currentPage);
@@ -345,7 +345,7 @@ internal sealed class LayoutEngine
                     {
                         // All columns filled - create new page
                         RenderFloats(currentPage, currentPageMaster, bodyMarginTop);
-                        RenderFootnotes(currentPage, currentPageMaster);
+                        RenderFootnotes(currentPage, currentPageMaster, pageSequence);
                         AddLinksToPage(currentPage);
                         CheckPageLimit(areaTree);
                         areaTree.AddPage(currentPage);
@@ -375,7 +375,7 @@ internal sealed class LayoutEngine
             {
                 // Force page break after this block
                 RenderFloats(currentPage, currentPageMaster, bodyMarginTop);
-                RenderFootnotes(currentPage, currentPageMaster);
+                RenderFootnotes(currentPage, currentPageMaster, pageSequence);
                 AddLinksToPage(currentPage);
                 CheckPageLimit(areaTree);
                 areaTree.AddPage(currentPage);
@@ -401,7 +401,7 @@ internal sealed class LayoutEngine
             {
                 // Table doesn't fit - add current page and create new one
                 RenderFloats(currentPage, currentPageMaster, bodyMarginTop);
-                RenderFootnotes(currentPage, currentPageMaster);
+                RenderFootnotes(currentPage, currentPageMaster, pageSequence);
                 AddLinksToPage(currentPage);
                 CheckPageLimit(areaTree);
                 areaTree.AddPage(currentPage);
@@ -434,7 +434,7 @@ internal sealed class LayoutEngine
             {
                 // List doesn't fit - add current page and create new one
                 RenderFloats(currentPage, currentPageMaster, bodyMarginTop);
-                RenderFootnotes(currentPage, currentPageMaster);
+                RenderFootnotes(currentPage, currentPageMaster, pageSequence);
                 AddLinksToPage(currentPage);
                 CheckPageLimit(areaTree);
                 areaTree.AddPage(currentPage);
@@ -456,7 +456,7 @@ internal sealed class LayoutEngine
 
         // Add the last page
         RenderFloats(currentPage, currentPageMaster, bodyMarginTop);
-        RenderFootnotes(currentPage, currentPageMaster);
+        RenderFootnotes(currentPage, currentPageMaster, pageSequence);
         AddLinksToPage(currentPage);
         CheckPageLimit(areaTree);
         areaTree.AddPage(currentPage);
@@ -1441,7 +1441,7 @@ internal sealed class LayoutEngine
         return listArea;
     }
 
-    private void RenderFootnotes(PageViewport page, Dom.FoSimplePageMaster pageMaster)
+    private void RenderFootnotes(PageViewport page, Dom.FoSimplePageMaster pageMaster, Dom.FoPageSequence pageSequence)
     {
         if (_currentPageFootnotes.Count == 0)
             return;
@@ -1456,13 +1456,25 @@ internal sealed class LayoutEngine
 
         // Start footnotes 36pt from bottom margin
         var footnoteY = pageMaster.PageHeight - bodyMarginBottom - 36;
+        var currentY = footnoteY;
 
-        // Note: Footnote separator line can be added using LeaderArea if needed.
-        // Current implementation positions footnotes correctly without visual separator.
-        // This is acceptable for v1.0; separator can be added as enhancement if requested.
+        // Render footnote separator if defined
+        var separatorContent = pageSequence.StaticContents.FirstOrDefault(sc => sc.FlowName == "xsl-footnote-separator");
+        if (separatorContent != null)
+        {
+            // Render separator blocks (typically contains a leader for a horizontal line)
+            foreach (var block in separatorContent.Blocks)
+            {
+                var blockArea = LayoutBlock(block, bodyMarginLeft, currentY, bodyWidth);
+                if (blockArea != null)
+                {
+                    page.AddArea(blockArea);
+                    currentY += blockArea.Height + blockArea.MarginTop + blockArea.MarginBottom;
+                }
+            }
+        }
 
         // Render each footnote body
-        var currentY = footnoteY;
         foreach (var footnote in _currentPageFootnotes)
         {
             if (footnote.FootnoteBody != null)

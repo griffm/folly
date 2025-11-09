@@ -223,6 +223,7 @@ Pipeline steps:
   - [x] Content flow across columns
   - [x] Column balancing
 - [x] Footnotes with footnote-body
+- [x] Footnote separators (xsl-footnote-separator) - Horizontal rule separating footnotes from body text
 - [x] Floats (side floats) - Basic implementation with start/end positioning
 - [x] Repeatable-page-master-reference - Full support for repeating page masters
 - [ ] Region support (start, end) - side regions (deferred to M4)

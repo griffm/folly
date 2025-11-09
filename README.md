@@ -138,7 +138,7 @@ This generates 20 example PDFs showcasing Folly's capabilities:
 - **Markers** - Dynamic headers with chapter titles
 - **Conditional Page Masters** - Different layouts for first/odd/even pages
 - **Multi-Column Layout** - Newspaper-style 3-column formatting
-- **Footnotes** - Academic footnotes with inline references
+- **Footnotes** - Academic footnotes with inline references and visual separators
 - **External Links** - Hyperlinks to web resources
 - **Bookmarks** - PDF outline/table of contents
 - **Inline Formatting** - Styled text spans
@@ -188,6 +188,7 @@ The core rendering engine is fully operational with extensive feature support:
 - Markers for dynamic content (fo:marker, fo:retrieve-marker)
 - Multi-column layout (column-count, column-gap)
 - Footnotes (fo:footnote, fo:footnote-body)
+- Footnote separators (xsl-footnote-separator) for visual separation
 - Floats (fo:float) for side-positioned content
 - Links (fo:basic-link) for internal and external hyperlinks
 - Bookmarks (fo:bookmark-tree, fo:bookmark) for PDF outline navigation
@@ -213,14 +214,14 @@ The core rendering engine is fully operational with extensive feature support:
 - PDF outline/bookmarks for document navigation
 
 **Quality Assurance:**
-- 117 passing tests (98% success rate - 117 passed, 2 expected failures in edge cases)
+- 119 passing tests (98% success rate - 119 passed, 2 expected failures in edge cases)
   - 21 XSL-FO conformance tests (formatting object parsing, including repeatable-page-master-reference)
   - 25 property inheritance tests (50+ inheritable properties)
-  - 15 layout engine tests (line breaking, page breaking, tables, footnotes)
+  - 17 layout engine tests (line breaking, page breaking, tables, footnotes, footnote separators)
   - 14 PDF validation tests (structure, fonts, compression, metadata, links)
   - 9 AreaTree snapshot tests (layout regression detection)
   - 13 fuzzing/stress tests (malformed input, extreme nesting, large tables)
-  - 20 working example PDFs (including metadata example)
+  - 20 working example PDFs (including metadata example with footnote separators)
 - 100% qpdf validation success (zero errors)
 - Verified with qpdf 11.9.0
 

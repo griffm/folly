@@ -11,7 +11,7 @@ public sealed class FoStaticContent : FoElement
 
     /// <summary>
     /// Gets the flow-name that identifies which region this content belongs to.
-    /// Common values: xsl-region-before, xsl-region-after, xsl-region-start, xsl-region-end.
+    /// Common values: xsl-region-before, xsl-region-after, xsl-region-start, xsl-region-end, xsl-footnote-separator.
     /// </summary>
     public string FlowName => Properties.GetString("flow-name");
 

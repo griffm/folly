@@ -1180,6 +1180,12 @@ static void GenerateFootnoteExample(string outputPath)
               </fo:block>
             </fo:static-content>
 
+            <fo:static-content flow-name="xsl-footnote-separator">
+              <fo:block>
+                <fo:leader leader-pattern="rule" leader-length="2in" rule-thickness="0.5pt"/>
+              </fo:block>
+            </fo:static-content>
+
             <fo:flow flow-name="xsl-region-body">
               <fo:block font-size="18pt" font-family="Helvetica" font-weight="bold" text-align="center" margin-bottom="18pt">
                 Footnotes in Academic Publishing
