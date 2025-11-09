@@ -675,6 +675,81 @@ internal sealed class LayoutEngine
 
                     currentX += leaderWidth;
                 }
+                else if (child is Dom.FoBidiOverride bidiOverride)
+                {
+                    var bidiText = bidiOverride.TextContent ?? "";
+                    if (!string.IsNullOrWhiteSpace(bidiText))
+                    {
+                        // Get font properties (with automatic inheritance)
+                        var bidiFontFamily = bidiOverride.FontFamily;
+                        var bidiFontSize = bidiOverride.FontSize ?? 12;
+                        var bidiFontWeight = bidiOverride.FontWeight;
+                        var bidiFontStyle = bidiOverride.FontStyle;
+                        var bidiDirection = bidiOverride.Direction;
+
+                        // Apply font-weight by using bold variant
+                        if (!string.IsNullOrEmpty(bidiFontWeight) && (bidiFontWeight == "bold" || int.TryParse(bidiFontWeight, out var weight) && weight >= 700))
+                        {
+                            bidiFontFamily = bidiFontFamily switch
+                            {
+                                "Helvetica" => "Helvetica-Bold",
+                                "Times" or "Times-Roman" => "Times-Bold",
+                                "Courier" => "Courier-Bold",
+                                _ => bidiFontFamily + "-Bold"
+                            };
+                        }
+
+                        // Apply font-style by using italic/oblique variant
+                        if (!string.IsNullOrEmpty(bidiFontStyle) && (bidiFontStyle == "italic" || bidiFontStyle == "oblique"))
+                        {
+                            if (bidiFontFamily.EndsWith("-Bold"))
+                            {
+                                bidiFontFamily = bidiFontFamily.Replace("-Bold", "-BoldOblique");
+                            }
+                            else
+                            {
+                                bidiFontFamily = bidiFontFamily switch
+                                {
+                                    "Helvetica" => "Helvetica-Oblique",
+                                    "Times" or "Times-Roman" => "Times-Italic",
+                                    "Courier" => "Courier-Oblique",
+                                    _ => bidiFontFamily + "-Oblique"
+                                };
+                            }
+                        }
+
+                        var bidiFontMetrics = new Fonts.FontMetrics
+                        {
+                            FamilyName = bidiFontFamily,
+                            Size = bidiFontSize
+                        };
+
+                        // Apply text reordering for RTL direction
+                        var processedText = bidiDirection == "rtl" ? ReverseText(bidiText) : bidiText;
+
+                        var textWidth = bidiFontMetrics.MeasureWidth(processedText);
+
+                        var bidiArea = new InlineArea
+                        {
+                            X = currentX,
+                            Y = 0, // Relative to line
+                            Width = textWidth,
+                            Height = bidiFontSize,
+                            Text = processedText,
+                            FontFamily = bidiFontFamily,
+                            FontSize = bidiFontSize,
+                            FontWeight = bidiFontWeight,
+                            FontStyle = bidiFontStyle,
+                            Color = bidiOverride.Color,
+                            Direction = bidiDirection,
+                            BaselineOffset = bidiFontMetrics.GetAscent()
+                        };
+
+                        lineArea.AddInline(bidiArea);
+                        currentX += textWidth;
+                    }
+                    inlineIndex++;
+                }
             }
 
             // Add any remaining block text that's not in an inline
@@ -1446,5 +1521,20 @@ internal sealed class LayoutEngine
 
         // Clear links for next page
         _currentPageLinks.Clear();
+    }
+
+    /// <summary>
+    /// Reverses text for RTL (right-to-left) rendering.
+    /// This is a simplified implementation that reverses character order.
+    /// For proper BiDi support, a full Unicode BiDi algorithm implementation would be needed.
+    /// </summary>
+    private string ReverseText(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return text;
+
+        var chars = text.ToCharArray();
+        Array.Reverse(chars);
+        return new string(chars);
     }
 }

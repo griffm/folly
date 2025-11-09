@@ -82,6 +82,10 @@ GenerateBookmarksExample(Path.Combine(outputDir, "17-bookmarks.pdf"));
 Console.WriteLine("Generating Example 18: Inline Formatting...");
 GenerateInlineFormattingExample(Path.Combine(outputDir, "18-inline-formatting.pdf"));
 
+// Example 19: BiDi Override (Right-to-Left Text)
+Console.WriteLine("Generating Example 19: BiDi Override (Right-to-Left Text)...");
+GenerateBidiOverrideExample(Path.Combine(outputDir, "19-bidi-override.pdf"));
+
 Console.WriteLine("\n✓ All examples generated successfully!");
 Console.WriteLine($"\nView PDFs in: {outputDir}");
 Console.WriteLine("\nValidate with qpdf:");
@@ -1572,6 +1576,91 @@ static void GenerateInlineFormattingExample(string outputPath)
 
               <fo:block font-size="12pt" margin-bottom="12pt">
                 <fo:inline color="green" font-weight="bold">SUCCESS:</fo:inline> Operation completed successfully.
+              </fo:block>
+            </fo:flow>
+          </fo:page-sequence>
+        </fo:root>
+        """;
+
+    using var doc = FoDocument.Load(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml)));
+    doc.SavePdf(outputPath);
+}
+
+static void GenerateBidiOverrideExample(string outputPath)
+{
+    var foXml = """
+        <?xml version="1.0"?>
+        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+          <fo:layout-master-set>
+            <fo:simple-page-master master-name="A4" page-width="595pt" page-height="842pt">
+              <fo:region-body margin="72pt"/>
+            </fo:simple-page-master>
+          </fo:layout-master-set>
+          <fo:page-sequence master-reference="A4">
+            <fo:flow flow-name="xsl-region-body">
+              <fo:block font-family="Helvetica" font-size="20pt" font-weight="bold" margin-bottom="12pt">
+                BiDi Override Examples (Right-to-Left Text)
+              </fo:block>
+
+              <fo:block font-size="14pt" font-weight="bold" margin-top="18pt" margin-bottom="8pt">
+                1. Basic RTL Text
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                Normal LTR text: Hello World
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                RTL override: <fo:bidi-override direction="rtl">Hello World</fo:bidi-override>
+              </fo:block>
+
+              <fo:block font-size="14pt" font-weight="bold" margin-top="18pt" margin-bottom="8pt">
+                2. RTL with Different Fonts
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                <fo:bidi-override direction="rtl" font-family="Times">Times RTL Text</fo:bidi-override>
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                <fo:bidi-override direction="rtl" font-family="Courier">Courier RTL Text</fo:bidi-override>
+              </fo:block>
+
+              <fo:block font-size="14pt" font-weight="bold" margin-top="18pt" margin-bottom="8pt">
+                3. RTL with Styling
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                <fo:bidi-override direction="rtl" font-weight="bold" color="blue">Bold Blue RTL</fo:bidi-override>
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                <fo:bidi-override direction="rtl" font-style="italic" color="red">Italic Red RTL</fo:bidi-override>
+              </fo:block>
+
+              <fo:block font-size="14pt" font-weight="bold" margin-top="18pt" margin-bottom="8pt">
+                4. Mixed Directionality
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                LTR text followed by <fo:bidi-override direction="rtl">RTL text</fo:bidi-override> and more LTR text.
+              </fo:block>
+
+              <fo:block font-size="14pt" font-weight="bold" margin-top="18pt" margin-bottom="8pt">
+                5. RTL Numbers and Symbols
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                Normal: Price: $123.45
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                RTL: <fo:bidi-override direction="rtl">Price: $123.45</fo:bidi-override>
+              </fo:block>
+
+              <fo:block font-size="10pt" color="gray" margin-top="24pt">
+                Note: This is a simplified BiDi implementation. For production use with complex scripts
+                (Arabic, Hebrew, etc.), a full Unicode BiDi Algorithm implementation would be required.
               </fo:block>
             </fo:flow>
           </fo:page-sequence>
