@@ -241,6 +241,31 @@ public sealed class InlineArea : Area
     public double FontSize { get; set; } = 12;
 
     /// <summary>
+    /// Gets or sets the font weight (normal, bold, 100-900).
+    /// </summary>
+    public string? FontWeight { get; set; }
+
+    /// <summary>
+    /// Gets or sets the font style (normal, italic, oblique).
+    /// </summary>
+    public string? FontStyle { get; set; }
+
+    /// <summary>
+    /// Gets or sets the text color in CSS format.
+    /// </summary>
+    public string? Color { get; set; }
+
+    /// <summary>
+    /// Gets or sets the text decoration (none, underline, overline, line-through).
+    /// </summary>
+    public string? TextDecoration { get; set; }
+
+    /// <summary>
+    /// Gets or sets the background color in CSS format.
+    /// </summary>
+    public string? BackgroundColor { get; set; }
+
+    /// <summary>
     /// Gets or sets the baseline offset from the line's baseline.
     /// </summary>
     public double BaselineOffset { get; set; }

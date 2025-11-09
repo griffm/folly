@@ -78,6 +78,10 @@ GenerateLinksExample(Path.Combine(outputDir, "16-links.pdf"));
 Console.WriteLine("Generating Example 17: Bookmarks (PDF Outline)...");
 GenerateBookmarksExample(Path.Combine(outputDir, "17-bookmarks.pdf"));
 
+// Example 18: Inline Formatting
+Console.WriteLine("Generating Example 18: Inline Formatting...");
+GenerateInlineFormattingExample(Path.Combine(outputDir, "18-inline-formatting.pdf"));
+
 Console.WriteLine("\n✓ All examples generated successfully!");
 Console.WriteLine($"\nView PDFs in: {outputDir}");
 Console.WriteLine("\nValidate with qpdf:");
@@ -1464,6 +1468,110 @@ static void GenerateBookmarksExample(string outputPath)
 
               <fo:block font-size="12pt" margin-bottom="8pt" margin-left="20pt">
                 • fo:bookmark-title: The text displayed in the outline
+              </fo:block>
+            </fo:flow>
+          </fo:page-sequence>
+        </fo:root>
+        """;
+
+    using var doc = FoDocument.Load(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml)));
+    doc.SavePdf(outputPath);
+}
+
+static void GenerateInlineFormattingExample(string outputPath)
+{
+    var foXml = """
+        <?xml version="1.0"?>
+        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+          <fo:layout-master-set>
+            <fo:simple-page-master master-name="A4" page-width="595pt" page-height="842pt">
+              <fo:region-body margin="72pt"/>
+            </fo:simple-page-master>
+          </fo:layout-master-set>
+          <fo:page-sequence master-reference="A4">
+            <fo:flow flow-name="xsl-region-body">
+              <fo:block font-family="Helvetica" font-size="20pt" font-weight="bold" margin-bottom="12pt">
+                Inline Formatting Examples
+              </fo:block>
+
+              <fo:block font-size="14pt" font-weight="bold" margin-top="18pt" margin-bottom="8pt">
+                1. Font Weight and Style
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                This is normal text with <fo:inline font-weight="bold">bold text</fo:inline> and <fo:inline font-style="italic">italic text</fo:inline>.
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                You can also combine: <fo:inline font-weight="bold" font-style="italic">bold italic text</fo:inline>.
+              </fo:block>
+
+              <fo:block font-size="14pt" font-weight="bold" margin-top="18pt" margin-bottom="8pt">
+                2. Text Color
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                Text can be <fo:inline color="red">red</fo:inline>, <fo:inline color="blue">blue</fo:inline>, or <fo:inline color="green">green</fo:inline>.
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                You can also use hex colors: <fo:inline color="#FF6600">orange</fo:inline> or <fo:inline color="#9933CC">purple</fo:inline>.
+              </fo:block>
+
+              <fo:block font-size="14pt" font-weight="bold" margin-top="18pt" margin-bottom="8pt">
+                3. Text Decoration
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                This text has <fo:inline text-decoration="underline">underline</fo:inline>, <fo:inline text-decoration="overline">overline</fo:inline>, and <fo:inline text-decoration="line-through">strikethrough</fo:inline>.
+              </fo:block>
+
+              <fo:block font-size="14pt" font-weight="bold" margin-top="18pt" margin-bottom="8pt">
+                4. Background Color
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                You can highlight text with <fo:inline background-color="yellow">yellow background</fo:inline> or <fo:inline background-color="#CCFFCC">light green background</fo:inline>.
+              </fo:block>
+
+              <fo:block font-size="14pt" font-weight="bold" margin-top="18pt" margin-bottom="8pt">
+                5. Font Size
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                Normal text with <fo:inline font-size="16pt">larger text</fo:inline> and <fo:inline font-size="8pt">smaller text</fo:inline> inline.
+              </fo:block>
+
+              <fo:block font-size="14pt" font-weight="bold" margin-top="18pt" margin-bottom="8pt">
+                6. Combined Formatting
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                All formatting can be combined: <fo:inline font-weight="bold" color="red" background-color="yellow" text-decoration="underline">bold red underlined text on yellow</fo:inline>.
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                Create <fo:inline font-family="Courier" background-color="#F0F0F0" color="#000080">code snippets</fo:inline> with monospace font and light background.
+              </fo:block>
+
+              <fo:block font-size="14pt" font-weight="bold" margin-top="18pt" margin-bottom="8pt">
+                7. Practical Examples
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                <fo:inline font-weight="bold">Important:</fo:inline> Always validate your input before processing.
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                The function <fo:inline font-family="Courier">calculateTotal()</fo:inline> returns a <fo:inline font-family="Courier">decimal</fo:inline> value.
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                <fo:inline color="red" font-weight="bold">ERROR:</fo:inline> Connection timeout occurred.
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                <fo:inline color="green" font-weight="bold">SUCCESS:</fo:inline> Operation completed successfully.
               </fo:block>
             </fo:flow>
           </fo:page-sequence>
