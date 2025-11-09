@@ -66,6 +66,10 @@ GenerateConditionalPageMastersExample(Path.Combine(outputDir, "13-conditional-pa
 Console.WriteLine("Generating Example 14: Multi-Column Layout...");
 GenerateMultiColumnExample(Path.Combine(outputDir, "14-multi-column.pdf"));
 
+// Example 15: Footnotes
+Console.WriteLine("Generating Example 15: Footnotes...");
+GenerateFootnoteExample(Path.Combine(outputDir, "15-footnotes.pdf"));
+
 Console.WriteLine("\n✓ All examples generated successfully!");
 Console.WriteLine($"\nView PDFs in: {outputDir}");
 Console.WriteLine("\nValidate with qpdf:");
@@ -1120,6 +1124,77 @@ static void GenerateMultiColumnExample(string outputPath)
 
               <fo:block font-size="12pt" margin-bottom="12pt">
                 Multi-column layout is an essential tool in the document designer's toolkit. By understanding how to effectively use column-count and column-gap properties, you can create professional, readable documents that make the best use of available page space.
+              </fo:block>
+            </fo:flow>
+          </fo:page-sequence>
+        </fo:root>
+        """;
+
+    using var doc = FoDocument.Load(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml)));
+    doc.SavePdf(outputPath);
+}
+
+static void GenerateFootnoteExample(string outputPath)
+{
+    var foXml = """
+        <?xml version="1.0"?>
+        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+          <fo:layout-master-set>
+            <fo:simple-page-master master-name="A4" page-width="595pt" page-height="842pt">
+              <fo:region-body margin="72pt"/>
+              <fo:region-before extent="36pt"/>
+              <fo:region-after extent="36pt"/>
+            </fo:simple-page-master>
+          </fo:layout-master-set>
+
+          <fo:page-sequence master-reference="A4">
+            <fo:static-content flow-name="xsl-region-before">
+              <fo:block font-size="10pt" font-family="Helvetica" text-align="center" padding-top="12pt" font-weight="bold">
+                Footnotes Example
+              </fo:block>
+            </fo:static-content>
+
+            <fo:static-content flow-name="xsl-region-after">
+              <fo:block font-size="9pt" font-family="Helvetica" text-align="center" padding-bottom="12pt">
+                Page <fo:page-number/>
+              </fo:block>
+            </fo:static-content>
+
+            <fo:flow flow-name="xsl-region-body">
+              <fo:block font-size="18pt" font-family="Helvetica" font-weight="bold" text-align="center" margin-bottom="18pt">
+                Footnotes in Academic Publishing
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                Footnotes are essential in academic and professional documents. They provide additional context, citations, and explanatory notes without disrupting the main text flow.<fo:footnote><fo:inline>1</fo:inline><fo:footnote-body><fo:block font-size="10pt">This is the first footnote, demonstrating basic footnote functionality.</fo:block></fo:footnote-body></fo:footnote>
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                In XSL-FO, footnotes consist of two parts: the inline reference (typically a superscript number) and the footnote body containing the actual note text.<fo:footnote><fo:inline>2</fo:inline><fo:footnote-body><fo:block font-size="10pt">The footnote body is rendered at the bottom of the page, separated from the main content.</fo:block></fo:footnote-body></fo:footnote>
+              </fo:block>
+
+              <fo:block font-size="14pt" font-family="Helvetica" font-weight="bold" margin-top="18pt" margin-bottom="12pt">
+                Historical Context
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                The use of footnotes dates back to ancient manuscripts, where scribes would add marginal notes to clarify or expand upon the main text.<fo:footnote><fo:inline>3</fo:inline><fo:footnote-body><fo:block font-size="10pt">Medieval manuscripts often featured elaborate marginal annotations that evolved into modern footnotes.</fo:block></fo:footnote-body></fo:footnote> This practice evolved over centuries into the standardized footnote system we use today.
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                Modern academic writing relies heavily on footnotes for citations, particularly in disciplines like history, law, and the humanities.<fo:footnote><fo:inline>4</fo:inline><fo:footnote-body><fo:block font-size="10pt">Some fields prefer endnotes or parenthetical citations, but footnotes remain popular for their immediacy.</fo:block></fo:footnote-body></fo:footnote>
+              </fo:block>
+
+              <fo:block font-size="14pt" font-family="Helvetica" font-weight="bold" margin-top="18pt" margin-bottom="12pt">
+                Technical Implementation
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                In the Folly XSL-FO processor, footnotes are collected during the layout phase and rendered at the bottom of the page.<fo:footnote><fo:inline>5</fo:inline><fo:footnote-body><fo:block font-size="10pt">The layout engine reserves space at the page bottom and renders footnote bodies there.</fo:block></fo:footnote-body></fo:footnote> This ensures proper pagination and prevents footnotes from being orphaned on different pages.
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                The footnote reference appears inline with the text, while the footnote body is automatically positioned at the page bottom, maintaining the document's professional appearance and readability.<fo:footnote><fo:inline>6</fo:inline><fo:footnote-body><fo:block font-size="10pt">Multiple footnotes on the same page are stacked vertically in the footnote area.</fo:block></fo:footnote-body></fo:footnote>
               </fo:block>
             </fo:flow>
           </fo:page-sequence>

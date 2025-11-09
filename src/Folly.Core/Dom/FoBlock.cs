@@ -112,4 +112,10 @@ public sealed class FoBlock : FoElement
     /// Gets the keep-with-previous property (auto, always).
     /// </summary>
     public string KeepWithPrevious => Properties.GetString("keep-with-previous", "auto");
+
+    /// <summary>
+    /// Gets the footnotes contained in this block.
+    /// Footnotes appear inline but are rendered at the bottom of the page.
+    /// </summary>
+    public IReadOnlyList<FoFootnote> Footnotes { get; init; } = Array.Empty<FoFootnote>();
 }
