@@ -143,7 +143,7 @@ cd examples
 **Milestone M0: Foundation** ✅ (Completed)
 **Milestone M1: Basic Layout** ✅ (Completed)
 **Milestone M2: Tables, Images, Lists** ✅ (Completed)
-**Milestone M3: Pagination Mastery** 🔄 (In Progress - 90% complete)
+**Milestone M3: Pagination Mastery** ✅ (Completed)
 
 The core rendering engine is fully operational with extensive feature support:
 
@@ -168,6 +168,7 @@ The core rendering engine is fully operational with extensive feature support:
 - Markers for dynamic content (fo:marker, fo:retrieve-marker)
 - Multi-column layout (column-count, column-gap)
 - Footnotes (fo:footnote, fo:footnote-body)
+- Floats (fo:float) for side-positioned content
 
 **PDF Rendering:**
 - PDF 1.7 output with correct structure
