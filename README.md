@@ -173,6 +173,8 @@ The core rendering engine is fully operational with extensive feature support:
 - Floats (fo:float) for side-positioned content
 - Links (fo:basic-link) for internal and external hyperlinks
 - Bookmarks (fo:bookmark-tree, fo:bookmark) for PDF outline navigation
+- Advanced formatting objects (fo:leader, fo:page-number-citation, fo:page-number-citation-last, fo:block-container, fo:inline-container, fo:wrapper, fo:character, fo:bidi-override, fo:initial-property-set)
+- Side regions (fo:region-start, fo:region-end)
 
 **PDF Rendering:**
 - PDF 1.7 output with correct structure
