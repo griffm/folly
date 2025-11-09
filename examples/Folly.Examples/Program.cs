@@ -38,6 +38,10 @@ GenerateInvoice(Path.Combine(outputDir, "06-invoice.pdf"));
 Console.WriteLine("Generating Example 7: Table Example...");
 GenerateTableExample(Path.Combine(outputDir, "07-table.pdf"));
 
+// Example 8: Images
+Console.WriteLine("Generating Example 8: Image Example...");
+GenerateImageExample(Path.Combine(outputDir, "08-images.pdf"));
+
 Console.WriteLine("\n✓ All examples generated successfully!");
 Console.WriteLine($"\nView PDFs in: {outputDir}");
 Console.WriteLine("\nValidate with qpdf:");
@@ -480,6 +484,50 @@ static void GenerateTableExample(string outputPath)
                   </fo:table-row>
                 </fo:table-body>
               </fo:table>
+            </fo:flow>
+          </fo:page-sequence>
+        </fo:root>
+        """;
+
+    using var doc = FoDocument.Load(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml)));
+    doc.SavePdf(outputPath);
+}
+
+static void GenerateImageExample(string outputPath)
+{
+    // Get the path to test images
+    var testImagePath = Path.Combine(Path.GetDirectoryName(outputPath)!, "..", "test-images", "test-100x100.jpg");
+    testImagePath = Path.GetFullPath(testImagePath);
+
+    var foXml = $"""
+        <?xml version="1.0"?>
+        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+          <fo:layout-master-set>
+            <fo:simple-page-master master-name="A4" page-width="595pt" page-height="842pt">
+              <fo:region-body margin="72pt"/>
+            </fo:simple-page-master>
+          </fo:layout-master-set>
+          <fo:page-sequence master-reference="A4">
+            <fo:flow flow-name="xsl-region-body">
+              <fo:block font-size="18pt" font-family="Helvetica" text-align="center" margin-bottom="24pt">
+                Image Example
+              </fo:block>
+
+              <fo:block margin-bottom="12pt">
+                <fo:external-graphic src="{testImagePath}" content-width="100pt" content-height="100pt"/>
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                This demonstrates image embedding with JPEG format support.
+              </fo:block>
+
+              <fo:block margin-bottom="12pt">
+                <fo:external-graphic src="{testImagePath}" content-width="200pt"/>
+              </fo:block>
+
+              <fo:block font-size="10pt" text-align="center">
+                Images are embedded as PDF XObjects with proper scaling.
+              </fo:block>
             </fo:flow>
           </fo:page-sequence>
         </fo:root>
