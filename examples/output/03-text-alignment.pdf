@@ -15,27 +15,27 @@ endobj
 endobj
 4 0 obj
 <<
-  /Length 323
+  /Length 362
 >>
 stream
 BT
 /F3 18.00 Tf
-194.92 12.92 Td
+1 0 0 1 194.92 829.08 Tm
 (Text Alignment Examples) Tj
 ET
 BT
 /F3 12.00 Tf
-0.00 8.62 Td
+1 0 0 1 0.00 787.78 Tm
 (This text is aligned to the start \(left in LTR languages\).) Tj
 ET
 BT
 /F3 12.00 Tf
-236.45 8.62 Td
+1 0 0 1 236.45 761.38 Tm
 (This text is centered.) Tj
 ET
 BT
 /F3 12.00 Tf
-282.75 8.62 Td
+1 0 0 1 282.75 734.98 Tm
 (This text is aligned to the end \(right in LTR languages\).) Tj
 ET
 
@@ -65,18 +65,18 @@ endobj
 <<
   /Creator (Folly XSL-FO Processor)
   /Producer (Folly)
-  /CreationDate (D:20251109103652Z)
+  /CreationDate (D:20251109121535Z)
 >>
 endobj
 xref
 0 7
 0000000000 65535 f 
 0000000015 00000 n 
-0000000678 00000 n 
+0000000717 00000 n 
 0000000068 00000 n 
 0000000144 00000 n 
-0000000520 00000 n 
-0000000741 00000 n 
+0000000559 00000 n 
+0000000780 00000 n 
 trailer
 <<
   /Size 7
@@ -84,5 +84,5 @@ trailer
   /Info 6 0 R
 >>
 startxref
-854
+893
 %%EOF

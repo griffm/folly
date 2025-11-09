@@ -22,17 +22,17 @@ endobj
 endobj
 5 0 obj
 <<
-  /Length 164
+  /Length 183
 >>
 stream
 BT
 /F3 24.00 Tf
-225.44 17.23 Td
+1 0 0 1 225.44 824.77 Tm
 (Hello, Folly!) Tj
 ET
 BT
 /F4 12.00 Tf
-0.00 8.20 Td
+1 0 0 1 0.00 793.00 Tm
 (This is a simple XSL-FO document rendered to PDF by the Folly processor.) Tj
 ET
 
@@ -63,19 +63,19 @@ endobj
 <<
   /Creator (Folly XSL-FO Processor)
   /Producer (Folly)
-  /CreationDate (D:20251109103652Z)
+  /CreationDate (D:20251109121535Z)
 >>
 endobj
 xref
 0 8
 0000000000 65535 f 
 0000000015 00000 n 
-0000000613 00000 n 
+0000000632 00000 n 
 0000000068 00000 n 
 0000000144 00000 n 
 0000000222 00000 n 
-0000000439 00000 n 
-0000000676 00000 n 
+0000000458 00000 n 
+0000000695 00000 n 
 trailer
 <<
   /Size 8
@@ -83,5 +83,5 @@ trailer
   /Info 7 0 R
 >>
 startxref
-789
+808
 %%EOF

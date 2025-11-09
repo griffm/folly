@@ -15,115 +15,115 @@ endobj
 endobj
 4 0 obj
 <<
-  /Length 1206
+  /Length 1344
 >>
 stream
 BT
 /F3 24.00 Tf
-246.13 17.23 Td
+1 0 0 1 246.13 824.77 Tm
 (INVOICE) Tj
 ET
 BT
 /F3 10.00 Tf
-0.00 7.18 Td
+1 0 0 1 0.00 782.02 Tm
 (Invoice Number: INV-2024-001) Tj
 ET
 BT
 /F3 10.00 Tf
-0.00 7.18 Td
+1 0 0 1 0.00 762.02 Tm
 (Date: January 15, 2024) Tj
 ET
 BT
 /F3 12.00 Tf
-0.00 8.62 Td
+1 0 0 1 0.00 724.58 Tm
 (Bill To:) Tj
 ET
 BT
 /F3 10.00 Tf
-0.00 7.18 Td
+1 0 0 1 0.00 703.62 Tm
 (Acme Corporation) Tj
 ET
 BT
 /F3 10.00 Tf
-0.00 7.18 Td
+1 0 0 1 0.00 687.62 Tm
 (123 Business Street) Tj
 ET
 BT
 /F3 10.00 Tf
-0.00 7.18 Td
+1 0 0 1 0.00 671.62 Tm
 (San Francisco, CA 94107) Tj
 ET
 q
 0.878 0.878 0.878 rg
-0.00 199.20 595.00 14.40 re
+0.00 628.40 595.00 14.40 re
 f
 Q
 q
 0.000 0.000 0.000 RG
 1.00 w
 [] 0 d
-0.50 199.70 594.00 13.40 re
+0.50 628.90 594.00 13.40 re
 S
 Q
 BT
 /F3 12.00 Tf
-0.00 8.62 Td
+1 0 0 1 0.00 634.18 Tm
 (Item Description) Tj
 ET
 q
 0.800 0.800 0.800 RG
 1.00 w
 [] 0 d
-0.50 226.10 594.00 27.00 re
+0.50 588.90 594.00 27.00 re
 S
 Q
 BT
 /F3 10.00 Tf
-0.00 7.18 Td
+1 0 0 1 0.00 609.22 Tm
 (XSL-FO Processing Service - Professional License) Tj
 ET
 BT
 /F3 10.00 Tf
-559.42 7.18 Td
+1 0 0 1 559.42 593.22 Tm
 ($999.00) Tj
 ET
 q
 0.800 0.800 0.800 RG
 1.00 w
 [] 0 d
-0.50 262.10 594.00 27.00 re
+0.50 552.90 594.00 27.00 re
 S
 Q
 BT
 /F3 10.00 Tf
-0.00 7.18 Td
+1 0 0 1 0.00 573.22 Tm
 (Technical Support \(12 months\)) Tj
 ET
 BT
 /F3 10.00 Tf
-559.42 7.18 Td
+1 0 0 1 559.42 557.22 Tm
 ($299.00) Tj
 ET
 q
 0.941 0.941 0.941 rg
-0.00 309.60 595.00 16.80 re
+0.00 515.60 595.00 16.80 re
 f
 Q
 q
 0.000 0.000 0.000 RG
 2.00 w
 [] 0 d
-1.00 310.60 593.00 14.80 re
+1.00 516.60 593.00 14.80 re
 S
 Q
 BT
 /F3 14.00 Tf
-490.69 10.05 Td
+1 0 0 1 490.69 522.35 Tm
 (Total: $1,298.00) Tj
 ET
 BT
 /F3 10.00 Tf
-232.45 7.18 Td
+1 0 0 1 232.45 484.42 Tm
 (Thank you for your business!) Tj
 ET
 
@@ -153,18 +153,18 @@ endobj
 <<
   /Creator (Folly XSL-FO Processor)
   /Producer (Folly)
-  /CreationDate (D:20251109103652Z)
+  /CreationDate (D:20251109121535Z)
 >>
 endobj
 xref
 0 7
 0000000000 65535 f 
 0000000015 00000 n 
-0000001562 00000 n 
+0000001700 00000 n 
 0000000068 00000 n 
 0000000144 00000 n 
-0000001404 00000 n 
-0000001625 00000 n 
+0000001542 00000 n 
+0000001763 00000 n 
 trailer
 <<
   /Size 7
@@ -172,5 +172,5 @@ trailer
   /Info 6 0 R
 >>
 startxref
-1738
+1876
 %%EOF
