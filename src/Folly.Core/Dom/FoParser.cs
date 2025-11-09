@@ -164,11 +164,19 @@ internal static class FoParser
             .OfType<XText>()
             .Select(t => t.Value));
 
-        // Parse child blocks
+        // Parse child elements
         foreach (var child in element.Elements())
         {
-            if (child.Name.LocalName == "block")
-                children.Add(ParseBlock(child));
+            var name = child.Name.LocalName;
+            switch (name)
+            {
+                case "block":
+                    children.Add(ParseBlock(child));
+                    break;
+                case "external-graphic":
+                    children.Add(ParseExternalGraphic(child));
+                    break;
+            }
         }
 
         return new FoBlock
@@ -176,6 +184,14 @@ internal static class FoParser
             Properties = ParseProperties(element),
             Children = children,
             TextContent = string.IsNullOrWhiteSpace(textContent) ? null : textContent
+        };
+    }
+
+    private static FoExternalGraphic ParseExternalGraphic(XElement element)
+    {
+        return new FoExternalGraphic
+        {
+            Properties = ParseProperties(element)
         };
     }
 

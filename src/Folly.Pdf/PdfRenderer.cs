@@ -130,7 +130,11 @@ public sealed class PdfRenderer : IDisposable
 
     private void RenderArea(Area area, StringBuilder content, Dictionary<string, int> fontIds)
     {
-        if (area is TableArea tableArea)
+        if (area is ImageArea imageArea)
+        {
+            RenderImage(imageArea, content);
+        }
+        else if (area is TableArea tableArea)
         {
             RenderTable(tableArea, content, fontIds);
         }
@@ -287,6 +291,25 @@ public sealed class PdfRenderer : IDisposable
 
         // Default to black if unable to parse
         return (0, 0, 0);
+    }
+
+    private void RenderImage(ImageArea image, StringBuilder content)
+    {
+        // For now, render a placeholder rectangle where the image will go
+        // Full image embedding requires extending PdfWriter to create image XObjects
+        // TODO: Implement full JPEG passthrough and PNG decoding
+
+        // Save graphics state
+        content.AppendLine("q");
+
+        // Draw placeholder border
+        content.AppendLine("0.5 0.5 0.5 RG");
+        content.AppendLine("1 w");
+        content.AppendLine($"{image.X:F2} {image.Y:F2} {image.Width:F2} {image.Height:F2} re");
+        content.AppendLine("S");
+
+        // Restore graphics state
+        content.AppendLine("Q");
     }
 
     private void RenderTable(TableArea table, StringBuilder content, Dictionary<string, int> fontIds)
