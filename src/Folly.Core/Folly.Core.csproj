@@ -9,7 +9,7 @@
 
   <ItemGroup>
     <!-- Embed AFM files for standard PDF fonts -->
-    <EmbeddedResource Include="Fonts\fonts\base14\*.afm" />
+    <EmbeddedResource Include="Fonts\base14\*.afm" />
   </ItemGroup>
 
 </Project>

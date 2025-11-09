@@ -74,10 +74,10 @@ internal static class StandardFonts
         // Load Helvetica fonts from AFM files
         try
         {
-            _fonts["Helvetica"] = AfmParser.LoadFont("fonts.base14.Helvetica.afm");
-            _fonts["Helvetica-Bold"] = AfmParser.LoadFont("fonts.base14.Helvetica-Bold.afm");
-            _fonts["Helvetica-Oblique"] = AfmParser.LoadFont("fonts.base14.Helvetica-Oblique.afm");
-            _fonts["Helvetica-BoldOblique"] = AfmParser.LoadFont("fonts.base14.Helvetica-BoldOblique.afm");
+            _fonts["Helvetica"] = AfmParser.LoadFont("base14.Helvetica.afm");
+            _fonts["Helvetica-Bold"] = AfmParser.LoadFont("base14.Helvetica-Bold.afm");
+            _fonts["Helvetica-Oblique"] = AfmParser.LoadFont("base14.Helvetica-Oblique.afm");
+            _fonts["Helvetica-BoldOblique"] = AfmParser.LoadFont("base14.Helvetica-BoldOblique.afm");
         }
         catch (Exception ex)
         {
@@ -107,10 +107,10 @@ internal static class StandardFonts
         // Load Times fonts from AFM files
         try
         {
-            _fonts["Times-Roman"] = AfmParser.LoadFont("fonts.base14.Times-Roman.afm");
-            _fonts["Times-Bold"] = AfmParser.LoadFont("fonts.base14.Times-Bold.afm");
-            _fonts["Times-Italic"] = AfmParser.LoadFont("fonts.base14.Times-Italic.afm");
-            _fonts["Times-BoldItalic"] = AfmParser.LoadFont("fonts.base14.Times-BoldItalic.afm");
+            _fonts["Times-Roman"] = AfmParser.LoadFont("base14.Times-Roman.afm");
+            _fonts["Times-Bold"] = AfmParser.LoadFont("base14.Times-Bold.afm");
+            _fonts["Times-Italic"] = AfmParser.LoadFont("base14.Times-Italic.afm");
+            _fonts["Times-BoldItalic"] = AfmParser.LoadFont("base14.Times-BoldItalic.afm");
         }
         catch (Exception ex)
         {
@@ -140,10 +140,10 @@ internal static class StandardFonts
         // Load Courier fonts from AFM files
         try
         {
-            _fonts["Courier"] = AfmParser.LoadFont("fonts.base14.Courier.afm");
-            _fonts["Courier-Bold"] = AfmParser.LoadFont("fonts.base14.Courier-Bold.afm");
-            _fonts["Courier-Oblique"] = AfmParser.LoadFont("fonts.base14.Courier-Oblique.afm");
-            _fonts["Courier-BoldOblique"] = AfmParser.LoadFont("fonts.base14.Courier-BoldOblique.afm");
+            _fonts["Courier"] = AfmParser.LoadFont("base14.Courier.afm");
+            _fonts["Courier-Bold"] = AfmParser.LoadFont("base14.Courier-Bold.afm");
+            _fonts["Courier-Oblique"] = AfmParser.LoadFont("base14.Courier-Oblique.afm");
+            _fonts["Courier-BoldOblique"] = AfmParser.LoadFont("base14.Courier-BoldOblique.afm");
         }
         catch (Exception ex)
         {
