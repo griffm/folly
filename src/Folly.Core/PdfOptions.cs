@@ -23,6 +23,12 @@ public sealed class PdfOptions
     public bool SubsetFonts { get; set; } = true;
 
     /// <summary>
+    /// Gets or sets whether to compress PDF streams using Flate compression.
+    /// Default is true for optimal file size.
+    /// </summary>
+    public bool CompressStreams { get; set; } = true;
+
+    /// <summary>
     /// Gets or sets document metadata.
     /// </summary>
     public PdfMetadata Metadata { get; set; } = new();

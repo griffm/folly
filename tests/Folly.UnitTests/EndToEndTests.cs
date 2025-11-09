@@ -36,8 +36,9 @@ public class EndToEndTests
         using var doc = FoDocument.Load(inputStream);
         using var outputStream = new MemoryStream();
 
-        // Act - Render to PDF
-        doc.SavePdf(outputStream);
+        // Act - Render to PDF (disable compression for testing)
+        var options = new PdfOptions { CompressStreams = false };
+        doc.SavePdf(outputStream, options);
 
         // Assert - Verify PDF structure
         Assert.True(outputStream.Length > 0, "PDF output should not be empty");
@@ -99,8 +100,9 @@ public class EndToEndTests
         using var doc = FoDocument.Load(inputStream);
         using var outputStream = new MemoryStream();
 
-        // Act
-        doc.SavePdf(outputStream);
+        // Act (disable compression for testing)
+        var options = new PdfOptions { CompressStreams = false };
+        doc.SavePdf(outputStream, options);
 
         // Assert
         Assert.True(outputStream.Length > 0);
@@ -139,8 +141,9 @@ public class EndToEndTests
         using var doc = FoDocument.Load(inputStream);
         using var outputStream = new MemoryStream();
 
-        // Act
-        doc.SavePdf(outputStream);
+        // Act (disable compression for testing)
+        var options = new PdfOptions { CompressStreams = false };
+        doc.SavePdf(outputStream, options);
 
         // Assert
         Assert.True(outputStream.Length > 0);
@@ -339,8 +342,9 @@ public class EndToEndTests
         using var doc = FoDocument.Load(inputStream);
         using var outputStream = new MemoryStream();
 
-        // Act - Render to PDF
-        doc.SavePdf(outputStream);
+        // Act - Render to PDF (disable compression for testing)
+        var options = new PdfOptions { CompressStreams = false };
+        doc.SavePdf(outputStream, options);
 
         // Assert - Build area tree to check page count
         var areaTree = doc.BuildAreaTree();
@@ -391,8 +395,9 @@ public class EndToEndTests
         using var doc = FoDocument.Load(inputStream);
         using var outputStream = new MemoryStream();
 
-        // Act
-        doc.SavePdf(outputStream);
+        // Act (disable compression for testing)
+        var options = new PdfOptions { CompressStreams = false };
+        doc.SavePdf(outputStream, options);
 
         // Assert
         Assert.True(outputStream.Length > 0);
