@@ -6,6 +6,7 @@ namespace Folly.Layout;
 internal sealed class LayoutEngine
 {
     private readonly LayoutOptions _options;
+    private readonly Dictionary<string, List<(int PageNumber, Dom.FoMarker Marker)>> _markers = new();
 
     public LayoutEngine(LayoutOptions options)
     {
@@ -97,6 +98,21 @@ internal sealed class LayoutEngine
                         y += blockArea.Height + blockArea.MarginTop + blockArea.MarginBottom;
                     }
                 }
+
+                // Handle retrieve-marker elements
+                foreach (var retrieveMarker in staticContent.RetrieveMarkers)
+                {
+                    var markerBlocks = RetrieveMarkerContent(retrieveMarker, pageNumber);
+                    foreach (var block in markerBlocks)
+                    {
+                        var blockArea = LayoutBlock(block, x, y, width, pageNumber);
+                        if (blockArea != null)
+                        {
+                            page.AddArea(blockArea);
+                            y += blockArea.Height + blockArea.MarginTop + blockArea.MarginBottom;
+                        }
+                    }
+                }
             }
             else if (flowName == "xsl-region-after" && pageMaster.RegionAfter != null)
             {
@@ -115,8 +131,55 @@ internal sealed class LayoutEngine
                         y += blockArea.Height + blockArea.MarginTop + blockArea.MarginBottom;
                     }
                 }
+
+                // Handle retrieve-marker elements
+                foreach (var retrieveMarker in staticContent.RetrieveMarkers)
+                {
+                    var markerBlocks = RetrieveMarkerContent(retrieveMarker, pageNumber);
+                    foreach (var block in markerBlocks)
+                    {
+                        var blockArea = LayoutBlock(block, x, y, width, pageNumber);
+                        if (blockArea != null)
+                        {
+                            page.AddArea(blockArea);
+                            y += blockArea.Height + blockArea.MarginTop + blockArea.MarginBottom;
+                        }
+                    }
+                }
             }
         }
+    }
+
+    private IReadOnlyList<Dom.FoBlock> RetrieveMarkerContent(Dom.FoRetrieveMarker retrieveMarker, int pageNumber)
+    {
+        var className = retrieveMarker.RetrieveClassName;
+        if (string.IsNullOrEmpty(className) || !_markers.ContainsKey(className))
+            return Array.Empty<Dom.FoBlock>();
+
+        var markersForClass = _markers[className];
+        var position = retrieveMarker.RetrievePosition;
+
+        // Simplified implementation: support first-starting-within-page and last-ending-within-page
+        Dom.FoMarker? selectedMarker = null;
+
+        if (position == "first-starting-within-page" || position == "first-including-carryover")
+        {
+            // Get the first marker on this page
+            selectedMarker = markersForClass
+                .Where(m => m.PageNumber == pageNumber)
+                .OrderBy(m => m.PageNumber)
+                .FirstOrDefault().Marker;
+        }
+        else if (position == "last-starting-within-page" || position == "last-ending-within-page")
+        {
+            // Get the last marker on this page
+            selectedMarker = markersForClass
+                .Where(m => m.PageNumber == pageNumber)
+                .OrderBy(m => m.PageNumber)
+                .LastOrDefault().Marker;
+        }
+
+        return selectedMarker?.Blocks ?? Array.Empty<Dom.FoBlock>();
     }
 
     private void LayoutFlowWithPagination(AreaTree areaTree, Dom.FoSimplePageMaster pageMaster, Dom.FoPageSequence pageSequence)
@@ -280,6 +343,22 @@ internal sealed class LayoutEngine
         var contentWidth = availableWidth - foBlock.MarginLeft - foBlock.MarginRight - foBlock.PaddingLeft - foBlock.PaddingRight;
 
         var currentY = foBlock.PaddingTop;
+
+        // Collect markers if present
+        foreach (var child in foBlock.Children)
+        {
+            if (child is Dom.FoMarker marker && pageNumber > 0)
+            {
+                var className = marker.MarkerClassName;
+                if (!string.IsNullOrEmpty(className))
+                {
+                    if (!_markers.ContainsKey(className))
+                        _markers[className] = new List<(int, Dom.FoMarker)>();
+
+                    _markers[className].Add((pageNumber, marker));
+                }
+            }
+        }
 
         // Check for inline page number elements
         var hasPageNumber = foBlock.Children.Any(c => c is Dom.FoPageNumber);

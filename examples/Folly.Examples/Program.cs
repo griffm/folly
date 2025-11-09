@@ -54,6 +54,10 @@ GenerateKeepBreakExample(Path.Combine(outputDir, "10-keep-break.pdf"));
 Console.WriteLine("Generating Example 11: Headers, Footers, and Page Numbers...");
 GenerateHeaderFooterExample(Path.Combine(outputDir, "11-headers-footers.pdf"));
 
+// Example 12: Markers for Dynamic Headers
+Console.WriteLine("Generating Example 12: Markers for Dynamic Headers...");
+GenerateMarkerExample(Path.Combine(outputDir, "12-markers.pdf"));
+
 Console.WriteLine("\n✓ All examples generated successfully!");
 Console.WriteLine($"\nView PDFs in: {outputDir}");
 Console.WriteLine("\nValidate with qpdf:");
@@ -787,6 +791,87 @@ static void GenerateHeaderFooterExample(string outputPath)
 
               <fo:block font-size="12pt" margin-bottom="12pt">
                 You can use this pattern to create sophisticated document layouts with consistent branding and navigation elements across all pages.
+              </fo:block>
+            </fo:flow>
+          </fo:page-sequence>
+        </fo:root>
+        """;
+
+    using var doc = FoDocument.Load(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml)));
+    doc.SavePdf(outputPath);
+}
+
+static void GenerateMarkerExample(string outputPath)
+{
+    var foXml = """
+        <?xml version="1.0"?>
+        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+          <fo:layout-master-set>
+            <fo:simple-page-master master-name="A4" page-width="595pt" page-height="842pt">
+              <fo:region-body margin-top="72pt" margin-bottom="72pt" margin-left="72pt" margin-right="72pt"/>
+              <fo:region-before extent="36pt"/>
+              <fo:region-after extent="36pt"/>
+            </fo:simple-page-master>
+          </fo:layout-master-set>
+          <fo:page-sequence master-reference="A4">
+            <fo:static-content flow-name="xsl-region-before">
+              <fo:block font-size="10pt" font-family="Helvetica" text-align="center" padding-top="12pt">
+                <fo:retrieve-marker retrieve-class-name="chapter-title"/> - Page <fo:page-number/>
+              </fo:block>
+            </fo:static-content>
+
+            <fo:static-content flow-name="xsl-region-after">
+              <fo:block font-size="9pt" font-family="Helvetica" text-align="center" padding-bottom="12pt">
+                Page <fo:page-number/>
+              </fo:block>
+            </fo:static-content>
+
+            <fo:flow flow-name="xsl-region-body">
+              <fo:block font-size="20pt" font-family="Helvetica" font-weight="bold" margin-bottom="24pt">
+                <fo:marker marker-class-name="chapter-title">Chapter 1: Introduction</fo:marker>
+                Chapter 1: Introduction
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                This example demonstrates the power of markers in XSL-FO. Markers allow you to capture content from the flow and display it in static-content areas like headers.
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                Notice how the chapter title appears in the header above. The fo:marker element captures the title, and fo:retrieve-marker displays it in the header.
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                This is essential for creating professional documents like books, reports, and manuals where you want the current chapter or section to appear in running headers.
+              </fo:block>
+
+              <fo:block font-size="20pt" font-family="Helvetica" font-weight="bold" margin-top="48pt" margin-bottom="24pt" break-before="page">
+                <fo:marker marker-class-name="chapter-title">Chapter 2: Features</fo:marker>
+                Chapter 2: Features
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                When this chapter starts on a new page, the header will automatically update to show "Chapter 2: Features".
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                This dynamic behavior is achieved through the marker mechanism. Each time a new marker is encountered, it becomes available for retrieval in the static-content.
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                The retrieve-position property (default: first-starting-within-page) determines which marker to display when multiple markers of the same class appear on a page.
+              </fo:block>
+
+              <fo:block font-size="20pt" font-family="Helvetica" font-weight="bold" margin-top="48pt" margin-bottom="24pt" break-before="page">
+                <fo:marker marker-class-name="chapter-title">Chapter 3: Conclusion</fo:marker>
+                Chapter 3: Conclusion
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                The header now shows "Chapter 3: Conclusion", demonstrating how markers adapt to the content on each page.
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                This feature is one of the most powerful aspects of XSL-FO for creating sophisticated, professional documents with dynamic headers and footers.
               </fo:block>
             </fo:flow>
           </fo:page-sequence>
