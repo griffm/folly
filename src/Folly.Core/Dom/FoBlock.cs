@@ -9,24 +9,41 @@ public sealed class FoBlock : FoElement
     public override string Name => "block";
 
     /// <summary>
-    /// Gets the font family.
+    /// Gets the font family, with inheritance from parent elements.
     /// </summary>
-    public string FontFamily => Properties.GetString("font-family", "Helvetica");
+    public string FontFamily => GetComputedProperty("font-family", "Helvetica") ?? "Helvetica";
 
     /// <summary>
-    /// Gets the font size in points.
+    /// Gets the font size in points, with inheritance from parent elements.
     /// </summary>
-    public double FontSize => Properties.GetLength("font-size", 12);
+    public double FontSize
+    {
+        get
+        {
+            var value = GetComputedProperty("font-size", "12pt");
+            if (string.IsNullOrEmpty(value)) return 12;
+            return LengthParser.Parse(value);
+        }
+    }
 
     /// <summary>
-    /// Gets the line height in points.
+    /// Gets the line height in points, with inheritance from parent elements.
     /// </summary>
-    public double LineHeight => Properties.GetLength("line-height", FontSize * 1.2);
+    public double LineHeight
+    {
+        get
+        {
+            var value = GetComputedProperty("line-height");
+            if (string.IsNullOrEmpty(value) || value == "normal")
+                return FontSize * 1.2;
+            return LengthParser.Parse(value);
+        }
+    }
 
     /// <summary>
-    /// Gets the text alignment.
+    /// Gets the text alignment, with inheritance from parent elements.
     /// </summary>
-    public string TextAlign => Properties.GetString("text-align", "start");
+    public string TextAlign => GetComputedProperty("text-align", "start") ?? "start";
 
     /// <summary>
     /// Gets the margin-top in points.

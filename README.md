@@ -151,7 +151,7 @@ The core rendering engine is fully operational with extensive feature support:
 **FO Document Processing:**
 - XSL-FO 1.1 XML parsing with namespace support
 - Immutable FO DOM representation
-- Property inheritance and resolution
+- Complete property inheritance system (50+ inheritable properties)
 - Layout master sets and page masters
 - Conditional page masters (first, odd, even pages)
 
@@ -187,7 +187,8 @@ The core rendering engine is fully operational with extensive feature support:
 - PDF outline/bookmarks for document navigation
 
 **Quality Assurance:**
-- 11 passing unit tests (100% success rate)
+- 23 passing unit tests (100% success rate)
+- 12 comprehensive property inheritance tests
 - 15 working example PDFs
 - 100% qpdf validation success (zero errors)
 - Verified with qpdf 11.9.0

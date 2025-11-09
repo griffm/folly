@@ -11,42 +11,42 @@ public sealed class FoInline : FoElement
     public override string Name => "inline";
 
     /// <summary>
-    /// Gets the font family.
+    /// Gets the font family, with inheritance from parent elements.
     /// </summary>
-    public string FontFamily => Properties.GetString("font-family", "");
+    public string FontFamily => GetComputedProperty("font-family", "Helvetica") ?? "Helvetica";
 
     /// <summary>
-    /// Gets the font size in points.
+    /// Gets the font size in points, with inheritance from parent elements.
     /// </summary>
     public double? FontSize
     {
         get
         {
-            var value = Properties.GetString("font-size", "");
-            if (string.IsNullOrEmpty(value)) return null;
-            return Properties.GetLength("font-size", 0);
+            var value = GetComputedProperty("font-size", "12pt");
+            if (string.IsNullOrEmpty(value)) return 12;
+            return LengthParser.Parse(value);
         }
     }
 
     /// <summary>
-    /// Gets the font weight (normal, bold, 100-900).
+    /// Gets the font weight (normal, bold, 100-900), with inheritance from parent elements.
     /// </summary>
-    public string FontWeight => Properties.GetString("font-weight", "");
+    public string FontWeight => GetComputedProperty("font-weight", "normal") ?? "normal";
 
     /// <summary>
-    /// Gets the font style (normal, italic, oblique).
+    /// Gets the font style (normal, italic, oblique), with inheritance from parent elements.
     /// </summary>
-    public string FontStyle => Properties.GetString("font-style", "");
+    public string FontStyle => GetComputedProperty("font-style", "normal") ?? "normal";
 
     /// <summary>
-    /// Gets the text color in CSS format (e.g., "#FF0000", "red", "black").
+    /// Gets the text color in CSS format (e.g., "#FF0000", "red", "black"), with inheritance from parent elements.
     /// </summary>
-    public string Color => Properties.GetString("color", "");
+    public string Color => GetComputedProperty("color", "black") ?? "black";
 
     /// <summary>
-    /// Gets the text decoration (none, underline, overline, line-through).
+    /// Gets the text decoration (none, underline, overline, line-through), with inheritance from parent elements.
     /// </summary>
-    public string TextDecoration => Properties.GetString("text-decoration", "");
+    public string TextDecoration => GetComputedProperty("text-decoration", "none") ?? "none";
 
     /// <summary>
     /// Gets the background color in CSS format.

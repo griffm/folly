@@ -240,7 +240,7 @@ Pipeline steps:
 **Goal**: Complete XSL-FO 1.1 conformance and production readiness
 
 **Deliverables**:
-- [ ] Complete property system with full inheritance
+- [x] Complete property system with full inheritance - 50+ inheritable properties, parent-child relationships, computed values
 - [x] Inline formatting (fo:inline) - text styling within blocks
 - [ ] All remaining formatting objects
 - [ ] BiDi text support
