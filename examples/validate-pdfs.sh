@@ -17,7 +17,7 @@ if ! command -v qpdf &> /dev/null; then
 fi
 
 # Output directory
-OUTPUT_DIR="Folly.Examples/output"
+OUTPUT_DIR="output"
 
 if [ ! -d "$OUTPUT_DIR" ]; then
     echo "Error: Output directory not found: $OUTPUT_DIR"
