@@ -412,3 +412,51 @@ public sealed class TableCellArea : Area
         _children.Add(area);
     }
 }
+
+/// <summary>
+/// Represents a float area (from fo:float).
+/// Floats are positioned to the side with content potentially flowing around them.
+/// </summary>
+public sealed class FloatArea : Area
+{
+    private readonly List<BlockArea> _blocks = new();
+
+    /// <summary>
+    /// Gets or sets the float position ("start" for left, "end" for right).
+    /// </summary>
+    public string Float { get; set; } = "start";
+
+    /// <summary>
+    /// Gets or sets the background color.
+    /// </summary>
+    public string BackgroundColor { get; set; } = "transparent";
+
+    /// <summary>
+    /// Gets or sets the border width.
+    /// </summary>
+    public double BorderWidth { get; set; }
+
+    /// <summary>
+    /// Gets or sets the border color.
+    /// </summary>
+    public string BorderColor { get; set; } = "black";
+
+    /// <summary>
+    /// Gets or sets the border style.
+    /// </summary>
+    public string BorderStyle { get; set; } = "none";
+
+    /// <summary>
+    /// Gets the blocks that make up the float content.
+    /// </summary>
+    public IReadOnlyList<BlockArea> Blocks => _blocks;
+
+    /// <summary>
+    /// Adds a block to the float.
+    /// </summary>
+    internal void AddBlock(BlockArea block)
+    {
+        ArgumentNullException.ThrowIfNull(block);
+        _blocks.Add(block);
+    }
+}

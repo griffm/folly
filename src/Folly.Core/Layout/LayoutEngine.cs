@@ -8,6 +8,7 @@ internal sealed class LayoutEngine
     private readonly LayoutOptions _options;
     private readonly Dictionary<string, List<(int PageNumber, Dom.FoMarker Marker)>> _markers = new();
     private readonly List<Dom.FoFootnote> _currentPageFootnotes = new();
+    private readonly List<Dom.FoFloat> _currentPageFloats = new();
 
     public LayoutEngine(LayoutOptions options)
     {
@@ -289,6 +290,7 @@ internal sealed class LayoutEngine
                 // Force page break before this block (unless we're at the top of a new page)
                 if (currentY > bodyMarginTop || currentColumn > 0)
                 {
+                    RenderFloats(currentPage, currentPageMaster, bodyMarginTop);
                     RenderFootnotes(currentPage, currentPageMaster);
                     areaTree.AddPage(currentPage);
                     pageNumber++;
@@ -326,6 +328,7 @@ internal sealed class LayoutEngine
                 else
                 {
                     // All columns filled - create new page
+                    RenderFloats(currentPage, currentPageMaster, bodyMarginTop);
                     RenderFootnotes(currentPage, currentPageMaster);
                     areaTree.AddPage(currentPage);
                     pageNumber++;
@@ -351,6 +354,7 @@ internal sealed class LayoutEngine
             if (foBlock.BreakAfter == "always" || foBlock.BreakAfter == "page")
             {
                 // Force page break after this block
+                RenderFloats(currentPage, currentPageMaster, bodyMarginTop);
                 RenderFootnotes(currentPage, currentPageMaster);
                 areaTree.AddPage(currentPage);
                 pageNumber++;
@@ -374,6 +378,7 @@ internal sealed class LayoutEngine
             if (currentY + tableArea.Height > currentPageMaster.PageHeight - bodyMarginBottom)
             {
                 // Table doesn't fit - add current page and create new one
+                RenderFloats(currentPage, currentPageMaster, bodyMarginTop);
                 RenderFootnotes(currentPage, currentPageMaster);
                 areaTree.AddPage(currentPage);
                 pageNumber++;
@@ -404,6 +409,7 @@ internal sealed class LayoutEngine
             if (currentY + listArea.Height > currentPageMaster.PageHeight - bodyMarginBottom)
             {
                 // List doesn't fit - add current page and create new one
+                RenderFloats(currentPage, currentPageMaster, bodyMarginTop);
                 RenderFootnotes(currentPage, currentPageMaster);
                 areaTree.AddPage(currentPage);
                 pageNumber++;
@@ -423,6 +429,7 @@ internal sealed class LayoutEngine
         }
 
         // Add the last page
+        RenderFloats(currentPage, currentPageMaster, bodyMarginTop);
         RenderFootnotes(currentPage, currentPageMaster);
         areaTree.AddPage(currentPage);
     }
@@ -475,6 +482,12 @@ internal sealed class LayoutEngine
         foreach (var footnote in foBlock.Footnotes)
         {
             _currentPageFootnotes.Add(footnote);
+        }
+
+        // Collect floats if present
+        foreach (var float_ in foBlock.Floats)
+        {
+            _currentPageFloats.Add(float_);
         }
 
         // Check for inline page number elements
@@ -1145,5 +1158,62 @@ internal sealed class LayoutEngine
 
         // Clear footnotes for next page
         _currentPageFootnotes.Clear();
+    }
+
+    private void RenderFloats(PageViewport page, Dom.FoSimplePageMaster pageMaster, double currentY)
+    {
+        if (_currentPageFloats.Count == 0)
+            return;
+
+        var regionBody = pageMaster.RegionBody;
+        var bodyMarginLeft = regionBody?.MarginLeft ?? 72;
+        var bodyMarginRight = regionBody?.MarginRight ?? 72;
+        var bodyWidth = pageMaster.PageWidth - bodyMarginLeft - bodyMarginRight;
+
+        // Track separate Y positions for start (left) and end (right) floats
+        var startFloatY = currentY;
+        var endFloatY = currentY;
+
+        foreach (var foFloat in _currentPageFloats)
+        {
+            if (foFloat.Blocks.Count == 0)
+                continue;
+
+            // Determine float position ("start" = left, "end" = right)
+            var floatPosition = foFloat.Float?.ToLowerInvariant() ?? "start";
+            var isStartFloat = floatPosition == "start" || floatPosition == "left";
+
+            // Calculate float width (default to 200pt, or 1/3 of body width)
+            var floatWidth = Math.Min(200, bodyWidth / 3);
+
+            // Calculate X position based on float side
+            var floatX = isStartFloat
+                ? bodyMarginLeft
+                : pageMaster.PageWidth - bodyMarginRight - floatWidth;
+
+            // Use appropriate Y position based on float side
+            var floatY = isStartFloat ? startFloatY : endFloatY;
+
+            // Layout the float blocks
+            var floatTotalHeight = 0.0;
+            foreach (var block in foFloat.Blocks)
+            {
+                var blockArea = LayoutBlock(block, floatX, floatY + floatTotalHeight, floatWidth);
+                if (blockArea != null)
+                {
+                    page.AddArea(blockArea);
+                    floatTotalHeight += blockArea.Height + blockArea.MarginTop + blockArea.MarginBottom;
+                }
+            }
+
+            // Update Y position for this float side
+            if (isStartFloat)
+                startFloatY += floatTotalHeight;
+            else
+                endFloatY += floatTotalHeight;
+        }
+
+        // Clear floats for next page
+        _currentPageFloats.Clear();
     }
 }
