@@ -37,4 +37,14 @@ public sealed class FoSimplePageMaster : FoElement
     /// Gets the region-after child.
     /// </summary>
     public FoRegion? RegionAfter { get; init; }
+
+    /// <summary>
+    /// Gets the region-start child (side region at start edge).
+    /// </summary>
+    public FoRegion? RegionStart { get; init; }
+
+    /// <summary>
+    /// Gets the region-end child (side region at end edge).
+    /// </summary>
+    public FoRegion? RegionEnd { get; init; }
 }

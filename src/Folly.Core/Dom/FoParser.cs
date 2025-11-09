@@ -70,6 +70,10 @@ internal static class FoParser
                     EstablishParentRelationships(pageMaster.RegionBefore, pageMaster);
                 if (pageMaster.RegionAfter != null)
                     EstablishParentRelationships(pageMaster.RegionAfter, pageMaster);
+                if (pageMaster.RegionStart != null)
+                    EstablishParentRelationships(pageMaster.RegionStart, pageMaster);
+                if (pageMaster.RegionEnd != null)
+                    EstablishParentRelationships(pageMaster.RegionEnd, pageMaster);
                 break;
 
             case FoPageSequenceMaster seqMaster:
@@ -201,6 +205,26 @@ internal static class FoParser
                 foreach (var child in bookmark.Children)
                     EstablishParentRelationships(child, bookmark);
                 break;
+
+            case FoWrapper wrapper:
+                foreach (var child in wrapper.Children)
+                    EstablishParentRelationships(child, wrapper);
+                break;
+
+            case FoBidiOverride bidiOverride:
+                foreach (var child in bidiOverride.Children)
+                    EstablishParentRelationships(child, bidiOverride);
+                break;
+
+            case FoBlockContainer blockContainer:
+                foreach (var child in blockContainer.Children)
+                    EstablishParentRelationships(child, blockContainer);
+                break;
+
+            case FoInlineContainer inlineContainer:
+                foreach (var child in inlineContainer.Children)
+                    EstablishParentRelationships(child, inlineContainer);
+                break;
         }
     }
 
@@ -268,6 +292,8 @@ internal static class FoParser
         FoRegionBody? regionBody = null;
         FoRegion? regionBefore = null;
         FoRegion? regionAfter = null;
+        FoRegion? regionStart = null;
+        FoRegion? regionEnd = null;
 
         foreach (var child in element.Elements())
         {
@@ -283,6 +309,12 @@ internal static class FoParser
                 case "region-after":
                     regionAfter = new FoRegionAfter { Properties = ParseProperties(child) };
                     break;
+                case "region-start":
+                    regionStart = new FoRegionStart { Properties = ParseProperties(child) };
+                    break;
+                case "region-end":
+                    regionEnd = new FoRegionEnd { Properties = ParseProperties(child) };
+                    break;
             }
         }
 
@@ -291,7 +323,9 @@ internal static class FoParser
             Properties = ParseProperties(element),
             RegionBody = regionBody,
             RegionBefore = regionBefore,
-            RegionAfter = regionAfter
+            RegionAfter = regionAfter,
+            RegionStart = regionStart,
+            RegionEnd = regionEnd
         };
     }
 
@@ -471,11 +505,20 @@ internal static class FoParser
                 case "block":
                     children.Add(ParseBlock(child));
                     break;
+                case "block-container":
+                    children.Add(ParseBlockContainer(child));
+                    break;
                 case "external-graphic":
                     children.Add(ParseExternalGraphic(child));
                     break;
                 case "page-number":
                     children.Add(ParsePageNumber(child));
+                    break;
+                case "page-number-citation":
+                    children.Add(ParsePageNumberCitation(child));
+                    break;
+                case "page-number-citation-last":
+                    children.Add(ParsePageNumberCitationLast(child));
                     break;
                 case "marker":
                     children.Add(ParseMarker(child));
@@ -491,6 +534,21 @@ internal static class FoParser
                     break;
                 case "inline":
                     children.Add(ParseInline(child));
+                    break;
+                case "inline-container":
+                    children.Add(ParseInlineContainer(child));
+                    break;
+                case "leader":
+                    children.Add(ParseLeader(child));
+                    break;
+                case "character":
+                    children.Add(ParseCharacter(child));
+                    break;
+                case "wrapper":
+                    children.Add(ParseWrapper(child));
+                    break;
+                case "bidi-override":
+                    children.Add(ParseBidiOverride(child));
                     break;
             }
         }
@@ -661,11 +719,35 @@ internal static class FoParser
                 case "inline":
                     children.Add(ParseInline(child));
                     break;
+                case "inline-container":
+                    children.Add(ParseInlineContainer(child));
+                    break;
                 case "page-number":
                     children.Add(ParsePageNumber(child));
                     break;
+                case "page-number-citation":
+                    children.Add(ParsePageNumberCitation(child));
+                    break;
+                case "page-number-citation-last":
+                    children.Add(ParsePageNumberCitationLast(child));
+                    break;
                 case "basic-link":
                     children.Add(ParseBasicLink(child));
+                    break;
+                case "leader":
+                    children.Add(ParseLeader(child));
+                    break;
+                case "character":
+                    children.Add(ParseCharacter(child));
+                    break;
+                case "wrapper":
+                    children.Add(ParseWrapper(child));
+                    break;
+                case "bidi-override":
+                    children.Add(ParseBidiOverride(child));
+                    break;
+                case "external-graphic":
+                    children.Add(ParseExternalGraphic(child));
                     break;
             }
         }
@@ -926,6 +1008,218 @@ internal static class FoParser
         {
             Properties = ParseProperties(element),
             Title = title,
+            Children = children
+        };
+    }
+
+    private static FoLeader ParseLeader(XElement element)
+    {
+        return new FoLeader
+        {
+            Properties = ParseProperties(element)
+        };
+    }
+
+    private static FoPageNumberCitation ParsePageNumberCitation(XElement element)
+    {
+        return new FoPageNumberCitation
+        {
+            Properties = ParseProperties(element)
+        };
+    }
+
+    private static FoPageNumberCitationLast ParsePageNumberCitationLast(XElement element)
+    {
+        return new FoPageNumberCitationLast
+        {
+            Properties = ParseProperties(element)
+        };
+    }
+
+    private static FoCharacter ParseCharacter(XElement element)
+    {
+        return new FoCharacter
+        {
+            Properties = ParseProperties(element)
+        };
+    }
+
+    private static FoWrapper ParseWrapper(XElement element)
+    {
+        var children = new List<FoElement>();
+
+        // Collect text content
+        var textContent = string.Join("", element.Nodes()
+            .OfType<XText>()
+            .Select(t => t.Value));
+
+        // Parse child elements
+        foreach (var child in element.Elements())
+        {
+            var name = child.Name.LocalName;
+            switch (name)
+            {
+                case "block":
+                    children.Add(ParseBlock(child));
+                    break;
+                case "inline":
+                    children.Add(ParseInline(child));
+                    break;
+                case "wrapper":
+                    children.Add(ParseWrapper(child));
+                    break;
+                case "page-number":
+                    children.Add(ParsePageNumber(child));
+                    break;
+                case "page-number-citation":
+                    children.Add(ParsePageNumberCitation(child));
+                    break;
+                case "page-number-citation-last":
+                    children.Add(ParsePageNumberCitationLast(child));
+                    break;
+                case "leader":
+                    children.Add(ParseLeader(child));
+                    break;
+                case "character":
+                    children.Add(ParseCharacter(child));
+                    break;
+                case "bidi-override":
+                    children.Add(ParseBidiOverride(child));
+                    break;
+                case "inline-container":
+                    children.Add(ParseInlineContainer(child));
+                    break;
+                case "external-graphic":
+                    children.Add(ParseExternalGraphic(child));
+                    break;
+                case "basic-link":
+                    children.Add(ParseBasicLink(child));
+                    break;
+            }
+        }
+
+        return new FoWrapper
+        {
+            Properties = ParseProperties(element),
+            Children = children
+        };
+    }
+
+    private static FoBidiOverride ParseBidiOverride(XElement element)
+    {
+        var children = new List<FoElement>();
+
+        // Collect text content
+        var textContent = string.Join("", element.Nodes()
+            .OfType<XText>()
+            .Select(t => t.Value));
+
+        // Parse child elements
+        foreach (var child in element.Elements())
+        {
+            var name = child.Name.LocalName;
+            switch (name)
+            {
+                case "inline":
+                    children.Add(ParseInline(child));
+                    break;
+                case "page-number":
+                    children.Add(ParsePageNumber(child));
+                    break;
+                case "page-number-citation":
+                    children.Add(ParsePageNumberCitation(child));
+                    break;
+                case "page-number-citation-last":
+                    children.Add(ParsePageNumberCitationLast(child));
+                    break;
+                case "leader":
+                    children.Add(ParseLeader(child));
+                    break;
+                case "character":
+                    children.Add(ParseCharacter(child));
+                    break;
+                case "wrapper":
+                    children.Add(ParseWrapper(child));
+                    break;
+                case "bidi-override":
+                    children.Add(ParseBidiOverride(child));
+                    break;
+                case "inline-container":
+                    children.Add(ParseInlineContainer(child));
+                    break;
+                case "external-graphic":
+                    children.Add(ParseExternalGraphic(child));
+                    break;
+                case "basic-link":
+                    children.Add(ParseBasicLink(child));
+                    break;
+            }
+        }
+
+        return new FoBidiOverride
+        {
+            Properties = ParseProperties(element),
+            Children = children
+        };
+    }
+
+    private static FoBlockContainer ParseBlockContainer(XElement element)
+    {
+        var children = new List<FoElement>();
+
+        // Parse child elements (blocks, tables, lists, etc.)
+        foreach (var child in element.Elements())
+        {
+            var name = child.Name.LocalName;
+            switch (name)
+            {
+                case "block":
+                    children.Add(ParseBlock(child));
+                    break;
+                case "block-container":
+                    children.Add(ParseBlockContainer(child));
+                    break;
+                case "table":
+                    children.Add(ParseTable(child));
+                    break;
+                case "list-block":
+                    children.Add(ParseListBlock(child));
+                    break;
+            }
+        }
+
+        return new FoBlockContainer
+        {
+            Properties = ParseProperties(element),
+            Children = children
+        };
+    }
+
+    private static FoInlineContainer ParseInlineContainer(XElement element)
+    {
+        var children = new List<FoElement>();
+
+        // Parse child elements (blocks mainly)
+        foreach (var child in element.Elements())
+        {
+            var name = child.Name.LocalName;
+            switch (name)
+            {
+                case "block":
+                    children.Add(ParseBlock(child));
+                    break;
+                case "block-container":
+                    children.Add(ParseBlockContainer(child));
+                    break;
+                case "table":
+                    children.Add(ParseTable(child));
+                    break;
+            }
+        }
+
+        return new FoInlineContainer
+        {
+            Properties = ParseProperties(element),
             Children = children
         };
     }

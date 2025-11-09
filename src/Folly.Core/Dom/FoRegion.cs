@@ -72,3 +72,33 @@ public sealed class FoRegionAfter : FoRegion
     /// </summary>
     public double Extent => Properties.GetLength("extent", 36);
 }
+
+/// <summary>
+/// Represents the fo:region-start element.
+/// Side region at the start edge (left in left-to-right writing mode).
+/// </summary>
+public sealed class FoRegionStart : FoRegion
+{
+    /// <inheritdoc/>
+    public override string Name => "region-start";
+
+    /// <summary>
+    /// Gets the extent (width) of the region.
+    /// </summary>
+    public double Extent => Properties.GetLength("extent", 36);
+}
+
+/// <summary>
+/// Represents the fo:region-end element.
+/// Side region at the end edge (right in left-to-right writing mode).
+/// </summary>
+public sealed class FoRegionEnd : FoRegion
+{
+    /// <inheritdoc/>
+    public override string Name => "region-end";
+
+    /// <summary>
+    /// Gets the extent (width) of the region.
+    /// </summary>
+    public double Extent => Properties.GetLength("extent", 36);
+}
