@@ -302,6 +302,9 @@ internal static class FoParser
                 case "float":
                     floats.Add(ParseFloat(child));
                     break;
+                case "basic-link":
+                    children.Add(ParseBasicLink(child));
+                    break;
             }
         }
 
@@ -415,6 +418,41 @@ internal static class FoParser
         {
             Properties = ParseProperties(element),
             Blocks = blocks
+        };
+    }
+
+    private static FoBasicLink ParseBasicLink(XElement element)
+    {
+        var children = new List<FoElement>();
+
+        // Collect text content
+        var textContent = string.Join("", element.Nodes()
+            .OfType<XText>()
+            .Select(t => t.Value));
+
+        // Parse child elements (can contain nested blocks, images, etc.)
+        foreach (var child in element.Elements())
+        {
+            var name = child.Name.LocalName;
+            switch (name)
+            {
+                case "block":
+                    children.Add(ParseBlock(child));
+                    break;
+                case "external-graphic":
+                    children.Add(ParseExternalGraphic(child));
+                    break;
+                case "page-number":
+                    children.Add(ParsePageNumber(child));
+                    break;
+            }
+        }
+
+        return new FoBasicLink
+        {
+            Properties = ParseProperties(element),
+            Children = children,
+            TextContent = string.IsNullOrWhiteSpace(textContent) ? null : textContent
         };
     }
 

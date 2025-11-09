@@ -9,6 +9,7 @@ internal sealed class LayoutEngine
     private readonly Dictionary<string, List<(int PageNumber, Dom.FoMarker Marker)>> _markers = new();
     private readonly List<Dom.FoFootnote> _currentPageFootnotes = new();
     private readonly List<Dom.FoFloat> _currentPageFloats = new();
+    private readonly List<LinkArea> _currentPageLinks = new();
 
     public LayoutEngine(LayoutOptions options)
     {
@@ -292,6 +293,7 @@ internal sealed class LayoutEngine
                 {
                     RenderFloats(currentPage, currentPageMaster, bodyMarginTop);
                     RenderFootnotes(currentPage, currentPageMaster);
+                    AddLinksToPage(currentPage);
                     areaTree.AddPage(currentPage);
                     pageNumber++;
                     currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
@@ -330,6 +332,7 @@ internal sealed class LayoutEngine
                     // All columns filled - create new page
                     RenderFloats(currentPage, currentPageMaster, bodyMarginTop);
                     RenderFootnotes(currentPage, currentPageMaster);
+                    AddLinksToPage(currentPage);
                     areaTree.AddPage(currentPage);
                     pageNumber++;
                     currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
@@ -356,6 +359,7 @@ internal sealed class LayoutEngine
                 // Force page break after this block
                 RenderFloats(currentPage, currentPageMaster, bodyMarginTop);
                 RenderFootnotes(currentPage, currentPageMaster);
+                AddLinksToPage(currentPage);
                 areaTree.AddPage(currentPage);
                 pageNumber++;
                 currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
@@ -380,6 +384,7 @@ internal sealed class LayoutEngine
                 // Table doesn't fit - add current page and create new one
                 RenderFloats(currentPage, currentPageMaster, bodyMarginTop);
                 RenderFootnotes(currentPage, currentPageMaster);
+                AddLinksToPage(currentPage);
                 areaTree.AddPage(currentPage);
                 pageNumber++;
                 currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
@@ -411,6 +416,7 @@ internal sealed class LayoutEngine
                 // List doesn't fit - add current page and create new one
                 RenderFloats(currentPage, currentPageMaster, bodyMarginTop);
                 RenderFootnotes(currentPage, currentPageMaster);
+                AddLinksToPage(currentPage);
                 areaTree.AddPage(currentPage);
                 pageNumber++;
                 currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
@@ -431,6 +437,7 @@ internal sealed class LayoutEngine
         // Add the last page
         RenderFloats(currentPage, currentPageMaster, bodyMarginTop);
         RenderFootnotes(currentPage, currentPageMaster);
+        AddLinksToPage(currentPage);
         areaTree.AddPage(currentPage);
     }
 
@@ -490,8 +497,9 @@ internal sealed class LayoutEngine
             _currentPageFloats.Add(float_);
         }
 
-        // Check for inline page number elements
+        // Check for inline page number and link elements
         var hasPageNumber = foBlock.Children.Any(c => c is Dom.FoPageNumber);
+        var hasBasicLink = foBlock.Children.Any(c => c is Dom.FoBasicLink);
         var hasBlockChildren = foBlock.Children.Any(c => c is Dom.FoBlock or Dom.FoExternalGraphic);
 
         // Handle block-level children (images, nested blocks)
@@ -524,6 +532,56 @@ internal sealed class LayoutEngine
             return blockArea;
         }
 
+        // Create font metrics for measurement (used by both links and regular text)
+        var fontMetrics = new Fonts.FontMetrics
+        {
+            FamilyName = foBlock.FontFamily,
+            Size = foBlock.FontSize
+        };
+
+        // Handle inline basic-link elements
+        if (hasBasicLink)
+        {
+            foreach (var child in foBlock.Children)
+            {
+                if (child is Dom.FoBasicLink basicLink)
+                {
+                    var linkText = basicLink.TextContent ?? "";
+                    if (!string.IsNullOrWhiteSpace(linkText))
+                    {
+                        // Create line area for the link text
+                        var lineArea = CreateLineArea(linkText, foBlock.PaddingLeft, currentY, contentWidth, fontMetrics, foBlock);
+                        blockArea.AddChild(lineArea);
+
+                        // Create LinkArea for PDF annotation
+                        // Calculate absolute position: block X + block Y + line relative position
+                        var linkArea = new LinkArea
+                        {
+                            X = x + foBlock.PaddingLeft,
+                            Y = y + currentY,
+                            Width = fontMetrics.MeasureWidth(linkText),
+                            Height = foBlock.LineHeight,
+                            Text = linkText,
+                            FontFamily = basicLink.Color == "blue" ? foBlock.FontFamily : foBlock.FontFamily, // Use link color if specified
+                            FontSize = foBlock.FontSize,
+                            Color = basicLink.Color,
+                            TextDecoration = basicLink.TextDecoration,
+                            InternalDestination = basicLink.InternalDestination,
+                            ExternalDestination = basicLink.ExternalDestination,
+                            ShowDestination = basicLink.ShowDestination
+                        };
+
+                        _currentPageLinks.Add(linkArea);
+                        currentY += foBlock.LineHeight;
+                    }
+                }
+            }
+
+            blockArea.Width = contentWidth + foBlock.PaddingLeft + foBlock.PaddingRight;
+            blockArea.Height = currentY + foBlock.PaddingBottom;
+            return blockArea;
+        }
+
         // Get text content and substitute page numbers
         var text = foBlock.TextContent ?? "";
         if (hasPageNumber && pageNumber > 0)
@@ -538,13 +596,6 @@ internal sealed class LayoutEngine
             blockArea.Height = foBlock.LineHeight + foBlock.PaddingTop + foBlock.PaddingBottom;
             return blockArea;
         }
-
-        // Create font metrics for measurement
-        var fontMetrics = new Fonts.FontMetrics
-        {
-            FamilyName = foBlock.FontFamily,
-            Size = foBlock.FontSize
-        };
 
         // Perform line breaking and create line areas
         var lines = BreakLines(text, contentWidth, fontMetrics);
@@ -1215,5 +1266,20 @@ internal sealed class LayoutEngine
 
         // Clear floats for next page
         _currentPageFloats.Clear();
+    }
+
+    private void AddLinksToPage(PageViewport page)
+    {
+        if (_currentPageLinks.Count == 0)
+            return;
+
+        // Add all collected links to the page
+        foreach (var link in _currentPageLinks)
+        {
+            page.AddLink(link);
+        }
+
+        // Clear links for next page
+        _currentPageLinks.Clear();
     }
 }
