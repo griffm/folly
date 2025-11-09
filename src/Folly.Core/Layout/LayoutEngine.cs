@@ -7,6 +7,7 @@ internal sealed class LayoutEngine
 {
     private readonly LayoutOptions _options;
     private readonly Dictionary<string, List<(int PageNumber, Dom.FoMarker Marker)>> _markers = new();
+    private readonly List<Dom.FoFootnote> _currentPageFootnotes = new();
 
     public LayoutEngine(LayoutOptions options)
     {
@@ -288,6 +289,7 @@ internal sealed class LayoutEngine
                 // Force page break before this block (unless we're at the top of a new page)
                 if (currentY > bodyMarginTop || currentColumn > 0)
                 {
+                    RenderFootnotes(currentPage, currentPageMaster);
                     areaTree.AddPage(currentPage);
                     pageNumber++;
                     currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
@@ -324,6 +326,7 @@ internal sealed class LayoutEngine
                 else
                 {
                     // All columns filled - create new page
+                    RenderFootnotes(currentPage, currentPageMaster);
                     areaTree.AddPage(currentPage);
                     pageNumber++;
                     currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
@@ -348,6 +351,7 @@ internal sealed class LayoutEngine
             if (foBlock.BreakAfter == "always" || foBlock.BreakAfter == "page")
             {
                 // Force page break after this block
+                RenderFootnotes(currentPage, currentPageMaster);
                 areaTree.AddPage(currentPage);
                 pageNumber++;
                 currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
@@ -370,6 +374,7 @@ internal sealed class LayoutEngine
             if (currentY + tableArea.Height > currentPageMaster.PageHeight - bodyMarginBottom)
             {
                 // Table doesn't fit - add current page and create new one
+                RenderFootnotes(currentPage, currentPageMaster);
                 areaTree.AddPage(currentPage);
                 pageNumber++;
                 currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
@@ -399,6 +404,7 @@ internal sealed class LayoutEngine
             if (currentY + listArea.Height > currentPageMaster.PageHeight - bodyMarginBottom)
             {
                 // List doesn't fit - add current page and create new one
+                RenderFootnotes(currentPage, currentPageMaster);
                 areaTree.AddPage(currentPage);
                 pageNumber++;
                 currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
@@ -417,6 +423,7 @@ internal sealed class LayoutEngine
         }
 
         // Add the last page
+        RenderFootnotes(currentPage, currentPageMaster);
         areaTree.AddPage(currentPage);
     }
 
@@ -462,6 +469,12 @@ internal sealed class LayoutEngine
                     _markers[className].Add((pageNumber, marker));
                 }
             }
+        }
+
+        // Collect footnotes if present
+        foreach (var footnote in foBlock.Footnotes)
+        {
+            _currentPageFootnotes.Add(footnote);
         }
 
         // Check for inline page number elements
@@ -1091,5 +1104,46 @@ internal sealed class LayoutEngine
         listArea.Height = currentY + foList.SpaceAfter;
 
         return listArea;
+    }
+
+    private void RenderFootnotes(PageViewport page, Dom.FoSimplePageMaster pageMaster)
+    {
+        if (_currentPageFootnotes.Count == 0)
+            return;
+
+        // Calculate footnote area position
+        var regionBody = pageMaster.RegionBody;
+        var bodyMarginLeft = regionBody?.MarginLeft ?? 72;
+        var bodyMarginRight = regionBody?.MarginRight ?? 72;
+        var bodyMarginBottom = regionBody?.MarginBottom ?? 72;
+
+        var bodyWidth = pageMaster.PageWidth - bodyMarginLeft - bodyMarginRight;
+
+        // Start footnotes 36pt from bottom margin
+        var footnoteY = pageMaster.PageHeight - bodyMarginBottom - 36;
+
+        // Draw separator line
+        // TODO: Add line drawing to BlockArea or create a LineArea
+
+        // Render each footnote body
+        var currentY = footnoteY;
+        foreach (var footnote in _currentPageFootnotes)
+        {
+            if (footnote.FootnoteBody != null)
+            {
+                foreach (var block in footnote.FootnoteBody.Blocks)
+                {
+                    var blockArea = LayoutBlock(block, bodyMarginLeft, currentY, bodyWidth);
+                    if (blockArea != null)
+                    {
+                        page.AddArea(blockArea);
+                        currentY += blockArea.Height + blockArea.MarginTop + blockArea.MarginBottom;
+                    }
+                }
+            }
+        }
+
+        // Clear footnotes for next page
+        _currentPageFootnotes.Clear();
     }
 }

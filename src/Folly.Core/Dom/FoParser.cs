@@ -270,6 +270,7 @@ internal static class FoParser
     private static FoBlock ParseBlock(XElement element)
     {
         var children = new List<FoElement>();
+        var footnotes = new List<FoFootnote>();
 
         // Collect text content
         var textContent = string.Join("", element.Nodes()
@@ -294,6 +295,9 @@ internal static class FoParser
                 case "marker":
                     children.Add(ParseMarker(child));
                     break;
+                case "footnote":
+                    footnotes.Add(ParseFootnote(child));
+                    break;
             }
         }
 
@@ -301,6 +305,7 @@ internal static class FoParser
         {
             Properties = ParseProperties(element),
             Children = children,
+            Footnotes = footnotes,
             TextContent = string.IsNullOrWhiteSpace(textContent) ? null : textContent
         };
     }
@@ -343,6 +348,50 @@ internal static class FoParser
         return new FoRetrieveMarker
         {
             Properties = ParseProperties(element)
+        };
+    }
+
+    private static FoFootnote ParseFootnote(XElement element)
+    {
+        FoFootnoteBody? footnoteBody = null;
+        string? inlineText = null;
+
+        // Parse inline element (first child) - extract text content
+        var inlineElement = element.Elements().FirstOrDefault(e => e.Name.LocalName == "inline");
+        if (inlineElement != null)
+        {
+            inlineText = inlineElement.Value;
+        }
+
+        // Parse footnote-body element
+        var bodyElement = element.Elements().FirstOrDefault(e => e.Name.LocalName == "footnote-body");
+        if (bodyElement != null)
+        {
+            footnoteBody = ParseFootnoteBody(bodyElement);
+        }
+
+        return new FoFootnote
+        {
+            Properties = ParseProperties(element),
+            InlineText = inlineText,
+            FootnoteBody = footnoteBody
+        };
+    }
+
+    private static FoFootnoteBody ParseFootnoteBody(XElement element)
+    {
+        var blocks = new List<FoBlock>();
+
+        foreach (var child in element.Elements())
+        {
+            if (child.Name.LocalName == "block")
+                blocks.Add(ParseBlock(child));
+        }
+
+        return new FoFootnoteBody
+        {
+            Properties = ParseProperties(element),
+            Blocks = blocks
         };
     }
 
