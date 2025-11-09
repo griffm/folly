@@ -12,7 +12,7 @@ Folly shows excellent architectural foundations with 96 passing tests, strong pe
 
 ### Key Blockers
 1. **Path Traversal Vulnerability** - Arbitrary file read via image sources
-2. **Public API throws NotImplementedException** - Fluent API is incomplete
+2. ~~**Public API throws NotImplementedException**~~ - ✅ **RESOLVED** - Fluent API is now complete
 3. **Validation options not enforced** - Invalid documents pass silently
 4. **No logging infrastructure** - Console.WriteLine only
 5. **PNG integer overflow** - Buffer overrun possible
@@ -67,34 +67,27 @@ private void ValidateImagePath(string path, string? basePath)
 
 ---
 
-### 2. Fluent API Throws NotImplementedException (CRITICAL - API)
-**File:** `src/Folly.Fluent/Fo.cs:87, 106`
-**Severity:** 🔴 **CRITICAL** - Runtime failures in public API
+### 2. Fluent API Throws NotImplementedException ~~(CRITICAL - API)~~ ✅ **RESOLVED**
+**File:** `src/Folly.Fluent/Fo.cs`
+**Severity:** ~~🔴 **CRITICAL**~~ ✅ **RESOLVED**
 
 **Issue:**
-```csharp
-public void SavePdf(string path, PdfOptions? options = null)
-{
-    // TODO: Build FO XML and render to PDF
-    throw new NotImplementedException("Fluent API not yet implemented");
-}
-```
+~~The fluent API SavePdf methods threw NotImplementedException~~
 
-**Impact:**
-- Public API fails at runtime
-- README examples don't work (shows fluent API usage)
-- Breaking customer trust
-- NuGet package quality issues
+**Resolution:**
+- ✅ Fully implemented fluent API with all builders (DocumentBuilder, LayoutMasterBuilder, PageSequenceBuilder, FlowBuilder, BlockBuilder, TableBuilder, etc.)
+- ✅ Implemented SavePdf methods that construct FoRoot programmatically and render to PDF
+- ✅ Added comprehensive unit tests (5 tests covering simple documents, headers/footers, styled blocks, tables, and streams)
+- ✅ All tests passing
+- ✅ Updated README with working fluent API examples
 
-**Fix Options:**
-1. **Complete the implementation** (3-4 days)
-2. **Mark as [Obsolete] with warning** (1 hour)
-3. **Move to separate "Folly.Fluent.Preview" package** (2 hours)
-4. **Remove from v1.0** (1 hour)
+**Implementation Details:**
+- Created builders for all major FO elements (SimplePageMaster, Region, Flow, Block, Table, etc.)
+- SavePdf methods now build FoRoot from configured builders and use existing rendering pipeline
+- Added project reference to Folly.Pdf for SavePdf extension methods
+- Full property support (fonts, margins, padding, borders, colors, etc.)
 
-**Recommendation:** Option 3 or 4 for v1.0, complete in v1.1
-
-**Estimated Effort:** 2-4 days (complete) OR 1 hour (remove/mark preview)
+**Date Resolved:** 2025-11-09
 
 ---
 
