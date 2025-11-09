@@ -125,6 +125,7 @@ internal static class FoParser
     {
         var blocks = new List<FoBlock>();
         var tables = new List<FoTable>();
+        var lists = new List<FoListBlock>();
 
         foreach (var child in element.Elements())
         {
@@ -136,6 +137,9 @@ internal static class FoParser
                     break;
                 case "table":
                     tables.Add(ParseTable(child));
+                    break;
+                case "list-block":
+                    lists.Add(ParseListBlock(child));
                     break;
             }
         }
@@ -151,6 +155,7 @@ internal static class FoParser
             Properties = ParseProperties(element),
             Blocks = blocks,
             Tables = tables,
+            Lists = lists,
             TextContent = textContent
         };
     }
@@ -319,6 +324,84 @@ internal static class FoParser
         }
 
         return new FoTableCell
+        {
+            Properties = ParseProperties(element),
+            Blocks = blocks
+        };
+    }
+
+    private static FoListBlock ParseListBlock(XElement element)
+    {
+        var items = new List<FoListItem>();
+
+        foreach (var child in element.Elements())
+        {
+            if (child.Name.LocalName == "list-item")
+                items.Add(ParseListItem(child));
+        }
+
+        return new FoListBlock
+        {
+            Properties = ParseProperties(element),
+            Items = items
+        };
+    }
+
+    private static FoListItem ParseListItem(XElement element)
+    {
+        FoListItemLabel? label = null;
+        FoListItemBody? body = null;
+
+        foreach (var child in element.Elements())
+        {
+            var name = child.Name.LocalName;
+            switch (name)
+            {
+                case "list-item-label":
+                    label = ParseListItemLabel(child);
+                    break;
+                case "list-item-body":
+                    body = ParseListItemBody(child);
+                    break;
+            }
+        }
+
+        return new FoListItem
+        {
+            Properties = ParseProperties(element),
+            Label = label,
+            Body = body
+        };
+    }
+
+    private static FoListItemLabel ParseListItemLabel(XElement element)
+    {
+        var blocks = new List<FoBlock>();
+
+        foreach (var child in element.Elements())
+        {
+            if (child.Name.LocalName == "block")
+                blocks.Add(ParseBlock(child));
+        }
+
+        return new FoListItemLabel
+        {
+            Properties = ParseProperties(element),
+            Blocks = blocks
+        };
+    }
+
+    private static FoListItemBody ParseListItemBody(XElement element)
+    {
+        var blocks = new List<FoBlock>();
+
+        foreach (var child in element.Elements())
+        {
+            if (child.Name.LocalName == "block")
+                blocks.Add(ParseBlock(child));
+        }
+
+        return new FoListItemBody
         {
             Properties = ParseProperties(element),
             Blocks = blocks

@@ -22,4 +22,9 @@ public sealed class FoFlow : FoElement
     /// Gets the table children.
     /// </summary>
     public IReadOnlyList<FoTable> Tables { get; init; } = Array.Empty<FoTable>();
+
+    /// <summary>
+    /// Gets the list block children.
+    /// </summary>
+    public IReadOnlyList<FoListBlock> Lists { get; init; } = Array.Empty<FoListBlock>();
 }
