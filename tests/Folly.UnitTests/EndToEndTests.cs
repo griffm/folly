@@ -66,7 +66,7 @@ public class EndToEndTests
         Assert.Contains("BT", pdfContent); // Begin text
         Assert.Contains("ET", pdfContent); // End text
         Assert.Contains("Tf", pdfContent); // Set font
-        Assert.Contains("Td", pdfContent); // Text position
+        Assert.Contains("Tm", pdfContent); // Text matrix (absolute positioning)
         Assert.Contains("Tj", pdfContent); // Show text
 
         // Check PDF trailer
