@@ -46,6 +46,10 @@ GenerateImageExample(Path.Combine(outputDir, "08-images.pdf"));
 Console.WriteLine("Generating Example 9: List Example...");
 GenerateListExample(Path.Combine(outputDir, "09-lists.pdf"));
 
+// Example 10: Keep and Break Constraints
+Console.WriteLine("Generating Example 10: Keep and Break Constraints...");
+GenerateKeepBreakExample(Path.Combine(outputDir, "10-keep-break.pdf"));
+
 Console.WriteLine("\n✓ All examples generated successfully!");
 Console.WriteLine($"\nView PDFs in: {outputDir}");
 Console.WriteLine("\nValidate with qpdf:");
@@ -622,6 +626,82 @@ static void GenerateListExample(string outputPath)
                   </fo:list-item-body>
                 </fo:list-item>
               </fo:list-block>
+            </fo:flow>
+          </fo:page-sequence>
+        </fo:root>
+        """;
+
+    using var doc = FoDocument.Load(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml)));
+    doc.SavePdf(outputPath);
+}
+
+static void GenerateKeepBreakExample(string outputPath)
+{
+    var foXml = """
+        <?xml version="1.0"?>
+        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+          <fo:layout-master-set>
+            <fo:simple-page-master master-name="A4" page-width="595pt" page-height="842pt">
+              <fo:region-body margin="72pt"/>
+            </fo:simple-page-master>
+          </fo:layout-master-set>
+          <fo:page-sequence master-reference="A4">
+            <fo:flow flow-name="xsl-region-body">
+              <fo:block font-size="18pt" font-family="Helvetica" text-align="center" margin-bottom="24pt">
+                Keep and Break Constraints
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                This example demonstrates XSL-FO keep and break constraints for pagination control.
+              </fo:block>
+
+              <fo:block font-size="14pt" font-family="Helvetica" font-weight="bold" margin-top="12pt" margin-bottom="6pt">
+                Section 1: Normal Flow
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                This block flows normally without any constraints. Content will break across pages naturally based on available space.
+              </fo:block>
+
+              <fo:block font-size="14pt" font-family="Helvetica" font-weight="bold" margin-top="12pt" margin-bottom="6pt" break-before="page">
+                Section 2: Break Before
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                The heading above has break-before="page", which forces it to start on a new page. This is useful for chapter breaks and major section divisions.
+              </fo:block>
+
+              <fo:block font-size="14pt" font-family="Helvetica" font-weight="bold" margin-top="12pt" margin-bottom="6pt">
+                Section 3: Keep Together
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt" padding="12pt" background-color="#f0f0f0" border-width="1pt" border-style="solid" border-color="#cccccc" keep-together="always">
+                This entire block has keep-together="always", which means it will not be split across pages. If it doesn't fit on the current page, the entire block will move to the next page. This is essential for keeping important content like code blocks, tables, or definitions together.
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                The block above will always appear as a complete unit on a single page.
+              </fo:block>
+
+              <fo:block font-size="14pt" font-family="Helvetica" font-weight="bold" margin-top="12pt" margin-bottom="6pt">
+                Section 4: Break After
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt" break-after="page">
+                This block has break-after="page", forcing a page break after its content. Everything following this block will start on a new page.
+              </fo:block>
+
+              <fo:block font-size="14pt" font-family="Helvetica" font-weight="bold" margin-top="12pt" margin-bottom="6pt">
+                Section 5: After Break
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                This section appears on a new page due to the break-after constraint in the previous section.
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                These pagination controls give you precise control over document layout and ensure professional formatting.
+              </fo:block>
             </fo:flow>
           </fo:page-sequence>
         </fo:root>

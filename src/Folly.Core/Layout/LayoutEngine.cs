@@ -89,29 +89,61 @@ internal sealed class LayoutEngine
         // Layout each block in the flow
         foreach (var foBlock in flow.Blocks)
         {
+            // Handle break-before constraint
+            if (foBlock.BreakBefore == "always" || foBlock.BreakBefore == "page")
+            {
+                // Force page break before this block (unless we're at the top of a new page)
+                if (currentY > bodyMarginTop)
+                {
+                    areaTree.AddPage(currentPage);
+                    pageNumber++;
+                    currentPage = CreatePage(pageMaster, pageNumber);
+                    currentY = bodyMarginTop;
+                }
+            }
+
             var blockArea = LayoutBlock(foBlock, bodyMarginLeft, currentY, bodyWidth);
             if (blockArea == null)
                 continue;
 
             var blockTotalHeight = blockArea.Height + blockArea.MarginTop + blockArea.MarginBottom;
 
-            // Check if block fits on current page
-            if (currentY + blockTotalHeight > pageMaster.PageHeight - bodyMarginBottom)
+            // Handle keep-together constraint
+            var mustKeepTogether = foBlock.KeepTogether == "always";
+            var blockFitsOnPage = currentY + blockTotalHeight <= pageMaster.PageHeight - bodyMarginBottom;
+
+            // If block doesn't fit and must be kept together, move to next page
+            if (!blockFitsOnPage && (mustKeepTogether || currentY == bodyMarginTop))
             {
                 // Block doesn't fit - add current page and create new one
-                areaTree.AddPage(currentPage);
-                pageNumber++;
-                currentPage = CreatePage(pageMaster, pageNumber);
-                currentY = bodyMarginTop;
+                if (currentY > bodyMarginTop) // Only create new page if current page has content
+                {
+                    areaTree.AddPage(currentPage);
+                    pageNumber++;
+                    currentPage = CreatePage(pageMaster, pageNumber);
+                    currentY = bodyMarginTop;
+                }
 
                 // Re-position the block for the new page
                 blockArea = LayoutBlock(foBlock, bodyMarginLeft, currentY, bodyWidth);
                 if (blockArea == null)
                     continue;
+
+                blockTotalHeight = blockArea.Height + blockArea.MarginTop + blockArea.MarginBottom;
             }
 
             currentPage.AddArea(blockArea);
             currentY += blockArea.Height + blockArea.MarginTop + blockArea.MarginBottom;
+
+            // Handle break-after constraint
+            if (foBlock.BreakAfter == "always" || foBlock.BreakAfter == "page")
+            {
+                // Force page break after this block
+                areaTree.AddPage(currentPage);
+                pageNumber++;
+                currentPage = CreatePage(pageMaster, pageNumber);
+                currentY = bodyMarginTop;
+            }
         }
 
         // Layout each table in the flow

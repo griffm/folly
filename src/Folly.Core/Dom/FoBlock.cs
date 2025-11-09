@@ -87,4 +87,29 @@ public sealed class FoBlock : FoElement
     /// Gets the border style (solid, dashed, dotted, etc.).
     /// </summary>
     public string BorderStyle => Properties.GetString("border-style", "none");
+
+    /// <summary>
+    /// Gets the break-before property (auto, always, page).
+    /// </summary>
+    public string BreakBefore => Properties.GetString("break-before", "auto");
+
+    /// <summary>
+    /// Gets the break-after property (auto, always, page).
+    /// </summary>
+    public string BreakAfter => Properties.GetString("break-after", "auto");
+
+    /// <summary>
+    /// Gets the keep-together property (auto, always).
+    /// </summary>
+    public string KeepTogether => Properties.GetString("keep-together", "auto");
+
+    /// <summary>
+    /// Gets the keep-with-next property (auto, always).
+    /// </summary>
+    public string KeepWithNext => Properties.GetString("keep-with-next", "auto");
+
+    /// <summary>
+    /// Gets the keep-with-previous property (auto, always).
+    /// </summary>
+    public string KeepWithPrevious => Properties.GetString("keep-with-previous", "auto");
 }
