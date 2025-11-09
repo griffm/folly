@@ -507,6 +507,7 @@ internal sealed class LayoutEngine
         var hasPageNumber = foBlock.Children.Any(c => c is Dom.FoPageNumber);
         var hasBasicLink = foBlock.Children.Any(c => c is Dom.FoBasicLink);
         var hasInline = foBlock.Children.Any(c => c is Dom.FoInline);
+        var hasLeader = foBlock.Children.Any(c => c is Dom.FoLeader);
         var hasBlockChildren = foBlock.Children.Any(c => c is Dom.FoBlock or Dom.FoExternalGraphic);
 
         // Handle block-level children (images, nested blocks)
@@ -546,8 +547,8 @@ internal sealed class LayoutEngine
             Size = foBlock.FontSize
         };
 
-        // Handle inline elements with formatting
-        if (hasInline)
+        // Handle inline elements with formatting (including leaders)
+        if (hasInline || hasLeader)
         {
             var lineArea = new LineArea
             {
@@ -559,7 +560,7 @@ internal sealed class LayoutEngine
 
             double currentX = 0;
 
-            // Process mixed content (text nodes + inline elements)
+            // Process mixed content (text nodes + inline elements + leaders)
             var blockText = foBlock.TextContent ?? "";
             var inlineIndex = 0;
 
@@ -636,6 +637,43 @@ internal sealed class LayoutEngine
                         currentX += textWidth;
                     }
                     inlineIndex++;
+                }
+                else if (child is Dom.FoLeader leader)
+                {
+                    // Calculate leader width (fill remaining space in line)
+                    var leaderWidth = contentWidth - currentX;
+
+                    // Get leader properties
+                    var leaderPattern = leader.LeaderPattern;
+                    var patternWidth = leader.LeaderPatternWidth == "use-font-metrics"
+                        ? fontMetrics.MeasureWidth(".")
+                        : 5.0; // Default pattern width
+
+                    // Create leader area
+                    var leaderArea = new LeaderArea
+                    {
+                        X = currentX,
+                        Y = 0, // Relative to line
+                        Width = leaderWidth,
+                        Height = foBlock.FontSize,
+                        LeaderPattern = leaderPattern,
+                        LeaderPatternWidth = patternWidth,
+                        RuleThickness = leader.RuleThickness,
+                        RuleStyle = leader.RuleStyle,
+                        Color = leader.Color,
+                        FontFamily = leader.FontFamily,
+                        FontSize = leader.FontSize ?? 12,
+                        BaselineOffset = fontMetrics.GetAscent()
+                    };
+
+                    // Add as child of line area (note: LineArea.AddInline only accepts InlineArea)
+                    // We need to track leaders separately or modify LineArea
+                    // For now, let's add it as a child of the block area directly
+                    leaderArea.X = foBlock.PaddingLeft + currentX;
+                    leaderArea.Y = currentY;
+                    blockArea.AddChild(leaderArea);
+
+                    currentX += leaderWidth;
                 }
             }
 

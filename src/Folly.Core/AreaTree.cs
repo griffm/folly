@@ -502,6 +502,54 @@ public sealed class FloatArea : Area
 }
 
 /// <summary>
+/// Represents a leader area (from fo:leader).
+/// Leaders generate repeating patterns (dots, rules, spaces) to fill space,
+/// commonly used in tables of contents to connect entries with page numbers.
+/// </summary>
+public sealed class LeaderArea : Area
+{
+    /// <summary>
+    /// Gets or sets the leader pattern type (space, dots, rule, use-content).
+    /// </summary>
+    public string LeaderPattern { get; set; } = "space";
+
+    /// <summary>
+    /// Gets or sets the pattern width for repeating patterns.
+    /// </summary>
+    public double LeaderPatternWidth { get; set; } = 5.0;
+
+    /// <summary>
+    /// Gets or sets the rule thickness (for leader-pattern="rule").
+    /// </summary>
+    public double RuleThickness { get; set; } = 1.0;
+
+    /// <summary>
+    /// Gets or sets the rule style (solid, dotted, dashed, etc.).
+    /// </summary>
+    public string RuleStyle { get; set; } = "solid";
+
+    /// <summary>
+    /// Gets or sets the color for the leader pattern.
+    /// </summary>
+    public string Color { get; set; } = "black";
+
+    /// <summary>
+    /// Gets or sets the font family (for dot patterns).
+    /// </summary>
+    public string FontFamily { get; set; } = "Helvetica";
+
+    /// <summary>
+    /// Gets or sets the font size (for dot patterns).
+    /// </summary>
+    public double FontSize { get; set; } = 12;
+
+    /// <summary>
+    /// Gets or sets the baseline offset for inline positioning.
+    /// </summary>
+    public double BaselineOffset { get; set; }
+}
+
+/// <summary>
 /// Represents a link area (from fo:basic-link).
 /// Links create clickable regions in the PDF that navigate to internal or external destinations.
 /// </summary>
