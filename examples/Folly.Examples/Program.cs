@@ -90,6 +90,10 @@ GenerateBidiOverrideExample(Path.Combine(outputDir, "19-bidi-override.pdf"));
 Console.WriteLine("Generating Example 20: PDF Metadata...");
 GenerateMetadataExample(Path.Combine(outputDir, "20-metadata.pdf"));
 
+// Example 21: Flatland Book
+Console.WriteLine("Generating Example 21: Flatland Book...");
+GenerateFlatlandBook(Path.Combine(outputDir, "21-flatland.pdf"));
+
 Console.WriteLine("\n✓ All examples generated successfully!");
 Console.WriteLine($"\nView PDFs in: {outputDir}");
 Console.WriteLine("\nValidate with qpdf:");
@@ -1819,4 +1823,37 @@ static void GenerateMetadataExample(string outputPath)
 
     using var doc = FoDocument.Load(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml)));
     doc.SavePdf(outputPath);
+}
+
+static void GenerateFlatlandBook(string outputPath)
+{
+    // Load the Flatland book from the books directory
+    var booksDir = Path.Combine(Directory.GetCurrentDirectory(), "..", "books", "flatland");
+    var foFilePath = Path.Combine(booksDir, "flatland.fo");
+
+    if (!File.Exists(foFilePath))
+    {
+        Console.WriteLine($"Warning: Flatland FO file not found at {foFilePath}");
+        Console.WriteLine("Skipping flatland example.");
+        return;
+    }
+
+    // Read the FO file
+    var foXml = File.ReadAllText(foFilePath);
+
+    // Create a temporary directory to resolve relative image paths
+    var originalDir = Directory.GetCurrentDirectory();
+    try
+    {
+        // Change to the flatland directory so relative image paths work
+        Directory.SetCurrentDirectory(booksDir);
+
+        using var doc = FoDocument.Load(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml)));
+        doc.SavePdf(outputPath);
+    }
+    finally
+    {
+        // Restore original directory
+        Directory.SetCurrentDirectory(originalDir);
+    }
 }
