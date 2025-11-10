@@ -236,8 +236,14 @@ public sealed class PdfRenderer : IDisposable
                 RenderBackground(blockArea, content, pageHeight, offsetX, offsetY);
             }
 
-            // Render borders
-            if (blockArea.BorderStyle != "none" && blockArea.BorderWidth > 0)
+            // Render borders (check both generic and directional borders)
+            var hasGenericBorder = blockArea.BorderStyle != "none" && blockArea.BorderWidth > 0;
+            var hasDirectionalBorder = (blockArea.BorderTopStyle != "none" && blockArea.BorderTopWidth > 0) ||
+                                        (blockArea.BorderBottomStyle != "none" && blockArea.BorderBottomWidth > 0) ||
+                                        (blockArea.BorderLeftStyle != "none" && blockArea.BorderLeftWidth > 0) ||
+                                        (blockArea.BorderRightStyle != "none" && blockArea.BorderRightWidth > 0);
+
+            if (hasGenericBorder || hasDirectionalBorder)
             {
                 RenderBorder(blockArea, content, pageHeight, offsetX, offsetY);
             }
@@ -434,43 +440,99 @@ public sealed class PdfRenderer : IDisposable
 
     private void RenderBorder(BlockArea block, StringBuilder content, double pageHeight, double offsetX, double offsetY)
     {
-        // Parse border color and convert to RGB
-        var (r, g, b) = ParseColor(block.BorderColor);
-
-        // Save graphics state
-        content.AppendLine("q");
-
-        // Set stroke color and width
-        content.AppendLine($"{r:F3} {g:F3} {b:F3} RG");
-        content.AppendLine($"{block.BorderWidth:F2} w");
-
-        // Set line dash pattern based on border style
-        switch (block.BorderStyle.ToLowerInvariant())
-        {
-            case "dashed":
-                content.AppendLine("[3 2] 0 d"); // Dashed pattern
-                break;
-            case "dotted":
-                content.AppendLine("[1 1] 0 d"); // Dotted pattern
-                break;
-            default: // solid
-                content.AppendLine("[] 0 d"); // Solid line
-                break;
-        }
-
         // Calculate absolute position
         var x = offsetX + block.X;
         var y = offsetY + block.Y;
-
-        // Convert Y coordinate from top-down to PDF's bottom-up coordinate system
         var pdfY = pageHeight - y - block.Height;
 
-        // Draw rectangle border (accounting for half the line width)
-        var halfWidth = block.BorderWidth / 2;
-        content.AppendLine($"{x + halfWidth:F2} {pdfY + halfWidth:F2} {block.Width - block.BorderWidth:F2} {block.Height - block.BorderWidth:F2} re");
-        content.AppendLine("S");
+        // Check if we should use directional borders or generic border
+        var hasDirectionalBorders = block.BorderTopStyle != "none" || block.BorderBottomStyle != "none" ||
+                                     block.BorderLeftStyle != "none" || block.BorderRightStyle != "none";
 
-        // Restore graphics state
+        if (hasDirectionalBorders)
+        {
+            // Render each border side independently
+            // Top border (border-before in XSL-FO)
+            if (block.BorderTopStyle != "none" && block.BorderTopWidth > 0)
+            {
+                RenderBorderSide(content, block.BorderTopWidth, block.BorderTopColor, block.BorderTopStyle,
+                    x, pdfY + block.Height, x + block.Width, pdfY + block.Height);
+            }
+
+            // Bottom border (border-after in XSL-FO)
+            if (block.BorderBottomStyle != "none" && block.BorderBottomWidth > 0)
+            {
+                RenderBorderSide(content, block.BorderBottomWidth, block.BorderBottomColor, block.BorderBottomStyle,
+                    x, pdfY, x + block.Width, pdfY);
+            }
+
+            // Left border (border-start in XSL-FO)
+            if (block.BorderLeftStyle != "none" && block.BorderLeftWidth > 0)
+            {
+                RenderBorderSide(content, block.BorderLeftWidth, block.BorderLeftColor, block.BorderLeftStyle,
+                    x, pdfY, x, pdfY + block.Height);
+            }
+
+            // Right border (border-end in XSL-FO)
+            if (block.BorderRightStyle != "none" && block.BorderRightWidth > 0)
+            {
+                RenderBorderSide(content, block.BorderRightWidth, block.BorderRightColor, block.BorderRightStyle,
+                    x + block.Width, pdfY, x + block.Width, pdfY + block.Height);
+            }
+        }
+        else
+        {
+            // Fall back to generic border (draw complete rectangle)
+            var (r, g, b) = ParseColor(block.BorderColor);
+
+            content.AppendLine("q");
+            content.AppendLine($"{r:F3} {g:F3} {b:F3} RG");
+            content.AppendLine($"{block.BorderWidth:F2} w");
+
+            switch (block.BorderStyle.ToLowerInvariant())
+            {
+                case "dashed":
+                    content.AppendLine("[3 2] 0 d");
+                    break;
+                case "dotted":
+                    content.AppendLine("[1 1] 0 d");
+                    break;
+                default:
+                    content.AppendLine("[] 0 d");
+                    break;
+            }
+
+            var halfWidth = block.BorderWidth / 2;
+            content.AppendLine($"{x + halfWidth:F2} {pdfY + halfWidth:F2} {block.Width - block.BorderWidth:F2} {block.Height - block.BorderWidth:F2} re");
+            content.AppendLine("S");
+            content.AppendLine("Q");
+        }
+    }
+
+    private void RenderBorderSide(StringBuilder content, double width, string color, string style, double x1, double y1, double x2, double y2)
+    {
+        var (r, g, b) = ParseColor(color);
+
+        content.AppendLine("q");
+        content.AppendLine($"{r:F3} {g:F3} {b:F3} RG");
+        content.AppendLine($"{width:F2} w");
+
+        switch (style.ToLowerInvariant())
+        {
+            case "dashed":
+                content.AppendLine("[3 2] 0 d");
+                break;
+            case "dotted":
+                content.AppendLine("[1 1] 0 d");
+                break;
+            default:
+                content.AppendLine("[] 0 d");
+                break;
+        }
+
+        content.AppendLine($"{x1:F2} {y1:F2} m");
+        content.AppendLine($"{x2:F2} {y2:F2} l");
+        content.AppendLine("S");
         content.AppendLine("Q");
     }
 

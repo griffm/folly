@@ -184,6 +184,66 @@ public sealed class BlockArea : Area
     public string BorderStyle { get; set; } = "none";
 
     /// <summary>
+    /// Gets or sets the top border width.
+    /// </summary>
+    public double BorderTopWidth { get; set; }
+
+    /// <summary>
+    /// Gets or sets the bottom border width.
+    /// </summary>
+    public double BorderBottomWidth { get; set; }
+
+    /// <summary>
+    /// Gets or sets the left border width.
+    /// </summary>
+    public double BorderLeftWidth { get; set; }
+
+    /// <summary>
+    /// Gets or sets the right border width.
+    /// </summary>
+    public double BorderRightWidth { get; set; }
+
+    /// <summary>
+    /// Gets or sets the top border style.
+    /// </summary>
+    public string BorderTopStyle { get; set; } = "none";
+
+    /// <summary>
+    /// Gets or sets the bottom border style.
+    /// </summary>
+    public string BorderBottomStyle { get; set; } = "none";
+
+    /// <summary>
+    /// Gets or sets the left border style.
+    /// </summary>
+    public string BorderLeftStyle { get; set; } = "none";
+
+    /// <summary>
+    /// Gets or sets the right border style.
+    /// </summary>
+    public string BorderRightStyle { get; set; } = "none";
+
+    /// <summary>
+    /// Gets or sets the top border color.
+    /// </summary>
+    public string BorderTopColor { get; set; } = "black";
+
+    /// <summary>
+    /// Gets or sets the bottom border color.
+    /// </summary>
+    public string BorderBottomColor { get; set; } = "black";
+
+    /// <summary>
+    /// Gets or sets the left border color.
+    /// </summary>
+    public string BorderLeftColor { get; set; } = "black";
+
+    /// <summary>
+    /// Gets or sets the right border color.
+    /// </summary>
+    public string BorderRightColor { get; set; } = "black";
+
+    /// <summary>
     /// Gets the child areas (typically line areas).
     /// </summary>
     public IReadOnlyList<Area> Children => _children;

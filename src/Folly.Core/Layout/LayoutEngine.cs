@@ -509,7 +509,19 @@ internal sealed class LayoutEngine
             BackgroundColor = foBlock.BackgroundColor,
             BorderWidth = foBlock.BorderWidth,
             BorderColor = foBlock.BorderColor,
-            BorderStyle = foBlock.BorderStyle
+            BorderStyle = foBlock.BorderStyle,
+            BorderTopWidth = foBlock.BorderTopWidth,
+            BorderBottomWidth = foBlock.BorderBottomWidth,
+            BorderLeftWidth = foBlock.BorderLeftWidth,
+            BorderRightWidth = foBlock.BorderRightWidth,
+            BorderTopStyle = foBlock.BorderTopStyle,
+            BorderBottomStyle = foBlock.BorderBottomStyle,
+            BorderLeftStyle = foBlock.BorderLeftStyle,
+            BorderRightStyle = foBlock.BorderRightStyle,
+            BorderTopColor = foBlock.BorderTopColor,
+            BorderBottomColor = foBlock.BorderBottomColor,
+            BorderLeftColor = foBlock.BorderLeftColor,
+            BorderRightColor = foBlock.BorderRightColor
         };
 
         // Calculate content width (available width minus margins and padding)
