@@ -163,24 +163,28 @@ public sealed class FoTableCell : FoElement
     public int ColumnNumber => int.TryParse(Properties.GetString("column-number", "0"), out var n) ? n : 0;
 
     /// <summary>
-    /// Gets the padding top (padding-before in XSL-FO).
+    /// Gets the padding top.
+    /// Maps from padding-before in XSL-FO based on writing-mode.
     /// </summary>
-    public double PaddingTop => LengthParser.Parse(Properties.GetString("padding-before", Properties.GetString("padding-top", Properties.GetString("padding", "0pt"))));
+    public double PaddingTop => GetDirectionalLength("padding-before", "padding-top", 0, "padding");
 
     /// <summary>
-    /// Gets the padding bottom (padding-after in XSL-FO).
+    /// Gets the padding bottom.
+    /// Maps from padding-after in XSL-FO based on writing-mode.
     /// </summary>
-    public double PaddingBottom => LengthParser.Parse(Properties.GetString("padding-after", Properties.GetString("padding-bottom", Properties.GetString("padding", "0pt"))));
+    public double PaddingBottom => GetDirectionalLength("padding-after", "padding-bottom", 0, "padding");
 
     /// <summary>
-    /// Gets the padding left (padding-start in XSL-FO).
+    /// Gets the padding left.
+    /// Maps from padding-start in XSL-FO based on writing-mode.
     /// </summary>
-    public double PaddingLeft => LengthParser.Parse(Properties.GetString("padding-start", Properties.GetString("padding-left", Properties.GetString("padding", "0pt"))));
+    public double PaddingLeft => GetDirectionalLength("padding-start", "padding-left", 0, "padding");
 
     /// <summary>
-    /// Gets the padding right (padding-end in XSL-FO).
+    /// Gets the padding right.
+    /// Maps from padding-end in XSL-FO based on writing-mode.
     /// </summary>
-    public double PaddingRight => LengthParser.Parse(Properties.GetString("padding-end", Properties.GetString("padding-right", Properties.GetString("padding", "0pt"))));
+    public double PaddingRight => GetDirectionalLength("padding-end", "padding-right", 0, "padding");
 
     /// <summary>
     /// Gets the border width.

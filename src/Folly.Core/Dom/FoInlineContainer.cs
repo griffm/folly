@@ -43,12 +43,6 @@ public sealed class FoInlineContainer : FoElement
     public int ReferenceOrientation => int.TryParse(Properties.GetString("reference-orientation", "0"), out var val) ? val : 0;
 
     /// <summary>
-    /// Gets the writing mode (lr-tb, rl-tb, tb-rl, tb-lr, lr, rl, tb).
-    /// Default is "lr-tb" (left-to-right, top-to-bottom).
-    /// </summary>
-    public string WritingMode => Properties.GetString("writing-mode", "lr-tb");
-
-    /// <summary>
     /// Gets the display alignment (auto, before, center, after).
     /// Controls vertical alignment of content.
     /// Default is "auto".
@@ -96,42 +90,50 @@ public sealed class FoInlineContainer : FoElement
     public string BackgroundColor => Properties.GetString("background-color", "");
 
     /// <summary>
-    /// Gets the border-top width (border-before-width in XSL-FO).
+    /// Gets the border-top width.
+    /// Maps from border-before-width in XSL-FO based on writing-mode.
     /// </summary>
-    public double BorderTopWidth => Properties.GetLength("border-before-width", Properties.GetLength("border-top-width", 0));
+    public double BorderTopWidth => GetDirectionalLength("border-before-width", "border-top-width");
 
     /// <summary>
-    /// Gets the border-bottom width (border-after-width in XSL-FO).
+    /// Gets the border-bottom width.
+    /// Maps from border-after-width in XSL-FO based on writing-mode.
     /// </summary>
-    public double BorderBottomWidth => Properties.GetLength("border-after-width", Properties.GetLength("border-bottom-width", 0));
+    public double BorderBottomWidth => GetDirectionalLength("border-after-width", "border-bottom-width");
 
     /// <summary>
-    /// Gets the border-left width (border-start-width in XSL-FO).
+    /// Gets the border-left width.
+    /// Maps from border-start-width in XSL-FO based on writing-mode.
     /// </summary>
-    public double BorderLeftWidth => Properties.GetLength("border-start-width", Properties.GetLength("border-left-width", 0));
+    public double BorderLeftWidth => GetDirectionalLength("border-start-width", "border-left-width");
 
     /// <summary>
-    /// Gets the border-right width (border-end-width in XSL-FO).
+    /// Gets the border-right width.
+    /// Maps from border-end-width in XSL-FO based on writing-mode.
     /// </summary>
-    public double BorderRightWidth => Properties.GetLength("border-end-width", Properties.GetLength("border-right-width", 0));
+    public double BorderRightWidth => GetDirectionalLength("border-end-width", "border-right-width");
 
     /// <summary>
-    /// Gets the padding-top (padding-before in XSL-FO).
+    /// Gets the padding-top.
+    /// Maps from padding-before in XSL-FO based on writing-mode.
     /// </summary>
-    public double PaddingTop => Properties.GetLength("padding-before", Properties.GetLength("padding-top", 0));
+    public double PaddingTop => GetDirectionalLength("padding-before", "padding-top");
 
     /// <summary>
-    /// Gets the padding-bottom (padding-after in XSL-FO).
+    /// Gets the padding-bottom.
+    /// Maps from padding-after in XSL-FO based on writing-mode.
     /// </summary>
-    public double PaddingBottom => Properties.GetLength("padding-after", Properties.GetLength("padding-bottom", 0));
+    public double PaddingBottom => GetDirectionalLength("padding-after", "padding-bottom");
 
     /// <summary>
-    /// Gets the padding-left (padding-start in XSL-FO).
+    /// Gets the padding-left.
+    /// Maps from padding-start in XSL-FO based on writing-mode.
     /// </summary>
-    public double PaddingLeft => Properties.GetLength("padding-start", Properties.GetLength("padding-left", 0));
+    public double PaddingLeft => GetDirectionalLength("padding-start", "padding-left");
 
     /// <summary>
-    /// Gets the padding-right (padding-end in XSL-FO).
+    /// Gets the padding-right.
+    /// Maps from padding-end in XSL-FO based on writing-mode.
     /// </summary>
-    public double PaddingRight => Properties.GetLength("padding-end", Properties.GetLength("padding-right", 0));
+    public double PaddingRight => GetDirectionalLength("padding-end", "padding-right");
 }
