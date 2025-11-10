@@ -350,6 +350,16 @@ internal sealed class PdfWriter : IDisposable
             '-' => "hyphen",
             '.' => "period",
             '/' => "slash",
+            '0' => "zero",
+            '1' => "one",
+            '2' => "two",
+            '3' => "three",
+            '4' => "four",
+            '5' => "five",
+            '6' => "six",
+            '7' => "seven",
+            '8' => "eight",
+            '9' => "nine",
             ':' => "colon",
             ';' => "semicolon",
             '<' => "less",
@@ -367,8 +377,7 @@ internal sealed class PdfWriter : IDisposable
             '|' => "bar",
             '}' => "braceright",
             '~' => "asciitilde",
-            _ => ch >= '0' && ch <= '9' ? $"{ch}" :
-                 ch >= 'A' && ch <= 'Z' ? $"{ch}" :
+            _ => ch >= 'A' && ch <= 'Z' ? $"{ch}" :
                  ch >= 'a' && ch <= 'z' ? $"{ch}" :
                  $"char{(int)ch}"
         };
