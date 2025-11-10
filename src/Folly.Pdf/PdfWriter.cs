@@ -118,14 +118,21 @@ internal sealed class PdfWriter : IDisposable
 
     private int WriteJpegXObject(byte[] jpegData, int width, int height)
     {
+        // Parse JPEG metadata to extract actual color space and bits per component
+        var (parsedWidth, parsedHeight, bitsPerComponent, colorSpace) = ParseJpegMetadata(jpegData);
+
+        // Use parsed dimensions if available, otherwise fall back to provided values
+        if (parsedWidth > 0) width = parsedWidth;
+        if (parsedHeight > 0) height = parsedHeight;
+
         var imageId = BeginObject();
         WriteLine("<<");
         WriteLine("  /Type /XObject");
         WriteLine("  /Subtype /Image");
         WriteLine($"  /Width {width}");
         WriteLine($"  /Height {height}");
-        WriteLine("  /ColorSpace /DeviceRGB");
-        WriteLine("  /BitsPerComponent 8");
+        WriteLine($"  /ColorSpace /{colorSpace}");
+        WriteLine($"  /BitsPerComponent {bitsPerComponent}");
         WriteLine("  /Filter /DCTDecode");
         WriteLine($"  /Length {jpegData.Length}");
         WriteLine(">>");
@@ -241,6 +248,118 @@ internal sealed class PdfWriter : IDisposable
             byte[] fallback = new byte[] { 255, 255, 255 };
             return (fallback, 8, "DeviceRGB");
         }
+    }
+
+    /// <summary>
+    /// Parses JPEG header to extract image metadata.
+    /// Returns (width, height, bitsPerComponent, colorSpace).
+    /// </summary>
+    private (int Width, int Height, int BitsPerComponent, string ColorSpace) ParseJpegMetadata(byte[] jpegData)
+    {
+        // Default fallback values
+        int width = 0, height = 0, bitsPerComponent = 8;
+        string colorSpace = "DeviceRGB";
+
+        try
+        {
+            // Verify JPEG signature (SOI marker: 0xFF 0xD8)
+            if (jpegData.Length < 2 || jpegData[0] != 0xFF || jpegData[1] != 0xD8)
+            {
+                return (width, height, bitsPerComponent, colorSpace);
+            }
+
+            int offset = 2;
+
+            // Parse JPEG markers to find SOF (Start of Frame)
+            while (offset + 1 < jpegData.Length)
+            {
+                // Find next marker (0xFF followed by non-zero byte)
+                if (jpegData[offset] != 0xFF)
+                {
+                    offset++;
+                    continue;
+                }
+
+                byte marker = jpegData[offset + 1];
+                offset += 2;
+
+                // Skip padding bytes (0xFF 0x00 is stuffed 0xFF, not a marker)
+                if (marker == 0x00)
+                {
+                    continue;
+                }
+
+                // SOI, EOI, TEM, RSTn markers have no length field
+                if (marker == 0xD8 || marker == 0xD9 || marker == 0x01 || (marker >= 0xD0 && marker <= 0xD7))
+                {
+                    continue;
+                }
+
+                // Read marker length
+                if (offset + 1 >= jpegData.Length)
+                {
+                    break;
+                }
+
+                int length = (jpegData[offset] << 8) | jpegData[offset + 1];
+
+                // Security: Validate marker length
+                if (length < 2 || offset + length > jpegData.Length)
+                {
+                    break;
+                }
+
+                // Check if this is a SOF marker (Start of Frame)
+                // SOF0 (Baseline DCT): 0xC0
+                // SOF1 (Extended Sequential DCT): 0xC1
+                // SOF2 (Progressive DCT): 0xC2
+                // SOF3 (Lossless): 0xC3
+                // SOF5-SOF7, SOF9-SOF11, SOF13-SOF15 are other SOF variants
+                bool isSof = (marker >= 0xC0 && marker <= 0xC3) ||
+                             (marker >= 0xC5 && marker <= 0xC7) ||
+                             (marker >= 0xC9 && marker <= 0xCB) ||
+                             (marker >= 0xCD && marker <= 0xCF);
+
+                if (isSof)
+                {
+                    // SOF structure:
+                    // - 2 bytes: length (already read)
+                    // - 1 byte: data precision (bits per component)
+                    // - 2 bytes: image height
+                    // - 2 bytes: image width
+                    // - 1 byte: number of components
+
+                    if (offset + 7 <= jpegData.Length)
+                    {
+                        bitsPerComponent = jpegData[offset + 2];
+                        height = (jpegData[offset + 3] << 8) | jpegData[offset + 4];
+                        width = (jpegData[offset + 5] << 8) | jpegData[offset + 6];
+                        int numComponents = jpegData[offset + 7];
+
+                        // Map number of components to PDF color space
+                        colorSpace = numComponents switch
+                        {
+                            1 => "DeviceGray",    // Grayscale
+                            3 => "DeviceRGB",     // RGB or YCbCr (commonly treated as RGB)
+                            4 => "DeviceCMYK",    // CMYK
+                            _ => "DeviceRGB"      // Default fallback
+                        };
+
+                        break; // Found SOF, stop parsing
+                    }
+                }
+
+                // Skip to next marker
+                offset += length;
+            }
+        }
+        catch
+        {
+            // If parsing fails, return default values
+            // Caller will use width/height from image loading
+        }
+
+        return (width, height, bitsPerComponent, colorSpace);
     }
 
     /// <summary>
