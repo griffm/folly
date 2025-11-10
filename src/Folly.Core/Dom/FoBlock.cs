@@ -27,6 +27,16 @@ public sealed class FoBlock : FoElement
     }
 
     /// <summary>
+    /// Gets the font weight (normal, bold, 100-900), with inheritance from parent elements.
+    /// </summary>
+    public string FontWeight => GetComputedProperty("font-weight", "normal") ?? "normal";
+
+    /// <summary>
+    /// Gets the font style (normal, italic, oblique), with inheritance from parent elements.
+    /// </summary>
+    public string FontStyle => GetComputedProperty("font-style", "normal") ?? "normal";
+
+    /// <summary>
     /// Gets the line height in points, with inheritance from parent elements.
     /// </summary>
     public double LineHeight
