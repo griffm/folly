@@ -17,6 +17,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "examples", "examples", "{B8
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Folly.Examples", "examples\Folly.Examples\Folly.Examples.csproj", "{BF126CC9-C291-4CF9-9BC4-617A48F3D700}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{68A91BF0-4AEF-4F71-8B51-20C30509E4D8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Folly.SourceGenerators", "src\Folly.SourceGenerators\Folly.SourceGenerators.csproj", "{A16E6DD9-B2F1-4FF7-904D-63C221C93683}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -47,8 +51,13 @@ Global
 		{BF126CC9-C291-4CF9-9BC4-617A48F3D700}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BF126CC9-C291-4CF9-9BC4-617A48F3D700}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BF126CC9-C291-4CF9-9BC4-617A48F3D700}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A16E6DD9-B2F1-4FF7-904D-63C221C93683}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A16E6DD9-B2F1-4FF7-904D-63C221C93683}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A16E6DD9-B2F1-4FF7-904D-63C221C93683}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A16E6DD9-B2F1-4FF7-904D-63C221C93683}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{BF126CC9-C291-4CF9-9BC4-617A48F3D700} = {B833AF6E-15C4-468F-987C-2E7F5E2CA3D8}
+		{A16E6DD9-B2F1-4FF7-904D-63C221C93683} = {68A91BF0-4AEF-4F71-8B51-20C30509E4D8}
 	EndGlobalSection
 EndGlobal
