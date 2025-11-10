@@ -7,7 +7,7 @@ using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 
-namespace Folly.SourceGenerators
+namespace Folly.SourceGenerators.Glyphs
 {
     /// <summary>
     /// Source generator that creates a mapping from Unicode code points to Adobe Glyph List names.
@@ -97,7 +97,7 @@ namespace Folly.SourceGenerators
             {
                 // Try to read the embedded resource
                 var assembly = typeof(AdobeGlyphListGenerator).Assembly;
-                var resourceName = "Folly.SourceGenerators.glyphlist.txt";
+                var resourceName = "Folly.SourceGenerators.Glyphs.glyphlist.txt";
 
                 using var stream = assembly.GetManifestResourceStream(resourceName);
                 if (stream == null)

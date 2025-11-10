@@ -9,7 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Folly.Core\Folly.Core.csproj" />
-    <ProjectReference Include="..\Folly.SourceGenerators\Folly.SourceGenerators.csproj"
+    <ProjectReference Include="..\Folly.SourceGenerators.Glyphs\Folly.SourceGenerators.Glyphs.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false" />
   </ItemGroup>

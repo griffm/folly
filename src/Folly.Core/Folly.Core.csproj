@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Folly.SourceGenerators\Folly.SourceGenerators.csproj"
+    <ProjectReference Include="..\Folly.SourceGenerators.Fonts\Folly.SourceGenerators.Fonts.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false" />
   </ItemGroup>

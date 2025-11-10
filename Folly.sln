@@ -17,9 +17,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "examples", "examples", "{B8
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Folly.Examples", "examples\Folly.Examples\Folly.Examples.csproj", "{BF126CC9-C291-4CF9-9BC4-617A48F3D700}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{68A91BF0-4AEF-4F71-8B51-20C30509E4D8}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{CF4C64A9-A9EA-4AD0-8CEE-6CD194D45E81}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Folly.SourceGenerators", "src\Folly.SourceGenerators\Folly.SourceGenerators.csproj", "{A16E6DD9-B2F1-4FF7-904D-63C221C93683}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Folly.SourceGenerators.Fonts", "src\Folly.SourceGenerators.Fonts\Folly.SourceGenerators.Fonts.csproj", "{6E695A19-EFD5-434F-A14D-76E82B1EF32C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Folly.SourceGenerators.Glyphs", "src\Folly.SourceGenerators.Glyphs\Folly.SourceGenerators.Glyphs.csproj", "{3A789A72-4941-4F5D-BF9B-179A7CE7D9BD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -51,13 +53,18 @@ Global
 		{BF126CC9-C291-4CF9-9BC4-617A48F3D700}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BF126CC9-C291-4CF9-9BC4-617A48F3D700}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BF126CC9-C291-4CF9-9BC4-617A48F3D700}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A16E6DD9-B2F1-4FF7-904D-63C221C93683}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A16E6DD9-B2F1-4FF7-904D-63C221C93683}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A16E6DD9-B2F1-4FF7-904D-63C221C93683}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A16E6DD9-B2F1-4FF7-904D-63C221C93683}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6E695A19-EFD5-434F-A14D-76E82B1EF32C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6E695A19-EFD5-434F-A14D-76E82B1EF32C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6E695A19-EFD5-434F-A14D-76E82B1EF32C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6E695A19-EFD5-434F-A14D-76E82B1EF32C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3A789A72-4941-4F5D-BF9B-179A7CE7D9BD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3A789A72-4941-4F5D-BF9B-179A7CE7D9BD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3A789A72-4941-4F5D-BF9B-179A7CE7D9BD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3A789A72-4941-4F5D-BF9B-179A7CE7D9BD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{BF126CC9-C291-4CF9-9BC4-617A48F3D700} = {B833AF6E-15C4-468F-987C-2E7F5E2CA3D8}
-		{A16E6DD9-B2F1-4FF7-904D-63C221C93683} = {68A91BF0-4AEF-4F71-8B51-20C30509E4D8}
+		{6E695A19-EFD5-434F-A14D-76E82B1EF32C} = {CF4C64A9-A9EA-4AD0-8CEE-6CD194D45E81}
+		{3A789A72-4941-4F5D-BF9B-179A7CE7D9BD} = {CF4C64A9-A9EA-4AD0-8CEE-6CD194D45E81}
 	EndGlobalSection
 EndGlobal
