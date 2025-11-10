@@ -31,6 +31,13 @@ public abstract class FoElement
     public FoElement? Parent { get; set; }
 
     /// <summary>
+    /// Gets the writing mode for this element, with inheritance from parent elements.
+    /// The writing mode affects how relative directional properties (before/after/start/end)
+    /// map to absolute properties (top/bottom/left/right).
+    /// </summary>
+    public string WritingMode => GetComputedProperty("writing-mode", "lr-tb") ?? "lr-tb";
+
+    /// <summary>
     /// Gets the computed value of a property, taking inheritance into account.
     /// </summary>
     public string? GetComputedProperty(string name, string? defaultValue = null)
@@ -51,5 +58,28 @@ public abstract class FoElement
 
         // Use default value
         return defaultValue;
+    }
+
+    /// <summary>
+    /// Gets a length property with writing-mode-aware directional property mapping.
+    /// This method first checks for the relative directional property (e.g., padding-before),
+    /// then falls back to the absolute property (e.g., padding-top), taking the current
+    /// writing-mode into account.
+    /// </summary>
+    /// <param name="relativeProperty">The relative property name</param>
+    /// <param name="absoluteProperty">The absolute property name</param>
+    /// <param name="defaultValue">Default value if not found</param>
+    /// <param name="genericProperty">Optional generic property to check (e.g., "padding")</param>
+    protected double GetDirectionalLength(string relativeProperty, string absoluteProperty, double defaultValue = 0, string? genericProperty = null)
+    {
+        return WritingModeHelper.GetDirectionalLength(Properties, relativeProperty, absoluteProperty, WritingMode, defaultValue, genericProperty);
+    }
+
+    /// <summary>
+    /// Gets a string property with writing-mode-aware directional property mapping.
+    /// </summary>
+    protected string GetDirectionalString(string relativeProperty, string absoluteProperty, string defaultValue)
+    {
+        return WritingModeHelper.GetDirectionalString(Properties, relativeProperty, absoluteProperty, WritingMode, defaultValue);
     }
 }

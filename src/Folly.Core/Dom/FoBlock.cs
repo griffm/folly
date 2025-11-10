@@ -56,24 +56,28 @@ public sealed class FoBlock : FoElement
     public string TextAlign => GetComputedProperty("text-align", "start") ?? "start";
 
     /// <summary>
-    /// Gets the margin-top in points (margin-before in XSL-FO).
+    /// Gets the margin-top in points.
+    /// Maps from margin-before in XSL-FO based on writing-mode.
     /// </summary>
-    public double MarginTop => Properties.GetLength("margin-before", Properties.GetLength("margin-top", 0));
+    public double MarginTop => GetDirectionalLength("margin-before", "margin-top");
 
     /// <summary>
-    /// Gets the margin-bottom in points (margin-after in XSL-FO).
+    /// Gets the margin-bottom in points.
+    /// Maps from margin-after in XSL-FO based on writing-mode.
     /// </summary>
-    public double MarginBottom => Properties.GetLength("margin-after", Properties.GetLength("margin-bottom", 0));
+    public double MarginBottom => GetDirectionalLength("margin-after", "margin-bottom");
 
     /// <summary>
-    /// Gets the margin-left in points (margin-start in XSL-FO).
+    /// Gets the margin-left in points.
+    /// Maps from margin-start in XSL-FO based on writing-mode.
     /// </summary>
-    public double MarginLeft => Properties.GetLength("margin-start", Properties.GetLength("margin-left", 0));
+    public double MarginLeft => GetDirectionalLength("margin-start", "margin-left");
 
     /// <summary>
-    /// Gets the margin-right in points (margin-end in XSL-FO).
+    /// Gets the margin-right in points.
+    /// Maps from margin-end in XSL-FO based on writing-mode.
     /// </summary>
-    public double MarginRight => Properties.GetLength("margin-end", Properties.GetLength("margin-right", 0));
+    public double MarginRight => GetDirectionalLength("margin-end", "margin-right");
 
     /// <summary>
     /// Gets the space before in points (space before this block).
@@ -88,24 +92,28 @@ public sealed class FoBlock : FoElement
     public double SpaceAfter => Properties.GetLength("space-after", 0);
 
     /// <summary>
-    /// Gets the padding-top in points (padding-before in XSL-FO).
+    /// Gets the padding-top in points.
+    /// Maps from padding-before in XSL-FO based on writing-mode.
     /// </summary>
-    public double PaddingTop => Properties.GetLength("padding-before", Properties.GetLength("padding-top", 0));
+    public double PaddingTop => GetDirectionalLength("padding-before", "padding-top");
 
     /// <summary>
-    /// Gets the padding-bottom in points (padding-after in XSL-FO).
+    /// Gets the padding-bottom in points.
+    /// Maps from padding-after in XSL-FO based on writing-mode.
     /// </summary>
-    public double PaddingBottom => Properties.GetLength("padding-after", Properties.GetLength("padding-bottom", 0));
+    public double PaddingBottom => GetDirectionalLength("padding-after", "padding-bottom");
 
     /// <summary>
-    /// Gets the padding-left in points (padding-start in XSL-FO).
+    /// Gets the padding-left in points.
+    /// Maps from padding-start in XSL-FO based on writing-mode.
     /// </summary>
-    public double PaddingLeft => Properties.GetLength("padding-start", Properties.GetLength("padding-left", 0));
+    public double PaddingLeft => GetDirectionalLength("padding-start", "padding-left");
 
     /// <summary>
-    /// Gets the padding-right in points (padding-end in XSL-FO).
+    /// Gets the padding-right in points.
+    /// Maps from padding-end in XSL-FO based on writing-mode.
     /// </summary>
-    public double PaddingRight => Properties.GetLength("padding-end", Properties.GetLength("padding-right", 0));
+    public double PaddingRight => GetDirectionalLength("padding-end", "padding-right");
 
     /// <summary>
     /// Gets the background color in CSS format (e.g., "#FF0000", "red", "transparent").
@@ -128,64 +136,76 @@ public sealed class FoBlock : FoElement
     public string BorderStyle => Properties.GetString("border-style", "none");
 
     /// <summary>
-    /// Gets the top border width in points (border-before in XSL-FO).
+    /// Gets the top border width in points.
+    /// Maps from border-before-width in XSL-FO based on writing-mode.
     /// </summary>
-    public double BorderTopWidth => Properties.GetLength("border-before-width", Properties.GetLength("border-top-width", BorderWidth));
+    public double BorderTopWidth => GetDirectionalLength("border-before-width", "border-top-width", BorderWidth);
 
     /// <summary>
-    /// Gets the bottom border width in points (border-after in XSL-FO).
+    /// Gets the bottom border width in points.
+    /// Maps from border-after-width in XSL-FO based on writing-mode.
     /// </summary>
-    public double BorderBottomWidth => Properties.GetLength("border-after-width", Properties.GetLength("border-bottom-width", BorderWidth));
+    public double BorderBottomWidth => GetDirectionalLength("border-after-width", "border-bottom-width", BorderWidth);
 
     /// <summary>
-    /// Gets the left border width in points (border-start in XSL-FO).
+    /// Gets the left border width in points.
+    /// Maps from border-start-width in XSL-FO based on writing-mode.
     /// </summary>
-    public double BorderLeftWidth => Properties.GetLength("border-start-width", Properties.GetLength("border-left-width", BorderWidth));
+    public double BorderLeftWidth => GetDirectionalLength("border-start-width", "border-left-width", BorderWidth);
 
     /// <summary>
-    /// Gets the right border width in points (border-end in XSL-FO).
+    /// Gets the right border width in points.
+    /// Maps from border-end-width in XSL-FO based on writing-mode.
     /// </summary>
-    public double BorderRightWidth => Properties.GetLength("border-end-width", Properties.GetLength("border-right-width", BorderWidth));
+    public double BorderRightWidth => GetDirectionalLength("border-end-width", "border-right-width", BorderWidth);
 
     /// <summary>
-    /// Gets the top border style (border-before-style in XSL-FO).
+    /// Gets the top border style.
+    /// Maps from border-before-style in XSL-FO based on writing-mode.
     /// </summary>
-    public string BorderTopStyle => Properties.GetString("border-before-style", Properties.GetString("border-top-style", BorderStyle));
+    public string BorderTopStyle => GetDirectionalString("border-before-style", "border-top-style", BorderStyle);
 
     /// <summary>
-    /// Gets the bottom border style (border-after-style in XSL-FO).
+    /// Gets the bottom border style.
+    /// Maps from border-after-style in XSL-FO based on writing-mode.
     /// </summary>
-    public string BorderBottomStyle => Properties.GetString("border-after-style", Properties.GetString("border-bottom-style", BorderStyle));
+    public string BorderBottomStyle => GetDirectionalString("border-after-style", "border-bottom-style", BorderStyle);
 
     /// <summary>
-    /// Gets the left border style (border-start-style in XSL-FO).
+    /// Gets the left border style.
+    /// Maps from border-start-style in XSL-FO based on writing-mode.
     /// </summary>
-    public string BorderLeftStyle => Properties.GetString("border-start-style", Properties.GetString("border-left-style", BorderStyle));
+    public string BorderLeftStyle => GetDirectionalString("border-start-style", "border-left-style", BorderStyle);
 
     /// <summary>
-    /// Gets the right border style (border-end-style in XSL-FO).
+    /// Gets the right border style.
+    /// Maps from border-end-style in XSL-FO based on writing-mode.
     /// </summary>
-    public string BorderRightStyle => Properties.GetString("border-end-style", Properties.GetString("border-right-style", BorderStyle));
+    public string BorderRightStyle => GetDirectionalString("border-end-style", "border-right-style", BorderStyle);
 
     /// <summary>
-    /// Gets the top border color (border-before-color in XSL-FO).
+    /// Gets the top border color.
+    /// Maps from border-before-color in XSL-FO based on writing-mode.
     /// </summary>
-    public string BorderTopColor => Properties.GetString("border-before-color", Properties.GetString("border-top-color", BorderColor));
+    public string BorderTopColor => GetDirectionalString("border-before-color", "border-top-color", BorderColor);
 
     /// <summary>
-    /// Gets the bottom border color (border-after-color in XSL-FO).
+    /// Gets the bottom border color.
+    /// Maps from border-after-color in XSL-FO based on writing-mode.
     /// </summary>
-    public string BorderBottomColor => Properties.GetString("border-after-color", Properties.GetString("border-bottom-color", BorderColor));
+    public string BorderBottomColor => GetDirectionalString("border-after-color", "border-bottom-color", BorderColor);
 
     /// <summary>
-    /// Gets the left border color (border-start-color in XSL-FO).
+    /// Gets the left border color.
+    /// Maps from border-start-color in XSL-FO based on writing-mode.
     /// </summary>
-    public string BorderLeftColor => Properties.GetString("border-start-color", Properties.GetString("border-left-color", BorderColor));
+    public string BorderLeftColor => GetDirectionalString("border-start-color", "border-left-color", BorderColor);
 
     /// <summary>
-    /// Gets the right border color (border-end-color in XSL-FO).
+    /// Gets the right border color.
+    /// Maps from border-end-color in XSL-FO based on writing-mode.
     /// </summary>
-    public string BorderRightColor => Properties.GetString("border-end-color", Properties.GetString("border-right-color", BorderColor));
+    public string BorderRightColor => GetDirectionalString("border-end-color", "border-right-color", BorderColor);
 
     /// <summary>
     /// Gets the break-before property (auto, always, page).

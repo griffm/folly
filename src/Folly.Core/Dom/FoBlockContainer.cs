@@ -61,12 +61,6 @@ public sealed class FoBlockContainer : FoElement
     public int ReferenceOrientation => int.TryParse(Properties.GetString("reference-orientation", "0"), out var val) ? val : 0;
 
     /// <summary>
-    /// Gets the writing mode (lr-tb, rl-tb, tb-rl, tb-lr, lr, rl, tb).
-    /// Default is "lr-tb" (left-to-right, top-to-bottom).
-    /// </summary>
-    public string WritingMode => Properties.GetString("writing-mode", "lr-tb");
-
-    /// <summary>
     /// Gets the display alignment (auto, before, center, after).
     /// Controls vertical alignment of content.
     /// Default is "auto".
@@ -137,22 +131,26 @@ public sealed class FoBlockContainer : FoElement
     public double PaddingEnd => Properties.GetLength("padding-end", 0);
 
     /// <summary>
-    /// Gets the margin-top (margin-before in XSL-FO).
+    /// Gets the margin-top.
+    /// Maps from margin-before in XSL-FO based on writing-mode.
     /// </summary>
-    public double MarginTop => Properties.GetLength("margin-before", Properties.GetLength("margin-top", 0));
+    public double MarginTop => GetDirectionalLength("margin-before", "margin-top");
 
     /// <summary>
-    /// Gets the margin-bottom (margin-after in XSL-FO).
+    /// Gets the margin-bottom.
+    /// Maps from margin-after in XSL-FO based on writing-mode.
     /// </summary>
-    public double MarginBottom => Properties.GetLength("margin-after", Properties.GetLength("margin-bottom", 0));
+    public double MarginBottom => GetDirectionalLength("margin-after", "margin-bottom");
 
     /// <summary>
-    /// Gets the margin-left (margin-start in XSL-FO).
+    /// Gets the margin-left.
+    /// Maps from margin-start in XSL-FO based on writing-mode.
     /// </summary>
-    public double MarginLeft => Properties.GetLength("margin-start", Properties.GetLength("margin-left", 0));
+    public double MarginLeft => GetDirectionalLength("margin-start", "margin-left");
 
     /// <summary>
-    /// Gets the margin-right (margin-end in XSL-FO).
+    /// Gets the margin-right.
+    /// Maps from margin-end in XSL-FO based on writing-mode.
     /// </summary>
-    public double MarginRight => Properties.GetLength("margin-end", Properties.GetLength("margin-right", 0));
+    public double MarginRight => GetDirectionalLength("margin-end", "margin-right");
 }
