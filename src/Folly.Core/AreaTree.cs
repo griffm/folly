@@ -345,6 +345,12 @@ public sealed class InlineArea : Area
     /// Used for bidirectional text rendering.
     /// </summary>
     public string Direction { get; set; } = "ltr";
+
+    /// <summary>
+    /// Gets or sets the word spacing adjustment in points.
+    /// Used for text justification - distributes extra space between words.
+    /// </summary>
+    public double WordSpacing { get; set; }
 }
 
 /// <summary>

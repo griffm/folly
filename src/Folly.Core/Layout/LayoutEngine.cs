@@ -1060,13 +1060,45 @@ internal sealed class LayoutEngine
         // Measure the actual text width
         var textWidth = fontMetrics.MeasureWidth(text);
 
-        // Calculate X offset based on alignment
-        var textX = foBlock.TextAlign.ToLowerInvariant() switch
+        // Calculate X offset and word spacing based on alignment
+        var textAlign = foBlock.TextAlign.ToLowerInvariant();
+        double textX = 0;
+        double wordSpacing = 0;
+
+        if (textAlign == "justify")
         {
-            "center" => (availableWidth - textWidth) / 2,
-            "end" or "right" => availableWidth - textWidth,
-            _ => 0 // start/left
-        };
+            // For justification, calculate word spacing to distribute extra space
+            var spaceCount = text.Count(c => c == ' ');
+            var extraSpace = availableWidth - textWidth;
+
+            // Only justify if:
+            // 1. There are spaces in the text (spaceCount > 0)
+            // 2. The line is not already close to full width (extraSpace > 1 point)
+            // 3. The line is not too short (extraSpace < 20% of available width - likely last line)
+            if (spaceCount > 0 && extraSpace > 1 && extraSpace < availableWidth * 0.2)
+            {
+                // Calculate word spacing to distribute the extra space
+                var normalSpaceWidth = fontMetrics.MeasureWidth(" ");
+                wordSpacing = extraSpace / spaceCount;
+
+                // Keep text left-aligned (textX = 0) for justified text
+                textX = 0;
+            }
+            else
+            {
+                // Fall back to left alignment for lines that shouldn't be justified
+                textX = 0;
+            }
+        }
+        else
+        {
+            textX = textAlign switch
+            {
+                "center" => (availableWidth - textWidth) / 2,
+                "end" or "right" => availableWidth - textWidth,
+                _ => 0 // start/left
+            };
+        }
 
         // Create inline area for the text
         // Use the font family from fontMetrics which has the correct variant applied
@@ -1081,7 +1113,8 @@ internal sealed class LayoutEngine
             FontSize = foBlock.FontSize,
             FontWeight = foBlock.FontWeight,
             FontStyle = foBlock.FontStyle,
-            BaselineOffset = fontMetrics.GetAscent()
+            BaselineOffset = fontMetrics.GetAscent(),
+            WordSpacing = wordSpacing
         };
 
         lineArea.AddInline(inlineArea);

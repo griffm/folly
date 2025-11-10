@@ -307,6 +307,12 @@ public sealed class PdfRenderer : IDisposable
 
         content.AppendLine($"1 0 0 1 {x:F2} {pdfY:F2} Tm"); // Set text matrix (absolute position)
 
+        // Set word spacing if specified (for text justification)
+        if (inline.WordSpacing > 0)
+        {
+            content.AppendLine($"{inline.WordSpacing:F3} Tw"); // Set word spacing
+        }
+
         // Get character remapping for this font (if subsetting is enabled)
         var remapping = _writer.GetCharacterRemapping(inline.FontFamily);
         content.AppendLine($"({EscapeAndRemapString(inline.Text, remapping)}) Tj"); // Show text
