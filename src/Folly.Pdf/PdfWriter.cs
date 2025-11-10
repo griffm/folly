@@ -512,12 +512,42 @@ internal sealed class PdfWriter : IDisposable
 
     private static string GetPdfFontName(string fontFamily)
     {
-        return fontFamily.ToLowerInvariant() switch
+        var lowerFamily = fontFamily.ToLowerInvariant();
+
+        // If the font family already specifies a variant (Bold, Italic, etc.), return it as-is
+        if (lowerFamily.Contains("-bold") || lowerFamily.Contains("-italic") ||
+            lowerFamily.Contains("-oblique") || lowerFamily.Contains("bold") && lowerFamily.Contains("italic"))
+        {
+            // Normalize the case for PDF standard font names
+            return fontFamily switch
+            {
+                // Times variants
+                _ when lowerFamily.StartsWith("times") && lowerFamily.Contains("bold") && lowerFamily.Contains("italic") => "Times-BoldItalic",
+                _ when lowerFamily.StartsWith("times") && lowerFamily.Contains("bold") => "Times-Bold",
+                _ when lowerFamily.StartsWith("times") && lowerFamily.Contains("italic") => "Times-Italic",
+
+                // Helvetica variants
+                _ when lowerFamily.StartsWith("helvetica") && lowerFamily.Contains("bold") && lowerFamily.Contains("oblique") => "Helvetica-BoldOblique",
+                _ when lowerFamily.StartsWith("helvetica") && lowerFamily.Contains("bold") => "Helvetica-Bold",
+                _ when lowerFamily.StartsWith("helvetica") && lowerFamily.Contains("oblique") => "Helvetica-Oblique",
+
+                // Courier variants
+                _ when lowerFamily.StartsWith("courier") && lowerFamily.Contains("bold") && lowerFamily.Contains("oblique") => "Courier-BoldOblique",
+                _ when lowerFamily.StartsWith("courier") && lowerFamily.Contains("bold") => "Courier-Bold",
+                _ when lowerFamily.StartsWith("courier") && lowerFamily.Contains("oblique") => "Courier-Oblique",
+
+                // Default: return as-is (case-corrected)
+                _ => fontFamily
+            };
+        }
+
+        // Map generic font families to base fonts
+        return lowerFamily switch
         {
             "helvetica" or "arial" or "sans-serif" => "Helvetica",
             "times" or "times new roman" or "serif" => "Times-Roman",
             "courier" or "courier new" or "monospace" => "Courier",
-            _ => "Helvetica"
+            _ => fontFamily // Return original if not recognized
         };
     }
 
