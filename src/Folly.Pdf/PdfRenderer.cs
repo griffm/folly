@@ -306,7 +306,10 @@ public sealed class PdfRenderer : IDisposable
         }
 
         content.AppendLine($"1 0 0 1 {x:F2} {pdfY:F2} Tm"); // Set text matrix (absolute position)
-        content.AppendLine($"({EscapeString(inline.Text)}) Tj"); // Show text
+
+        // Get character remapping for this font (if subsetting is enabled)
+        var remapping = _writer.GetCharacterRemapping(inline.FontFamily);
+        content.AppendLine($"({EscapeAndRemapString(inline.Text, remapping)}) Tj"); // Show text
         content.AppendLine("ET"); // End text
 
         // Render text decoration (underline, overline, line-through)
@@ -718,6 +721,55 @@ public sealed class PdfRenderer : IDisposable
             .Replace("\r", "\\r")
             .Replace("\n", "\\n")
             .Replace("\t", "\\t");
+    }
+
+    /// <summary>
+    /// Escapes a string for PDF and applies character remapping for high-Unicode characters.
+    /// </summary>
+    private static string EscapeAndRemapString(string str, Dictionary<char, byte>? remapping)
+    {
+        if (remapping == null || remapping.Count == 0)
+        {
+            return EscapeString(str);
+        }
+
+        var result = new StringBuilder(str.Length);
+        foreach (var ch in str)
+        {
+            // Apply remapping if available
+            char outputChar = ch;
+            if (remapping.TryGetValue(ch, out var remappedByte))
+            {
+                outputChar = (char)remappedByte;
+            }
+
+            // Escape special PDF characters
+            switch (outputChar)
+            {
+                case '\\':
+                    result.Append("\\\\");
+                    break;
+                case '(':
+                    result.Append("\\(");
+                    break;
+                case ')':
+                    result.Append("\\)");
+                    break;
+                case '\r':
+                    result.Append("\\r");
+                    break;
+                case '\n':
+                    result.Append("\\n");
+                    break;
+                case '\t':
+                    result.Append("\\t");
+                    break;
+                default:
+                    result.Append(outputChar);
+                    break;
+            }
+        }
+        return result.ToString();
     }
 
     /// <summary>

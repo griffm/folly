@@ -15,8 +15,19 @@ internal sealed class PdfWriter : IDisposable
     private bool _disposed;
     private int? _infoObjectId;
 
+    // Character remapping for font subsetting (maps characters to byte codes 0-255)
+    private readonly Dictionary<string, Dictionary<char, byte>> _characterRemapping = new();
+
     // Security: Maximum allowed PNG chunk size (10MB) to prevent integer overflow attacks
     private const int MAX_PNG_CHUNK_SIZE = 10 * 1024 * 1024;
+
+    /// <summary>
+    /// Gets the character remapping for a specific font.
+    /// </summary>
+    public Dictionary<char, byte>? GetCharacterRemapping(string fontName)
+    {
+        return _characterRemapping.TryGetValue(fontName, out var mapping) ? mapping : null;
+    }
 
     public PdfWriter(Stream output)
     {
@@ -247,7 +258,7 @@ internal sealed class PdfWriter : IDisposable
             {
                 if (characterUsage.TryGetValue(fontName, out var usedChars) && usedChars.Count > 0)
                 {
-                    var encodingId = WriteCustomEncoding(usedChars);
+                    var encodingId = WriteCustomEncoding(fontName, usedChars);
                     encodingIds[fontName] = encodingId;
                 }
             }
@@ -281,40 +292,76 @@ internal sealed class PdfWriter : IDisposable
     /// <summary>
     /// Writes a custom encoding dictionary for font subsetting.
     /// </summary>
-    private int WriteCustomEncoding(HashSet<char> usedChars)
+    private int WriteCustomEncoding(string fontName, HashSet<char> usedChars)
     {
         var encodingId = BeginObject();
         WriteLine("<<");
         WriteLine("  /Type /Encoding");
         WriteLine("  /BaseEncoding /WinAnsiEncoding");
 
-        // Create Differences array with only used characters
-        // This optimizes the PDF by explicitly listing only needed glyphs
-        var sortedChars = usedChars.OrderBy(c => (int)c).ToList();
+        // Create character remapping for this font
+        // Characters with codes > 255 need to be remapped to unused slots in 0-255
+        var remapping = new Dictionary<char, byte>();
 
+        // Find unused byte codes (avoiding common control characters and special codes)
+        // We'll use slots 128-159 which are undefined in WinAnsiEncoding
+        var availableSlots = new List<byte>();
+        for (byte b = 128; b < 160; b++)
+        {
+            availableSlots.Add(b);
+        }
+        int slotIndex = 0;
+
+        // Build remapping for high-Unicode characters
+        var sortedChars = usedChars.OrderBy(c => (int)c).ToList();
+        foreach (var ch in sortedChars)
+        {
+            if ((int)ch <= 255)
+            {
+                // Characters 0-255 map to themselves
+                remapping[ch] = (byte)(int)ch;
+            }
+            else
+            {
+                // Characters > 255 need remapping
+                if (slotIndex < availableSlots.Count)
+                {
+                    remapping[ch] = availableSlots[slotIndex++];
+                }
+                else
+                {
+                    // Fallback: use modulo 256 (may cause collisions but better than nothing)
+                    remapping[ch] = (byte)((int)ch % 256);
+                }
+            }
+        }
+
+        // Store the remapping for this font
+        _characterRemapping[fontName] = remapping;
+
+        // Create Differences array with remapped character codes
         if (sortedChars.Count > 0)
         {
             WriteLine("  /Differences [");
 
-            // Group consecutive characters for more compact representation
-            var i = 0;
-            while (i < sortedChars.Count)
-            {
-                var startChar = sortedChars[i];
-                var charCode = (int)startChar;
-                Write($"    {charCode}");
+            // Group by remapped byte code for more compact representation
+            var charsByCode = sortedChars
+                .GroupBy(ch => remapping[ch])
+                .OrderBy(g => g.Key)
+                .ToList();
 
-                // Find consecutive run
-                var j = i;
-                while (j < sortedChars.Count && (int)sortedChars[j] == charCode + (j - i))
+            foreach (var group in charsByCode)
+            {
+                var byteCode = group.Key;
+                Write($"    {byteCode}");
+
+                foreach (var ch in group)
                 {
-                    var charName = GetCharacterName(sortedChars[j]);
+                    var charName = GetCharacterName(ch);
                     Write($" /{charName}");
-                    j++;
                 }
 
                 WriteLine("");
-                i = j;
             }
 
             WriteLine("  ]");
@@ -377,6 +424,8 @@ internal sealed class PdfWriter : IDisposable
             '|' => "bar",
             '}' => "braceright",
             '~' => "asciitilde",
+            '§' => "section",
+            '—' => "emdash",
             _ => ch >= 'A' && ch <= 'Z' ? $"{ch}" :
                  ch >= 'a' && ch <= 'z' ? $"{ch}" :
                  $"char{(int)ch}"
@@ -408,7 +457,9 @@ internal sealed class PdfWriter : IDisposable
         if (compressStreams)
         {
             // Compress the content using Flate compression
-            var uncompressedBytes = Encoding.ASCII.GetBytes(content);
+            // Use Latin1 (ISO-8859-1) encoding to support the full 0-255 byte range
+            // needed for font subsetting with character remapping
+            var uncompressedBytes = Encoding.Latin1.GetBytes(content);
 
             using (var compressedStream = new MemoryStream())
             {
@@ -438,7 +489,8 @@ internal sealed class PdfWriter : IDisposable
         }
         else
         {
-            streamData = Encoding.ASCII.GetBytes(content);
+            // Use Latin1 (ISO-8859-1) encoding to support the full 0-255 byte range
+            streamData = Encoding.Latin1.GetBytes(content);
         }
 
         WriteLine("<<");
