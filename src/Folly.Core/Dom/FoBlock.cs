@@ -36,6 +36,16 @@ public sealed class FoBlock : FoElement
             var value = GetComputedProperty("line-height");
             if (string.IsNullOrEmpty(value) || value == "normal")
                 return FontSize * 1.2;
+
+            // Check if the value is unitless (a multiplier)
+            value = value.Trim();
+            if (double.TryParse(value, out var multiplier))
+            {
+                // Unitless value is a multiplier of font-size
+                return FontSize * multiplier;
+            }
+
+            // Parse as absolute length
             return LengthParser.Parse(value);
         }
     }
