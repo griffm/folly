@@ -163,24 +163,24 @@ public sealed class FoTableCell : FoElement
     public int ColumnNumber => int.TryParse(Properties.GetString("column-number", "0"), out var n) ? n : 0;
 
     /// <summary>
-    /// Gets the padding top.
+    /// Gets the padding top (padding-before in XSL-FO).
     /// </summary>
-    public double PaddingTop => LengthParser.Parse(Properties.GetString("padding-top", Properties.GetString("padding", "0pt")));
+    public double PaddingTop => LengthParser.Parse(Properties.GetString("padding-before", Properties.GetString("padding-top", Properties.GetString("padding", "0pt"))));
 
     /// <summary>
-    /// Gets the padding bottom.
+    /// Gets the padding bottom (padding-after in XSL-FO).
     /// </summary>
-    public double PaddingBottom => LengthParser.Parse(Properties.GetString("padding-bottom", Properties.GetString("padding", "0pt")));
+    public double PaddingBottom => LengthParser.Parse(Properties.GetString("padding-after", Properties.GetString("padding-bottom", Properties.GetString("padding", "0pt"))));
 
     /// <summary>
-    /// Gets the padding left.
+    /// Gets the padding left (padding-start in XSL-FO).
     /// </summary>
-    public double PaddingLeft => LengthParser.Parse(Properties.GetString("padding-left", Properties.GetString("padding", "0pt")));
+    public double PaddingLeft => LengthParser.Parse(Properties.GetString("padding-start", Properties.GetString("padding-left", Properties.GetString("padding", "0pt"))));
 
     /// <summary>
-    /// Gets the padding right.
+    /// Gets the padding right (padding-end in XSL-FO).
     /// </summary>
-    public double PaddingRight => LengthParser.Parse(Properties.GetString("padding-right", Properties.GetString("padding", "0pt")));
+    public double PaddingRight => LengthParser.Parse(Properties.GetString("padding-end", Properties.GetString("padding-right", Properties.GetString("padding", "0pt"))));
 
     /// <summary>
     /// Gets the border width.

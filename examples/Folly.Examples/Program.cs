@@ -1828,7 +1828,7 @@ static void GenerateMetadataExample(string outputPath)
 static void GenerateFlatlandBook(string outputPath)
 {
     // Load the Flatland book from the books directory
-    var booksDir = Path.Combine(Directory.GetCurrentDirectory(), "..", "books", "flatland");
+    var booksDir = Path.Combine(Directory.GetCurrentDirectory(), "books", "flatland");
     var foFilePath = Path.Combine(booksDir, "flatland.fo");
 
     if (!File.Exists(foFilePath))
