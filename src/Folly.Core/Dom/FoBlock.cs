@@ -76,6 +76,18 @@ public sealed class FoBlock : FoElement
     public double MarginRight => Properties.GetLength("margin-right", 0);
 
     /// <summary>
+    /// Gets the space before in points (space before this block).
+    /// In XSL-FO, space-before defines the minimum space between this block and the preceding block.
+    /// </summary>
+    public double SpaceBefore => Properties.GetLength("space-before", 0);
+
+    /// <summary>
+    /// Gets the space after in points (space after this block).
+    /// In XSL-FO, space-after defines the minimum space between this block and the following block.
+    /// </summary>
+    public double SpaceAfter => Properties.GetLength("space-after", 0);
+
+    /// <summary>
     /// Gets the padding-top in points.
     /// </summary>
     public double PaddingTop => Properties.GetLength("padding-top", 0);

@@ -339,11 +339,15 @@ internal sealed class LayoutEngine
             // Calculate X position based on current column
             var columnX = bodyMarginLeft + currentColumn * (columnWidth + columnGap);
 
-            var blockArea = LayoutBlock(foBlock, columnX, currentY, columnWidth);
+            // Apply space-before to currentY before laying out the block
+            var blockY = currentY + foBlock.SpaceBefore;
+
+            var blockArea = LayoutBlock(foBlock, columnX, blockY, columnWidth);
             if (blockArea == null)
                 continue;
 
-            var blockTotalHeight = blockArea.Height + blockArea.MarginTop + blockArea.MarginBottom;
+            // Total height includes space-before, margins, block height, and space-after
+            var blockTotalHeight = blockArea.SpaceBefore + blockArea.MarginTop + blockArea.Height + blockArea.MarginBottom + blockArea.SpaceAfter;
 
             // Handle keep-together constraint
             var mustKeepTogether = foBlock.KeepTogether == "always";
@@ -381,17 +385,18 @@ internal sealed class LayoutEngine
                     }
 
                     // Re-layout the block for the new column/page
-                    blockArea = LayoutBlock(foBlock, columnX, currentY, columnWidth);
+                    blockY = currentY + foBlock.SpaceBefore;
+                    blockArea = LayoutBlock(foBlock, columnX, blockY, columnWidth);
                     if (blockArea == null)
                         continue;
 
-                    blockTotalHeight = blockArea.Height + blockArea.MarginTop + blockArea.MarginBottom;
+                    blockTotalHeight = blockArea.SpaceBefore + blockArea.MarginTop + blockArea.Height + blockArea.MarginBottom + blockArea.SpaceAfter;
                 }
                 // else: block is too large for any page, render it anyway at top of current page
             }
 
             currentPage.AddArea(blockArea);
-            currentY += blockArea.Height + blockArea.MarginTop + blockArea.MarginBottom;
+            currentY += blockArea.SpaceBefore + blockArea.MarginTop + blockArea.Height + blockArea.MarginBottom + blockArea.SpaceAfter;
 
             // Handle break-after constraint
             if (foBlock.BreakAfter == "always" || foBlock.BreakAfter == "page")
@@ -502,6 +507,8 @@ internal sealed class LayoutEngine
             MarginBottom = foBlock.MarginBottom,
             MarginLeft = foBlock.MarginLeft,
             MarginRight = foBlock.MarginRight,
+            SpaceBefore = foBlock.SpaceBefore,
+            SpaceAfter = foBlock.SpaceAfter,
             PaddingTop = foBlock.PaddingTop,
             PaddingBottom = foBlock.PaddingBottom,
             PaddingLeft = foBlock.PaddingLeft,
