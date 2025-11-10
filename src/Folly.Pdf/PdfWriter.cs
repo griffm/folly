@@ -374,62 +374,21 @@ internal sealed class PdfWriter : IDisposable
     }
 
     /// <summary>
-    /// Gets the PostScript character name for a given character.
+    /// Gets the PostScript character name for a given character using the Adobe Glyph List.
     /// </summary>
     private static string GetCharacterName(char ch)
     {
-        // Map common characters to their PostScript names
-        return ch switch
+        int codePoint = (int)ch;
+
+        // Try to get the glyph name from the Adobe Glyph List
+        if (AdobeGlyphList.TryGetGlyphName(codePoint, out var glyphName))
         {
-            ' ' => "space",
-            '!' => "exclam",
-            '"' => "quotedbl",
-            '#' => "numbersign",
-            '$' => "dollar",
-            '%' => "percent",
-            '&' => "ampersand",
-            '\'' => "quotesingle",
-            '(' => "parenleft",
-            ')' => "parenright",
-            '*' => "asterisk",
-            '+' => "plus",
-            ',' => "comma",
-            '-' => "hyphen",
-            '.' => "period",
-            '/' => "slash",
-            '0' => "zero",
-            '1' => "one",
-            '2' => "two",
-            '3' => "three",
-            '4' => "four",
-            '5' => "five",
-            '6' => "six",
-            '7' => "seven",
-            '8' => "eight",
-            '9' => "nine",
-            ':' => "colon",
-            ';' => "semicolon",
-            '<' => "less",
-            '=' => "equal",
-            '>' => "greater",
-            '?' => "question",
-            '@' => "at",
-            '[' => "bracketleft",
-            '\\' => "backslash",
-            ']' => "bracketright",
-            '^' => "asciicircum",
-            '_' => "underscore",
-            '`' => "grave",
-            '{' => "braceleft",
-            '|' => "bar",
-            '}' => "braceright",
-            '~' => "asciitilde",
-            '§' => "section",
-            '—' => "emdash",
-            _ => ch >= 'A' && ch <= 'Z' ? $"{ch}" :
-                 ch >= 'a' && ch <= 'z' ? $"{ch}" :
-                 $"char{(int)ch}"
-        };
+            return glyphName;
+        }
+
+        // Fallback for unmapped characters: use uniXXXX format
+        // This is a standard PDF convention for characters without standard glyph names
+        return $"uni{codePoint:X4}";
     }
 
     private static string GetPdfFontName(string fontFamily)
