@@ -8,7 +8,7 @@ using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 
-namespace Folly.SourceGenerators
+namespace Folly.SourceGenerators.Fonts
 {
     /// <summary>
     /// Source generator that creates font metrics data for the Base 14 PDF fonts from AFM files.
@@ -92,7 +92,7 @@ namespace Folly.SourceGenerators
             try
             {
                 var assembly = typeof(Base14FontsGenerator).Assembly;
-                var resourceName = $"Folly.SourceGenerators.base14.{fontName}.afm";
+                var resourceName = $"Folly.SourceGenerators.Fonts.base14.{fontName}.afm";
 
                 using var stream = assembly.GetManifestResourceStream(resourceName);
                 if (stream == null)
