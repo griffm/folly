@@ -8,8 +8,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Embed AFM files for standard PDF fonts -->
-    <EmbeddedResource Include="Fonts\base14\*.afm" />
+    <ProjectReference Include="..\Folly.SourceGenerators\Folly.SourceGenerators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 </Project>
