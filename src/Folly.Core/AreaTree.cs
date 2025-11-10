@@ -144,6 +144,16 @@ public sealed class BlockArea : Area
     public double MarginRight { get; set; }
 
     /// <summary>
+    /// Gets or sets space before (spacing before this block).
+    /// </summary>
+    public double SpaceBefore { get; set; }
+
+    /// <summary>
+    /// Gets or sets space after (spacing after this block).
+    /// </summary>
+    public double SpaceAfter { get; set; }
+
+    /// <summary>
     /// Gets or sets padding.
     /// </summary>
     public double PaddingTop { get; set; }
