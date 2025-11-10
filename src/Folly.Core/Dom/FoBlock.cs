@@ -116,6 +116,66 @@ public sealed class FoBlock : FoElement
     public string BorderStyle => Properties.GetString("border-style", "none");
 
     /// <summary>
+    /// Gets the top border width in points (border-before in XSL-FO).
+    /// </summary>
+    public double BorderTopWidth => Properties.GetLength("border-before-width", Properties.GetLength("border-top-width", BorderWidth));
+
+    /// <summary>
+    /// Gets the bottom border width in points (border-after in XSL-FO).
+    /// </summary>
+    public double BorderBottomWidth => Properties.GetLength("border-after-width", Properties.GetLength("border-bottom-width", BorderWidth));
+
+    /// <summary>
+    /// Gets the left border width in points (border-start in XSL-FO).
+    /// </summary>
+    public double BorderLeftWidth => Properties.GetLength("border-start-width", Properties.GetLength("border-left-width", BorderWidth));
+
+    /// <summary>
+    /// Gets the right border width in points (border-end in XSL-FO).
+    /// </summary>
+    public double BorderRightWidth => Properties.GetLength("border-end-width", Properties.GetLength("border-right-width", BorderWidth));
+
+    /// <summary>
+    /// Gets the top border style (border-before-style in XSL-FO).
+    /// </summary>
+    public string BorderTopStyle => Properties.GetString("border-before-style", Properties.GetString("border-top-style", BorderStyle));
+
+    /// <summary>
+    /// Gets the bottom border style (border-after-style in XSL-FO).
+    /// </summary>
+    public string BorderBottomStyle => Properties.GetString("border-after-style", Properties.GetString("border-bottom-style", BorderStyle));
+
+    /// <summary>
+    /// Gets the left border style (border-start-style in XSL-FO).
+    /// </summary>
+    public string BorderLeftStyle => Properties.GetString("border-start-style", Properties.GetString("border-left-style", BorderStyle));
+
+    /// <summary>
+    /// Gets the right border style (border-end-style in XSL-FO).
+    /// </summary>
+    public string BorderRightStyle => Properties.GetString("border-end-style", Properties.GetString("border-right-style", BorderStyle));
+
+    /// <summary>
+    /// Gets the top border color (border-before-color in XSL-FO).
+    /// </summary>
+    public string BorderTopColor => Properties.GetString("border-before-color", Properties.GetString("border-top-color", BorderColor));
+
+    /// <summary>
+    /// Gets the bottom border color (border-after-color in XSL-FO).
+    /// </summary>
+    public string BorderBottomColor => Properties.GetString("border-after-color", Properties.GetString("border-bottom-color", BorderColor));
+
+    /// <summary>
+    /// Gets the left border color (border-start-color in XSL-FO).
+    /// </summary>
+    public string BorderLeftColor => Properties.GetString("border-start-color", Properties.GetString("border-left-color", BorderColor));
+
+    /// <summary>
+    /// Gets the right border color (border-end-color in XSL-FO).
+    /// </summary>
+    public string BorderRightColor => Properties.GetString("border-end-color", Properties.GetString("border-right-color", BorderColor));
+
+    /// <summary>
     /// Gets the break-before property (auto, always, page).
     /// </summary>
     public string BreakBefore => Properties.GetString("break-before", "auto");
