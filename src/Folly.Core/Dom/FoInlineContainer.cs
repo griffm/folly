@@ -96,42 +96,42 @@ public sealed class FoInlineContainer : FoElement
     public string BackgroundColor => Properties.GetString("background-color", "");
 
     /// <summary>
-    /// Gets the border-top width.
+    /// Gets the border-top width (border-before-width in XSL-FO).
     /// </summary>
-    public double BorderTopWidth => Properties.GetLength("border-top-width", 0);
+    public double BorderTopWidth => Properties.GetLength("border-before-width", Properties.GetLength("border-top-width", 0));
 
     /// <summary>
-    /// Gets the border-bottom width.
+    /// Gets the border-bottom width (border-after-width in XSL-FO).
     /// </summary>
-    public double BorderBottomWidth => Properties.GetLength("border-bottom-width", 0);
+    public double BorderBottomWidth => Properties.GetLength("border-after-width", Properties.GetLength("border-bottom-width", 0));
 
     /// <summary>
-    /// Gets the border-left width.
+    /// Gets the border-left width (border-start-width in XSL-FO).
     /// </summary>
-    public double BorderLeftWidth => Properties.GetLength("border-left-width", 0);
+    public double BorderLeftWidth => Properties.GetLength("border-start-width", Properties.GetLength("border-left-width", 0));
 
     /// <summary>
-    /// Gets the border-right width.
+    /// Gets the border-right width (border-end-width in XSL-FO).
     /// </summary>
-    public double BorderRightWidth => Properties.GetLength("border-right-width", 0);
+    public double BorderRightWidth => Properties.GetLength("border-end-width", Properties.GetLength("border-right-width", 0));
 
     /// <summary>
-    /// Gets the padding-top.
+    /// Gets the padding-top (padding-before in XSL-FO).
     /// </summary>
-    public double PaddingTop => Properties.GetLength("padding-top", 0);
+    public double PaddingTop => Properties.GetLength("padding-before", Properties.GetLength("padding-top", 0));
 
     /// <summary>
-    /// Gets the padding-bottom.
+    /// Gets the padding-bottom (padding-after in XSL-FO).
     /// </summary>
-    public double PaddingBottom => Properties.GetLength("padding-bottom", 0);
+    public double PaddingBottom => Properties.GetLength("padding-after", Properties.GetLength("padding-bottom", 0));
 
     /// <summary>
-    /// Gets the padding-left.
+    /// Gets the padding-left (padding-start in XSL-FO).
     /// </summary>
-    public double PaddingLeft => Properties.GetLength("padding-left", 0);
+    public double PaddingLeft => Properties.GetLength("padding-start", Properties.GetLength("padding-left", 0));
 
     /// <summary>
-    /// Gets the padding-right.
+    /// Gets the padding-right (padding-end in XSL-FO).
     /// </summary>
-    public double PaddingRight => Properties.GetLength("padding-right", 0);
+    public double PaddingRight => Properties.GetLength("padding-end", Properties.GetLength("padding-right", 0));
 }

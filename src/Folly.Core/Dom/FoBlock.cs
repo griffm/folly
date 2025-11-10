@@ -56,24 +56,24 @@ public sealed class FoBlock : FoElement
     public string TextAlign => GetComputedProperty("text-align", "start") ?? "start";
 
     /// <summary>
-    /// Gets the margin-top in points.
+    /// Gets the margin-top in points (margin-before in XSL-FO).
     /// </summary>
-    public double MarginTop => Properties.GetLength("margin-top", 0);
+    public double MarginTop => Properties.GetLength("margin-before", Properties.GetLength("margin-top", 0));
 
     /// <summary>
-    /// Gets the margin-bottom in points.
+    /// Gets the margin-bottom in points (margin-after in XSL-FO).
     /// </summary>
-    public double MarginBottom => Properties.GetLength("margin-bottom", 0);
+    public double MarginBottom => Properties.GetLength("margin-after", Properties.GetLength("margin-bottom", 0));
 
     /// <summary>
-    /// Gets the margin-left in points.
+    /// Gets the margin-left in points (margin-start in XSL-FO).
     /// </summary>
-    public double MarginLeft => Properties.GetLength("margin-left", 0);
+    public double MarginLeft => Properties.GetLength("margin-start", Properties.GetLength("margin-left", 0));
 
     /// <summary>
-    /// Gets the margin-right in points.
+    /// Gets the margin-right in points (margin-end in XSL-FO).
     /// </summary>
-    public double MarginRight => Properties.GetLength("margin-right", 0);
+    public double MarginRight => Properties.GetLength("margin-end", Properties.GetLength("margin-right", 0));
 
     /// <summary>
     /// Gets the space before in points (space before this block).
@@ -88,24 +88,24 @@ public sealed class FoBlock : FoElement
     public double SpaceAfter => Properties.GetLength("space-after", 0);
 
     /// <summary>
-    /// Gets the padding-top in points.
+    /// Gets the padding-top in points (padding-before in XSL-FO).
     /// </summary>
-    public double PaddingTop => Properties.GetLength("padding-top", 0);
+    public double PaddingTop => Properties.GetLength("padding-before", Properties.GetLength("padding-top", 0));
 
     /// <summary>
-    /// Gets the padding-bottom in points.
+    /// Gets the padding-bottom in points (padding-after in XSL-FO).
     /// </summary>
-    public double PaddingBottom => Properties.GetLength("padding-bottom", 0);
+    public double PaddingBottom => Properties.GetLength("padding-after", Properties.GetLength("padding-bottom", 0));
 
     /// <summary>
-    /// Gets the padding-left in points.
+    /// Gets the padding-left in points (padding-start in XSL-FO).
     /// </summary>
-    public double PaddingLeft => Properties.GetLength("padding-left", 0);
+    public double PaddingLeft => Properties.GetLength("padding-start", Properties.GetLength("padding-left", 0));
 
     /// <summary>
-    /// Gets the padding-right in points.
+    /// Gets the padding-right in points (padding-end in XSL-FO).
     /// </summary>
-    public double PaddingRight => Properties.GetLength("padding-right", 0);
+    public double PaddingRight => Properties.GetLength("padding-end", Properties.GetLength("padding-right", 0));
 
     /// <summary>
     /// Gets the background color in CSS format (e.g., "#FF0000", "red", "transparent").

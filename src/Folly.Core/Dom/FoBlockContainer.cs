@@ -137,22 +137,22 @@ public sealed class FoBlockContainer : FoElement
     public double PaddingEnd => Properties.GetLength("padding-end", 0);
 
     /// <summary>
-    /// Gets the margin-top.
+    /// Gets the margin-top (margin-before in XSL-FO).
     /// </summary>
-    public double MarginTop => Properties.GetLength("margin-top", 0);
+    public double MarginTop => Properties.GetLength("margin-before", Properties.GetLength("margin-top", 0));
 
     /// <summary>
-    /// Gets the margin-bottom.
+    /// Gets the margin-bottom (margin-after in XSL-FO).
     /// </summary>
-    public double MarginBottom => Properties.GetLength("margin-bottom", 0);
+    public double MarginBottom => Properties.GetLength("margin-after", Properties.GetLength("margin-bottom", 0));
 
     /// <summary>
-    /// Gets the margin-left.
+    /// Gets the margin-left (margin-start in XSL-FO).
     /// </summary>
-    public double MarginLeft => Properties.GetLength("margin-left", 0);
+    public double MarginLeft => Properties.GetLength("margin-start", Properties.GetLength("margin-left", 0));
 
     /// <summary>
-    /// Gets the margin-right.
+    /// Gets the margin-right (margin-end in XSL-FO).
     /// </summary>
-    public double MarginRight => Properties.GetLength("margin-right", 0);
+    public double MarginRight => Properties.GetLength("margin-end", Properties.GetLength("margin-right", 0));
 }
