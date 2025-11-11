@@ -62,33 +62,29 @@ internal static class StandardFonts
         }
     }
 
+    /// <summary>
+    /// Gets a font by family name with bold and italic flags.
+    /// Uses FontResolver to determine the specific font variant.
+    /// </summary>
     public static StandardFont GetFont(string familyName, bool bold, bool italic)
     {
-        // First, check if the family name is already a complete font name (e.g., "Times-Italic")
-        // This handles cases where the font variant is already in the name
-        if (_fonts.TryGetValue(familyName, out var directFont))
-        {
-            return directFont;
-        }
+        // Use FontResolver to determine the specific font name
+        var fontName = FontResolver.ResolveFont(familyName, bold, italic);
 
-        // Otherwise, derive the font name from the base family and bold/italic flags
-        var key = familyName.ToLowerInvariant() switch
-        {
-            "helvetica" or "arial" or "sans-serif" => bold && italic ? "Helvetica-BoldOblique" :
-                                                       bold ? "Helvetica-Bold" :
-                                                       italic ? "Helvetica-Oblique" :
-                                                       "Helvetica",
-            "times" or "times new roman" or "serif" or "times-roman" => bold && italic ? "Times-BoldItalic" :
-                                                       bold ? "Times-Bold" :
-                                                       italic ? "Times-Italic" :
-                                                       "Times-Roman",
-            "courier" or "courier new" or "monospace" => bold && italic ? "Courier-BoldOblique" :
-                                                         bold ? "Courier-Bold" :
-                                                         italic ? "Courier-Oblique" :
-                                                         "Courier",
-            _ => "Helvetica"
-        };
+        // Look up the font by resolved name
+        return GetFont(fontName);
+    }
 
-        return _fonts.TryGetValue(key, out var font) ? font : _fonts["Helvetica"];
+    /// <summary>
+    /// Gets a font by its exact name (e.g., "Times-BoldItalic", "Helvetica").
+    /// </summary>
+    public static StandardFont GetFont(string fontName)
+    {
+        // Try direct lookup
+        if (_fonts.TryGetValue(fontName, out var font))
+            return font;
+
+        // Fallback to Helvetica if font not found
+        return _fonts["Helvetica"];
     }
 }

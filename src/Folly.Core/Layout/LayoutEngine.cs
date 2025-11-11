@@ -602,56 +602,11 @@ internal sealed class LayoutEngine
         }
 
         // Create font metrics for measurement (used by both links and regular text)
-        // Apply font-weight and font-style to select the correct font variant
-        var blockFontFamily = foBlock.FontFamily;
-        var blockFontWeight = foBlock.FontWeight;
-        var blockFontStyle = foBlock.FontStyle;
-
-        // Normalize generic font families to actual font names
-        blockFontFamily = blockFontFamily switch
-        {
-            "serif" => "Times-Roman",
-            "sans-serif" => "Helvetica",
-            "monospace" => "Courier",
-            _ => blockFontFamily
-        };
-
-        // Apply font-weight by using bold variant
-        if (!string.IsNullOrEmpty(blockFontWeight) && (blockFontWeight == "bold" || int.TryParse(blockFontWeight, out var blockWeight) && blockWeight >= 700))
-        {
-            blockFontFamily = blockFontFamily switch
-            {
-                "Helvetica" => "Helvetica-Bold",
-                "Times-Roman" => "Times-Bold",
-                "Courier" => "Courier-Bold",
-                _ => blockFontFamily + "-Bold"
-            };
-        }
-
-        // Apply font-style by using italic/oblique variant
-        if (!string.IsNullOrEmpty(blockFontStyle) && (blockFontStyle == "italic" || blockFontStyle == "oblique"))
-        {
-            if (blockFontFamily.EndsWith("-Bold"))
-            {
-                blockFontFamily = blockFontFamily switch
-                {
-                    "Helvetica-Bold" => "Helvetica-BoldOblique",
-                    "Times-Bold" => "Times-BoldItalic",
-                    "Courier-Bold" => "Courier-BoldOblique",
-                    _ => blockFontFamily.Replace("-Bold", "-BoldOblique")
-                };
-            }
-            else
-            {
-                blockFontFamily = blockFontFamily switch
-                {
-                    "Helvetica" => "Helvetica-Oblique",
-                    "Times-Roman" => "Times-Italic",
-                    "Courier" => "Courier-Oblique",
-                    _ => blockFontFamily + "-Oblique"
-                };
-            }
-        }
+        // Use FontResolver to handle font family normalization and variant selection
+        var blockFontFamily = Fonts.FontResolver.ResolveFont(
+            foBlock.FontFamily,
+            foBlock.FontWeight,
+            foBlock.FontStyle);
 
         var fontMetrics = new Fonts.FontMetrics
         {
@@ -684,56 +639,13 @@ internal sealed class LayoutEngine
                     if (!string.IsNullOrWhiteSpace(inlineText))
                     {
                         // Get font properties (now with automatic inheritance)
-                        var inlineFontFamily = inline.FontFamily;
                         var inlineFontSize = inline.FontSize ?? 12;
-                        var inlineFontWeight = inline.FontWeight;
-                        var inlineFontStyle = inline.FontStyle;
 
-                        // Normalize generic font families to actual font names
-                        inlineFontFamily = inlineFontFamily switch
-                        {
-                            "serif" => "Times-Roman",
-                            "sans-serif" => "Helvetica",
-                            "monospace" => "Courier",
-                            _ => inlineFontFamily
-                        };
-
-                        // Apply font-weight by using bold variant
-                        if (!string.IsNullOrEmpty(inlineFontWeight) && (inlineFontWeight == "bold" || int.TryParse(inlineFontWeight, out var inlineWeight) && inlineWeight >= 700))
-                        {
-                            inlineFontFamily = inlineFontFamily switch
-                            {
-                                "Helvetica" => "Helvetica-Bold",
-                                "Times-Roman" => "Times-Bold",
-                                "Courier" => "Courier-Bold",
-                                _ => inlineFontFamily + "-Bold"
-                            };
-                        }
-
-                        // Apply font-style by using italic/oblique variant
-                        if (!string.IsNullOrEmpty(inlineFontStyle) && (inlineFontStyle == "italic" || inlineFontStyle == "oblique"))
-                        {
-                            if (inlineFontFamily.EndsWith("-Bold"))
-                            {
-                                inlineFontFamily = inlineFontFamily switch
-                                {
-                                    "Helvetica-Bold" => "Helvetica-BoldOblique",
-                                    "Times-Bold" => "Times-BoldItalic",
-                                    "Courier-Bold" => "Courier-BoldOblique",
-                                    _ => inlineFontFamily.Replace("-Bold", "-BoldOblique")
-                                };
-                            }
-                            else
-                            {
-                                inlineFontFamily = inlineFontFamily switch
-                                {
-                                    "Helvetica" => "Helvetica-Oblique",
-                                    "Times-Roman" => "Times-Italic",
-                                    "Courier" => "Courier-Oblique",
-                                    _ => inlineFontFamily + "-Oblique"
-                                };
-                            }
-                        }
+                        // Use FontResolver to handle font family normalization and variant selection
+                        var inlineFontFamily = Fonts.FontResolver.ResolveFont(
+                            inline.FontFamily,
+                            inline.FontWeight,
+                            inline.FontStyle);
 
                         var inlineFontMetrics = new Fonts.FontMetrics
                         {
@@ -752,8 +664,8 @@ internal sealed class LayoutEngine
                             Text = inlineText,
                             FontFamily = inlineFontFamily,
                             FontSize = inlineFontSize,
-                            FontWeight = inlineFontWeight,
-                            FontStyle = inlineFontStyle,
+                            FontWeight = inline.FontWeight,
+                            FontStyle = inline.FontStyle,
                             Color = inline.Color,
                             TextDecoration = inline.TextDecoration,
                             BackgroundColor = inline.BackgroundColor,
@@ -808,57 +720,14 @@ internal sealed class LayoutEngine
                     if (!string.IsNullOrWhiteSpace(bidiText))
                     {
                         // Get font properties (with automatic inheritance)
-                        var bidiFontFamily = bidiOverride.FontFamily;
                         var bidiFontSize = bidiOverride.FontSize ?? 12;
-                        var bidiFontWeight = bidiOverride.FontWeight;
-                        var bidiFontStyle = bidiOverride.FontStyle;
                         var bidiDirection = bidiOverride.Direction;
 
-                        // Normalize generic font families to actual font names
-                        bidiFontFamily = bidiFontFamily switch
-                        {
-                            "serif" => "Times-Roman",
-                            "sans-serif" => "Helvetica",
-                            "monospace" => "Courier",
-                            _ => bidiFontFamily
-                        };
-
-                        // Apply font-weight by using bold variant
-                        if (!string.IsNullOrEmpty(bidiFontWeight) && (bidiFontWeight == "bold" || int.TryParse(bidiFontWeight, out var bidiWeight) && bidiWeight >= 700))
-                        {
-                            bidiFontFamily = bidiFontFamily switch
-                            {
-                                "Helvetica" => "Helvetica-Bold",
-                                "Times-Roman" => "Times-Bold",
-                                "Courier" => "Courier-Bold",
-                                _ => bidiFontFamily + "-Bold"
-                            };
-                        }
-
-                        // Apply font-style by using italic/oblique variant
-                        if (!string.IsNullOrEmpty(bidiFontStyle) && (bidiFontStyle == "italic" || bidiFontStyle == "oblique"))
-                        {
-                            if (bidiFontFamily.EndsWith("-Bold"))
-                            {
-                                bidiFontFamily = bidiFontFamily switch
-                                {
-                                    "Helvetica-Bold" => "Helvetica-BoldOblique",
-                                    "Times-Bold" => "Times-BoldItalic",
-                                    "Courier-Bold" => "Courier-BoldOblique",
-                                    _ => bidiFontFamily.Replace("-Bold", "-BoldOblique")
-                                };
-                            }
-                            else
-                            {
-                                bidiFontFamily = bidiFontFamily switch
-                                {
-                                    "Helvetica" => "Helvetica-Oblique",
-                                    "Times-Roman" => "Times-Italic",
-                                    "Courier" => "Courier-Oblique",
-                                    _ => bidiFontFamily + "-Oblique"
-                                };
-                            }
-                        }
+                        // Use FontResolver to handle font family normalization and variant selection
+                        var bidiFontFamily = Fonts.FontResolver.ResolveFont(
+                            bidiOverride.FontFamily,
+                            bidiOverride.FontWeight,
+                            bidiOverride.FontStyle);
 
                         var bidiFontMetrics = new Fonts.FontMetrics
                         {
@@ -880,8 +749,8 @@ internal sealed class LayoutEngine
                             Text = processedText,
                             FontFamily = bidiFontFamily,
                             FontSize = bidiFontSize,
-                            FontWeight = bidiFontWeight,
-                            FontStyle = bidiFontStyle,
+                            FontWeight = bidiOverride.FontWeight,
+                            FontStyle = bidiOverride.FontStyle,
                             Color = bidiOverride.Color,
                             Direction = bidiDirection,
                             BaselineOffset = bidiFontMetrics.GetAscent()
