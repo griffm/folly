@@ -849,12 +849,15 @@ internal sealed class LayoutEngine
         }
 
         // Perform line breaking and create line areas
-        // For justified text, reduce available width slightly to leave room for word spacing
+        // For justified text, reduce available width to leave safety margin for word spacing
         var breakWidth = contentWidth;
+        var justifyWidth = contentWidth;
         if (foBlock.TextAlign.ToLowerInvariant() == "justify")
         {
-            // Reserve ~2% width for word spacing to prevent lines from exceeding margins
-            breakWidth = contentWidth * 0.98;
+            // Use a slightly reduced width for both breaking and justification
+            // This prevents edge cases where justification pushes text beyond margins
+            breakWidth = contentWidth * 0.97;
+            justifyWidth = contentWidth * 0.97;
         }
         var lines = BreakLines(text, breakWidth, fontMetrics);
 
@@ -862,7 +865,7 @@ internal sealed class LayoutEngine
         {
             var lineText = lines[i];
             var isLastLine = (i == lines.Count - 1);
-            var lineArea = CreateLineArea(lineText, foBlock.PaddingLeft, currentY, contentWidth, fontMetrics, foBlock, isLastLine);
+            var lineArea = CreateLineArea(lineText, foBlock.PaddingLeft, currentY, justifyWidth, fontMetrics, foBlock, isLastLine);
             blockArea.AddChild(lineArea);
             currentY += foBlock.LineHeight;
         }
