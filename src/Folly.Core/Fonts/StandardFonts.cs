@@ -64,13 +64,21 @@ internal static class StandardFonts
 
     public static StandardFont GetFont(string familyName, bool bold, bool italic)
     {
+        // First, check if the family name is already a complete font name (e.g., "Times-Italic")
+        // This handles cases where the font variant is already in the name
+        if (_fonts.TryGetValue(familyName, out var directFont))
+        {
+            return directFont;
+        }
+
+        // Otherwise, derive the font name from the base family and bold/italic flags
         var key = familyName.ToLowerInvariant() switch
         {
             "helvetica" or "arial" or "sans-serif" => bold && italic ? "Helvetica-BoldOblique" :
                                                        bold ? "Helvetica-Bold" :
                                                        italic ? "Helvetica-Oblique" :
                                                        "Helvetica",
-            "times" or "times new roman" or "serif" => bold && italic ? "Times-BoldItalic" :
+            "times" or "times new roman" or "serif" or "times-roman" => bold && italic ? "Times-BoldItalic" :
                                                        bold ? "Times-Bold" :
                                                        italic ? "Times-Italic" :
                                                        "Times-Roman",
