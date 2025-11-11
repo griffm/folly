@@ -66,6 +66,25 @@ public sealed class FoBlock : FoElement
     public string TextAlign => GetComputedProperty("text-align", "start") ?? "start";
 
     /// <summary>
+    /// Gets the text alignment for the last line of a block, with inheritance from parent elements.
+    /// If not specified, defaults to the value of text-align (or "start" if text-align is "justify").
+    /// </summary>
+    public string TextAlignLast
+    {
+        get
+        {
+            var value = GetComputedProperty("text-align-last");
+            if (!string.IsNullOrEmpty(value))
+                return value;
+
+            // If not specified, use text-align value
+            // Exception: if text-align is "justify", default to "start" for the last line
+            var textAlign = TextAlign.ToLowerInvariant();
+            return textAlign == "justify" ? "start" : textAlign;
+        }
+    }
+
+    /// <summary>
     /// Gets the margin-top in points.
     /// Maps from margin-before in XSL-FO based on writing-mode.
     /// </summary>

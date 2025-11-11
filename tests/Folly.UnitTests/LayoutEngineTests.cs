@@ -575,4 +575,279 @@ public class LayoutEngineTests
             (a is BlockArea block && block.Children.Any(c => c is LeaderArea)));
         Assert.False(hasLeaderArea, "Footnote separator should not render when there are no footnotes");
     }
+
+    [Fact]
+    public void TextAlign_Justify_AppliesWordSpacing()
+    {
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="300pt" page-height="400pt">
+                  <fo:region-body margin="10pt"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:block font-size="12pt" text-align="justify">
+                    This is a test paragraph with multiple words that will be justified across the line.
+                  </fo:block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+        Assert.NotNull(areaTree);
+        Assert.NotEmpty(areaTree.Pages);
+
+        var page = areaTree.Pages[0];
+        var blockArea = page.Areas.OfType<BlockArea>().FirstOrDefault();
+        Assert.NotNull(blockArea);
+
+        // Check that lines have word spacing applied (for justified text)
+        var lineAreas = blockArea.Children.OfType<LineArea>().ToList();
+        Assert.NotEmpty(lineAreas);
+
+        // At least one line should have word spacing > 0 (non-last lines)
+        var hasJustifiedLine = lineAreas.Take(lineAreas.Count - 1) // Exclude last line
+            .Any(line => line.Inlines
+                .Any(inline => inline.WordSpacing > 0));
+
+        Assert.True(hasJustifiedLine || lineAreas.Count == 1,
+            "Justified text should have word spacing on non-last lines (or be a single line)");
+    }
+
+    [Fact]
+    public void TextAlign_Justify_LastLineNotJustified()
+    {
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="250pt" page-height="400pt">
+                  <fo:region-body margin="10pt"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:block font-size="12pt" text-align="justify">
+                    This is a longer paragraph with enough text to span multiple lines so we can test that the last line is not justified while the previous lines are justified.
+                  </fo:block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+        Assert.NotNull(areaTree);
+        Assert.NotEmpty(areaTree.Pages);
+
+        var page = areaTree.Pages[0];
+        var blockArea = page.Areas.OfType<BlockArea>().FirstOrDefault();
+        Assert.NotNull(blockArea);
+
+        var lineAreas = blockArea.Children.OfType<LineArea>().ToList();
+
+        if (lineAreas.Count > 1)
+        {
+            // Last line should not be justified (word spacing should be 0)
+            var lastLine = lineAreas.Last();
+            var lastLineInlines = lastLine.Inlines.ToList();
+            Assert.All(lastLineInlines, inline => Assert.True(inline.WordSpacing == 0,
+                "Last line of justified paragraph should not have word spacing"));
+        }
+    }
+
+    [Fact]
+    public void TextAlignLast_OverridesJustifyForLastLine()
+    {
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="250pt" page-height="400pt">
+                  <fo:region-body margin="10pt"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:block font-size="12pt" text-align="justify" text-align-last="center">
+                    This is a test paragraph that spans multiple lines to verify that the last line is centered instead of left-aligned.
+                  </fo:block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+        Assert.NotNull(areaTree);
+        Assert.NotEmpty(areaTree.Pages);
+
+        var page = areaTree.Pages[0];
+        var blockArea = page.Areas.OfType<BlockArea>().FirstOrDefault();
+        Assert.NotNull(blockArea);
+
+        var lineAreas = blockArea.Children.OfType<LineArea>().ToList();
+
+        if (lineAreas.Count > 1)
+        {
+            // Last line should be centered (X offset > 0 and not justified)
+            var lastLine = lineAreas.Last();
+            var lastLineInlines = lastLine.Inlines.ToList();
+
+            // Check that the last line has centered alignment (X > 0)
+            Assert.True(lastLineInlines.Any(inline => inline.X > 0),
+                "Last line with text-align-last='center' should be centered (X > 0)");
+
+            // And no word spacing
+            Assert.All(lastLineInlines, inline => Assert.True(inline.WordSpacing == 0));
+        }
+    }
+
+    [Fact]
+    public void TextAlign_Justify_SingleWord_NotJustified()
+    {
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="300pt" page-height="400pt">
+                  <fo:region-body margin="10pt"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:block font-size="12pt" text-align="justify">
+                    SingleWord
+                  </fo:block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+        Assert.NotNull(areaTree);
+        Assert.NotEmpty(areaTree.Pages);
+
+        var page = areaTree.Pages[0];
+        var blockArea = page.Areas.OfType<BlockArea>().FirstOrDefault();
+        Assert.NotNull(blockArea);
+
+        var lineAreas = blockArea.Children.OfType<LineArea>().ToList();
+        Assert.NotEmpty(lineAreas);
+
+        // Single word should not be justified (no spaces to distribute)
+        var inlines = lineAreas.First().Inlines.ToList();
+        Assert.All(inlines, inline => Assert.True(inline.WordSpacing == 0,
+            "Single word should not be justified (no word spacing)"));
+    }
+
+    [Fact]
+    public void TextAlign_Justify_MultipleParagraphs()
+    {
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="250pt" page-height="400pt">
+                  <fo:region-body margin="10pt"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:block font-size="12pt" text-align="justify" margin-bottom="12pt">
+                    First paragraph with enough text to span multiple lines and test justification.
+                  </fo:block>
+                  <fo:block font-size="12pt" text-align="justify">
+                    Second paragraph also with enough text to span multiple lines for testing.
+                  </fo:block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+        Assert.NotNull(areaTree);
+        Assert.NotEmpty(areaTree.Pages);
+
+        var page = areaTree.Pages[0];
+        var blockAreas = page.Areas.OfType<BlockArea>().ToList();
+        Assert.True(blockAreas.Count >= 2, "Should have at least 2 block areas");
+
+        // Verify each paragraph has justified text
+        foreach (var blockArea in blockAreas)
+        {
+            var lineAreas = blockArea.Children.OfType<LineArea>().ToList();
+            if (lineAreas.Count > 1)
+            {
+                // Non-last lines should have word spacing
+                var nonLastLines = lineAreas.Take(lineAreas.Count - 1);
+                Assert.True(nonLastLines.Any(line =>
+                    line.Inlines.Any(inline => inline.WordSpacing > 0)),
+                    "Each paragraph should have justified non-last lines");
+            }
+        }
+    }
+
+    [Fact]
+    public void TextAlignLast_DefaultsToStart_WhenTextAlignIsJustify()
+    {
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="250pt" page-height="400pt">
+                  <fo:region-body margin="10pt"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:block font-size="12pt" text-align="justify">
+                    This paragraph has text-align justify but no text-align-last specified so the last line should default to start alignment.
+                  </fo:block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+        Assert.NotNull(areaTree);
+        Assert.NotEmpty(areaTree.Pages);
+
+        var page = areaTree.Pages[0];
+        var blockArea = page.Areas.OfType<BlockArea>().FirstOrDefault();
+        Assert.NotNull(blockArea);
+
+        var lineAreas = blockArea.Children.OfType<LineArea>().ToList();
+
+        if (lineAreas.Count > 1)
+        {
+            // Last line should be start-aligned (X = 0)
+            var lastLine = lineAreas.Last();
+            var lastLineInlines = lastLine.Inlines.ToList();
+
+            // Start-aligned text should have X = 0 (or close to it)
+            Assert.True(lastLineInlines.All(inline => inline.X <= 1),
+                "Last line should default to start alignment (X near 0) when text-align is justify");
+        }
+    }
 }

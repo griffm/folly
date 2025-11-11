@@ -851,9 +851,11 @@ internal sealed class LayoutEngine
         // Perform line breaking and create line areas
         var lines = BreakLines(text, contentWidth, fontMetrics);
 
-        foreach (var lineText in lines)
+        for (int i = 0; i < lines.Count; i++)
         {
-            var lineArea = CreateLineArea(lineText, foBlock.PaddingLeft, currentY, contentWidth, fontMetrics, foBlock);
+            var lineText = lines[i];
+            var isLastLine = (i == lines.Count - 1);
+            var lineArea = CreateLineArea(lineText, foBlock.PaddingLeft, currentY, contentWidth, fontMetrics, foBlock, isLastLine);
             blockArea.AddChild(lineArea);
             currentY += foBlock.LineHeight;
         }
@@ -916,7 +918,7 @@ internal sealed class LayoutEngine
         return lines;
     }
 
-    private LineArea CreateLineArea(string text, double x, double y, double availableWidth, Fonts.FontMetrics fontMetrics, Dom.FoBlock foBlock)
+    private LineArea CreateLineArea(string text, double x, double y, double availableWidth, Fonts.FontMetrics fontMetrics, Dom.FoBlock foBlock, bool isLastLine = false)
     {
         var lineArea = new LineArea
         {
@@ -930,7 +932,8 @@ internal sealed class LayoutEngine
         var textWidth = fontMetrics.MeasureWidth(text);
 
         // Calculate X offset and word spacing based on alignment
-        var textAlign = foBlock.TextAlign.ToLowerInvariant();
+        // Use text-align-last for the last line if specified, otherwise use text-align
+        var textAlign = isLastLine ? foBlock.TextAlignLast.ToLowerInvariant() : foBlock.TextAlign.ToLowerInvariant();
         double textX = 0;
         double wordSpacing = 0;
 
