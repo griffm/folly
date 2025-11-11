@@ -888,34 +888,30 @@ internal sealed class LayoutEngine
         }
 
         var currentLine = new StringBuilder();
-        var currentWidth = 0.0;
 
         foreach (var word in words)
         {
-            var wordWidth = fontMetrics.MeasureWidth(word);
-            var spaceWidth = fontMetrics.MeasureWidth(" ");
+            // Build tentative line with this word
+            var tentativeLine = currentLine.Length > 0
+                ? currentLine.ToString() + " " + word
+                : word;
 
-            // Check if adding this word would exceed available width
-            var widthWithWord = currentWidth + (currentLine.Length > 0 ? spaceWidth : 0) + wordWidth;
+            // Measure the complete tentative line (not incremental to avoid rounding errors)
+            var tentativeWidth = fontMetrics.MeasureWidth(tentativeLine);
 
-            if (widthWithWord > availableWidth && currentLine.Length > 0)
+            if (tentativeWidth > availableWidth && currentLine.Length > 0)
             {
-                // Start a new line
+                // Adding this word would exceed width, so start a new line
                 lines.Add(currentLine.ToString());
                 currentLine.Clear();
                 currentLine.Append(word);
-                currentWidth = wordWidth;
             }
             else
             {
-                // Add word to current line
+                // Word fits, update current line
                 if (currentLine.Length > 0)
-                {
                     currentLine.Append(' ');
-                    currentWidth += spaceWidth;
-                }
                 currentLine.Append(word);
-                currentWidth += wordWidth;
             }
         }
 
