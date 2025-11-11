@@ -945,9 +945,9 @@ internal sealed class LayoutEngine
 
             // Only justify if:
             // 1. There are spaces in the text (spaceCount > 0)
-            // 2. There is extra space to distribute (extraSpace > 0.5 points)
-            // 3. The extra space is not excessive (to avoid over-stretching)
-            if (spaceCount > 0 && extraSpace > 0.5 && extraSpace < availableWidth * 0.9)
+            // 2. The text is shorter than available width (extraSpace > 0) - if line is already full/over, don't justify
+            // 3. The extra space is not excessive (< 50% of available width - likely last line or very short line)
+            if (spaceCount > 0 && extraSpace > 0 && extraSpace < availableWidth * 0.5)
             {
                 // Calculate word spacing to distribute the extra space
                 wordSpacing = extraSpace / spaceCount;
@@ -958,6 +958,7 @@ internal sealed class LayoutEngine
             else
             {
                 // Fall back to left alignment for lines that shouldn't be justified
+                // (includes: no spaces, already too wide, or too much extra space)
                 textX = 0;
             }
         }
