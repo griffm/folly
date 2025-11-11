@@ -849,24 +849,13 @@ internal sealed class LayoutEngine
         }
 
         // Perform line breaking and create line areas
-        // For justified text, reduce available width to leave safety margin for word spacing
-        var breakWidth = contentWidth;
-        var justifyWidth = contentWidth;
-        if (foBlock.TextAlign.ToLowerInvariant() == "justify")
-        {
-            // Use a slightly reduced width for both breaking and justification
-            // This prevents edge cases where justification pushes text beyond margins
-            // Using 95% to ensure adequate safety margin even with em-dashes and long words
-            breakWidth = contentWidth * 0.95;
-            justifyWidth = contentWidth * 0.95;
-        }
-        var lines = BreakLines(text, breakWidth, fontMetrics);
+        var lines = BreakLines(text, contentWidth, fontMetrics);
 
         for (int i = 0; i < lines.Count; i++)
         {
             var lineText = lines[i];
             var isLastLine = (i == lines.Count - 1);
-            var lineArea = CreateLineArea(lineText, foBlock.PaddingLeft, currentY, justifyWidth, fontMetrics, foBlock, isLastLine);
+            var lineArea = CreateLineArea(lineText, foBlock.PaddingLeft, currentY, contentWidth, fontMetrics, foBlock, isLastLine);
             blockArea.AddChild(lineArea);
             currentY += foBlock.LineHeight;
         }
@@ -880,22 +869,47 @@ internal sealed class LayoutEngine
     private List<string> BreakLines(string text, double availableWidth, Fonts.FontMetrics fontMetrics)
     {
         var lines = new List<string>();
-        var words = text.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
-        if (words.Length == 0)
+        // Split text into words, treating dashes as part of words (allowing breaks after them)
+        var words = SplitIntoWords(text);
+
+        if (words.Count == 0)
         {
             lines.Add("");
             return lines;
         }
 
         var currentLine = new StringBuilder();
+        string? previousWord = null;
 
         foreach (var word in words)
         {
+            // Determine if we need a space before this word
+            // We need a space if:
+            // 1. This is not the first word in the line (previousWord != null)
+            // 2. AND the previous word didn't end with a dash
+            bool needsSpaceBefore = previousWord != null &&
+                                   !previousWord.EndsWith('—') &&
+                                   !previousWord.EndsWith('–') &&
+                                   !previousWord.EndsWith('-');
+
             // Build tentative line with this word
-            var tentativeLine = currentLine.Length > 0
-                ? currentLine.ToString() + " " + word
-                : word;
+            string tentativeLine;
+            if (currentLine.Length == 0)
+            {
+                // First word in line
+                tentativeLine = word;
+            }
+            else if (needsSpaceBefore)
+            {
+                // Add space before word
+                tentativeLine = currentLine.ToString() + " " + word;
+            }
+            else
+            {
+                // No space needed (after a dash)
+                tentativeLine = currentLine.ToString() + word;
+            }
 
             // Measure the complete tentative line (not incremental to avoid rounding errors)
             var tentativeWidth = fontMetrics.MeasureWidth(tentativeLine);
@@ -906,13 +920,25 @@ internal sealed class LayoutEngine
                 lines.Add(currentLine.ToString());
                 currentLine.Clear();
                 currentLine.Append(word);
+                previousWord = word;
             }
             else
             {
                 // Word fits, update current line
-                if (currentLine.Length > 0)
+                if (currentLine.Length == 0)
+                {
+                    currentLine.Append(word);
+                }
+                else if (needsSpaceBefore)
+                {
                     currentLine.Append(' ');
-                currentLine.Append(word);
+                    currentLine.Append(word);
+                }
+                else
+                {
+                    currentLine.Append(word);
+                }
+                previousWord = word;
             }
         }
 
@@ -925,6 +951,62 @@ internal sealed class LayoutEngine
         return lines;
     }
 
+    /// <summary>
+    /// Splits text into words, keeping dashes attached to the word they follow.
+    /// This allows line breaking after dashes (em dash, en dash, hyphen) while
+    /// maintaining proper spacing between words.
+    ///
+    /// Examples:
+    ///   "hello world" → ["hello", "world"]
+    ///   "hello—world" → ["hello—", "world"]  (can break after dash)
+    ///   "hello-world test" → ["hello-", "world", "test"]
+    /// </summary>
+    private List<string> SplitIntoWords(string text)
+    {
+        var words = new List<string>();
+        if (string.IsNullOrEmpty(text))
+            return words;
+
+        var currentWord = new StringBuilder();
+
+        for (int i = 0; i < text.Length; i++)
+        {
+            var ch = text[i];
+
+            // Whitespace separates words
+            if (ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n')
+            {
+                if (currentWord.Length > 0)
+                {
+                    words.Add(currentWord.ToString());
+                    currentWord.Clear();
+                }
+                // Skip the whitespace (don't add it to any word)
+                continue;
+            }
+
+            // Dashes are kept with the preceding word and mark a break opportunity
+            bool isDash = ch == '—' || ch == '–' || ch == '-';
+
+            currentWord.Append(ch);
+
+            // After a dash, end the current word (allowing break after the dash)
+            if (isDash)
+            {
+                words.Add(currentWord.ToString());
+                currentWord.Clear();
+            }
+        }
+
+        // Add any remaining word
+        if (currentWord.Length > 0)
+        {
+            words.Add(currentWord.ToString());
+        }
+
+        return words;
+    }
+
     private LineArea CreateLineArea(string text, double x, double y, double availableWidth, Fonts.FontMetrics fontMetrics, Dom.FoBlock foBlock, bool isLastLine = false)
     {
         var lineArea = new LineArea
@@ -935,7 +1017,7 @@ internal sealed class LayoutEngine
             Height = foBlock.LineHeight
         };
 
-        // Measure the actual text width
+        // Measure the actual text width (without word spacing)
         var textWidth = fontMetrics.MeasureWidth(text);
 
         // Calculate X offset and word spacing based on alignment
@@ -944,20 +1026,31 @@ internal sealed class LayoutEngine
         double textX = 0;
         double wordSpacing = 0;
 
+        // Count spaces for justification calculation
+        var spaceCount = text.Count(c => c == ' ');
+
         if (textAlign == "justify")
         {
             // For justification, calculate word spacing to distribute extra space
-            var spaceCount = text.Count(c => c == ' ');
             var extraSpace = availableWidth - textWidth;
+
+            // Calculate what the word spacing would be
+            var potentialWordSpacing = spaceCount > 0 ? extraSpace / spaceCount : 0;
+
+            // Maximum allowed word spacing to prevent ugly stretching
+            // Base it on actual space character width, not a fixed percentage of font size
+            var naturalSpaceWidth = fontMetrics.MeasureWidth(" ");
+            var maxWordSpacing = naturalSpaceWidth * 3.0;  // Allow up to 300% stretch (4x normal)
 
             // Only justify if:
             // 1. There are spaces in the text (spaceCount > 0)
             // 2. The text is shorter than available width (extraSpace > 0) - if line is already full/over, don't justify
             // 3. The extra space is not excessive (< 50% of available width - likely last line or very short line)
-            if (spaceCount > 0 && extraSpace > 0 && extraSpace < availableWidth * 0.5)
+            // 4. The word spacing won't be too large (prevents ugly gaps with few spaces)
+            if (spaceCount > 0 && extraSpace > 0 && extraSpace < availableWidth * 0.5 && potentialWordSpacing <= maxWordSpacing)
             {
                 // Calculate word spacing to distribute the extra space
-                wordSpacing = extraSpace / spaceCount;
+                wordSpacing = potentialWordSpacing;
 
                 // Keep text left-aligned (textX = 0) for justified text
                 textX = 0;
@@ -965,7 +1058,7 @@ internal sealed class LayoutEngine
             else
             {
                 // Fall back to left alignment for lines that shouldn't be justified
-                // (includes: no spaces, already too wide, or too much extra space)
+                // (includes: no spaces, already too wide, too much extra space, or word spacing would be excessive)
                 textX = 0;
             }
         }
@@ -979,13 +1072,17 @@ internal sealed class LayoutEngine
             };
         }
 
+        // Calculate the actual rendered width including word spacing
+        // This is important for text decorations (underlines, etc.) and background colors
+        var renderedWidth = textWidth + (wordSpacing * spaceCount);
+
         // Create inline area for the text
         // Use the font family from fontMetrics which has the correct variant applied
         var inlineArea = new InlineArea
         {
             X = textX,
             Y = 0, // Relative to line
-            Width = textWidth,
+            Width = renderedWidth,  // Use full rendered width including word spacing
             Height = foBlock.FontSize,
             Text = text,
             FontFamily = fontMetrics.FamilyName,

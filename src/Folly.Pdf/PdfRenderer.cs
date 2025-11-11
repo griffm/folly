@@ -307,11 +307,9 @@ public sealed class PdfRenderer : IDisposable
 
         content.AppendLine($"1 0 0 1 {x:F2} {pdfY:F2} Tm"); // Set text matrix (absolute position)
 
-        // Set word spacing if specified (for text justification)
-        if (inline.WordSpacing > 0)
-        {
-            content.AppendLine($"{inline.WordSpacing:F3} Tw"); // Set word spacing
-        }
+        // Always set word spacing (Tw) to prevent it from persisting from previous text
+        // In PDF, Tw remains active until explicitly changed, so we must set it even when 0
+        content.AppendLine($"{inline.WordSpacing:F3} Tw"); // Set word spacing
 
         // Get character remapping for this font (if subsetting is enabled)
         var remapping = _writer.GetCharacterRemapping(inline.FontFamily);
@@ -732,21 +730,40 @@ public sealed class PdfRenderer : IDisposable
     /// <summary>
     /// Escapes a string for PDF and applies character remapping for high-Unicode characters.
     /// </summary>
+    // Unicode to Adobe Standard Encoding mappings for PDF rendering
+    // Must match the mappings in StandardFonts.cs
+    private static readonly Dictionary<char, char> UnicodeToAdobeEncoding = new()
+    {
+        { '\u2014', (char)208 },  // Em dash (—) → emdash
+        { '\u2013', (char)177 },  // En dash (–) → endash
+        { '\u2018', (char)193 },  // Left single quotation mark (') → quoteleft
+        { '\u2019', (char)194 },  // Right single quotation mark (') → quoteright
+        { '\u201C', (char)195 },  // Left double quotation mark (") → quotedblleft
+        { '\u201D', (char)196 },  // Right double quotation mark (") → quotedblright
+        { '\u2022', (char)183 },  // Bullet (•) → bullet
+        { '\u2026', (char)188 },  // Horizontal ellipsis (…) → ellipsis
+        { '\u2020', (char)178 },  // Dagger (†) → dagger
+        { '\u2021', (char)179 },  // Double dagger (‡) → daggerdbl
+        { '\u2030', (char)189 },  // Per mille sign (‰) → perthousand
+        { '\u0192', (char)166 },  // Latin small letter f with hook (ƒ) → florin
+    };
+
     private static string EscapeAndRemapString(string str, Dictionary<char, byte>? remapping)
     {
-        if (remapping == null || remapping.Count == 0)
-        {
-            return EscapeString(str);
-        }
-
         var result = new StringBuilder(str.Length);
         foreach (var ch in str)
         {
-            // Apply remapping if available
             char outputChar = ch;
-            if (remapping.TryGetValue(ch, out var remappedByte))
+
+            // First, apply font subsetting remapping if available
+            if (remapping != null && remapping.TryGetValue(ch, out var remappedByte))
             {
                 outputChar = (char)remappedByte;
+            }
+            // Otherwise, apply Unicode to Adobe Standard Encoding conversion
+            else if (UnicodeToAdobeEncoding.TryGetValue(ch, out var adobeChar))
+            {
+                outputChar = adobeChar;
             }
 
             // Escape special PDF characters
