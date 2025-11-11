@@ -945,12 +945,11 @@ internal sealed class LayoutEngine
 
             // Only justify if:
             // 1. There are spaces in the text (spaceCount > 0)
-            // 2. The line is not already close to full width (extraSpace > 1 point)
-            // 3. The line is not too short (extraSpace < 20% of available width - likely last line)
-            if (spaceCount > 0 && extraSpace > 1 && extraSpace < availableWidth * 0.2)
+            // 2. There is extra space to distribute (extraSpace > 0.5 points)
+            // 3. The extra space is not excessive (to avoid over-stretching)
+            if (spaceCount > 0 && extraSpace > 0.5 && extraSpace < availableWidth * 0.9)
             {
                 // Calculate word spacing to distribute the extra space
-                var normalSpaceWidth = fontMetrics.MeasureWidth(" ");
                 wordSpacing = extraSpace / spaceCount;
 
                 // Keep text left-aligned (textX = 0) for justified text
