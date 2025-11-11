@@ -2,11 +2,15 @@ namespace Folly.Fonts;
 
 /// <summary>
 /// Font metrics for measuring text.
+/// Provides methods to measure text width, line height, ascent, and descent
+/// using the Standard PDF Type 1 fonts.
 /// </summary>
 public sealed class FontMetrics
 {
     /// <summary>
-    /// Gets the font family name.
+    /// Gets the font family name. This can be either a base family name
+    /// (e.g., "Helvetica", "Times-Roman") or a complete font variant name
+    /// (e.g., "Helvetica-Bold", "Times-Italic").
     /// </summary>
     public string FamilyName { get; init; } = "Helvetica";
 
@@ -16,12 +20,14 @@ public sealed class FontMetrics
     public double Size { get; init; } = 12;
 
     /// <summary>
-    /// Gets whether the font is bold.
+    /// Gets whether the font is bold. Used in combination with FamilyName
+    /// to resolve to a specific font variant.
     /// </summary>
     public bool IsBold { get; init; }
 
     /// <summary>
-    /// Gets whether the font is italic.
+    /// Gets whether the font is italic. Used in combination with FamilyName
+    /// to resolve to a specific font variant.
     /// </summary>
     public bool IsItalic { get; init; }
 
