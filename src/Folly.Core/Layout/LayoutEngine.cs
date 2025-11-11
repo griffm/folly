@@ -856,8 +856,9 @@ internal sealed class LayoutEngine
         {
             // Use a slightly reduced width for both breaking and justification
             // This prevents edge cases where justification pushes text beyond margins
-            breakWidth = contentWidth * 0.97;
-            justifyWidth = contentWidth * 0.97;
+            // Using 95% to ensure adequate safety margin even with em-dashes and long words
+            breakWidth = contentWidth * 0.95;
+            justifyWidth = contentWidth * 0.95;
         }
         var lines = BreakLines(text, breakWidth, fontMetrics);
 
