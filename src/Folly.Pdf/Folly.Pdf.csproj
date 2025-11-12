@@ -8,6 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Folly.FontTests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Folly.Core\Folly.Core.csproj" />
     <ProjectReference Include="..\Folly.SourceGenerators.Glyphs\Folly.SourceGenerators.Glyphs.csproj"
                       OutputItemType="Analyzer"
