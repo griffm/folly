@@ -241,7 +241,7 @@ The core rendering engine is fully operational with extensive feature support:
   - 14 PDF validation tests (structure, fonts, compression, metadata, links)
   - 9 AreaTree snapshot tests (layout regression detection)
   - 13 fuzzing/stress tests (malformed input, extreme nesting, large tables)
-  - 23 working example PDFs (including multi-page tables, multi-page lists, keep-with-next/previous, emergency line breaking)
+  - 24 working example PDFs (including **TrueType font embedding**, multi-page tables, multi-page lists, keep-with-next/previous, emergency line breaking)
 - 100% qpdf validation success (zero errors)
 - Verified with qpdf 11.9.0
 
