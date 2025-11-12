@@ -61,6 +61,11 @@ public sealed class FoListItem : FoElement
     /// Gets the space after.
     /// </summary>
     public double SpaceAfter => LengthParser.Parse(Properties.GetString("space-after", "0pt"));
+
+    /// <summary>
+    /// Gets the keep-together constraint for this list item.
+    /// </summary>
+    public string KeepTogether => Properties.GetString("keep-together", "auto");
 }
 
 /// <summary>

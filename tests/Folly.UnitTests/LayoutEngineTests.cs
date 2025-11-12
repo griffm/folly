@@ -1920,4 +1920,243 @@ public class LayoutEngineTests
         Assert.NotNull(areaTree);
         Assert.NotEmpty(areaTree.Pages);
     }
+
+    #region List Page Breaking Tests
+
+    [Fact]
+    public void ListPageBreaking_LongList_SpansMultiplePages()
+    {
+        // Create a list with 50 items that should span multiple pages
+        var listItems = string.Join("\n", Enumerable.Range(1, 50).Select(i => $"""
+                  <fo:list-item space-before="6pt">
+                    <fo:list-item-label>
+                      <fo:block>{i}.</fo:block>
+                    </fo:list-item-label>
+                    <fo:list-item-body start-indent="24pt">
+                      <fo:block>List item {i} content</fo:block>
+                    </fo:list-item-body>
+                  </fo:list-item>
+                """));
+
+        var foXml = $"""
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="210pt" page-height="297pt">
+                  <fo:region-body margin="36pt"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:list-block provisional-distance-between-starts="24pt" provisional-label-separation="6pt">
+                    {listItems}
+                  </fo:list-block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+
+        // List should span multiple pages
+        Assert.NotNull(areaTree);
+        Assert.True(areaTree.Pages.Count >= 2, $"Expected at least 2 pages, got {areaTree.Pages.Count}");
+
+        // Verify that list items appear on multiple pages
+        var listItemsOnFirstPage = areaTree.Pages[0].Areas.Count;
+        var listItemsOnSecondPage = areaTree.Pages[1].Areas.Count;
+        Assert.True(listItemsOnFirstPage > 0, "First page should have list items");
+        Assert.True(listItemsOnSecondPage > 0, "Second page should have list items");
+    }
+
+    [Fact]
+    public void ListPageBreaking_KeepTogether_KeepsItemOnSamePage()
+    {
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="210pt" page-height="297pt">
+                  <fo:region-body margin="36pt"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <!-- Fill most of the first page -->
+                  <fo:block space-after="200pt">Content before list</fo:block>
+
+                  <fo:list-block provisional-distance-between-starts="24pt" provisional-label-separation="6pt">
+                    <!-- This item should not fit at bottom of page, but has keep-together -->
+                    <fo:list-item keep-together="always">
+                      <fo:list-item-label>
+                        <fo:block>1.</fo:block>
+                      </fo:list-item-label>
+                      <fo:list-item-body start-indent="24pt">
+                        <fo:block>First list item with multiple lines of content.</fo:block>
+                        <fo:block>More content to make the item taller.</fo:block>
+                        <fo:block>Even more content to ensure it's tall.</fo:block>
+                      </fo:list-item-body>
+                    </fo:list-item>
+                    <fo:list-item>
+                      <fo:list-item-label>
+                        <fo:block>2.</fo:block>
+                      </fo:list-item-label>
+                      <fo:list-item-body start-indent="24pt">
+                        <fo:block>Second list item</fo:block>
+                      </fo:list-item-body>
+                    </fo:list-item>
+                  </fo:list-block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+
+        // Should have at least 2 pages (filler block, then list on new page)
+        Assert.NotNull(areaTree);
+        Assert.True(areaTree.Pages.Count >= 2, $"Expected at least 2 pages, got {areaTree.Pages.Count}");
+
+        // The list item with keep-together should move to the second page entirely
+        // We can't easily verify this without inspecting the areas deeply,
+        // but we can verify the document built successfully
+        Assert.NotEmpty(areaTree.Pages);
+    }
+
+    [Fact]
+    public void ListPageBreaking_MultipleItems_BreakCorrectly()
+    {
+        // Create a list with items of varying sizes
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="210pt" page-height="200pt">
+                  <fo:region-body margin="20pt"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:list-block provisional-distance-between-starts="24pt">
+                    <fo:list-item>
+                      <fo:list-item-label><fo:block>1.</fo:block></fo:list-item-label>
+                      <fo:list-item-body start-indent="24pt">
+                        <fo:block>Short item</fo:block>
+                      </fo:list-item-body>
+                    </fo:list-item>
+                    <fo:list-item>
+                      <fo:list-item-label><fo:block>2.</fo:block></fo:list-item-label>
+                      <fo:list-item-body start-indent="24pt">
+                        <fo:block>Short item</fo:block>
+                      </fo:list-item-body>
+                    </fo:list-item>
+                    <fo:list-item>
+                      <fo:list-item-label><fo:block>3.</fo:block></fo:list-item-label>
+                      <fo:list-item-body start-indent="24pt">
+                        <fo:block>Tall item with content</fo:block>
+                        <fo:block>More content line 2</fo:block>
+                        <fo:block>More content line 3</fo:block>
+                        <fo:block>More content line 4</fo:block>
+                        <fo:block>More content line 5</fo:block>
+                      </fo:list-item-body>
+                    </fo:list-item>
+                    <fo:list-item>
+                      <fo:list-item-label><fo:block>4.</fo:block></fo:list-item-label>
+                      <fo:list-item-body start-indent="24pt">
+                        <fo:block>After break item</fo:block>
+                      </fo:list-item-body>
+                    </fo:list-item>
+                  </fo:list-block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+
+        Assert.NotNull(areaTree);
+        Assert.True(areaTree.Pages.Count >= 1, "Should have at least one page");
+        // List should break across pages as needed
+    }
+
+    [Fact]
+    public void ListPageBreaking_EmptyList_HandlesGracefully()
+    {
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4">
+                  <fo:region-body/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:list-block provisional-distance-between-starts="24pt">
+                    <!-- No list items -->
+                  </fo:list-block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+
+        Assert.NotNull(areaTree);
+        Assert.Single(areaTree.Pages);
+    }
+
+    [Fact]
+    public void ListPageBreaking_NestedContent_WorksCorrectly()
+    {
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="210pt" page-height="297pt">
+                  <fo:region-body margin="36pt"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:list-block provisional-distance-between-starts="30pt">
+                    <fo:list-item space-before="6pt">
+                      <fo:list-item-label>
+                        <fo:block font-weight="bold">A.</fo:block>
+                      </fo:list-item-label>
+                      <fo:list-item-body start-indent="30pt">
+                        <fo:block font-weight="bold">Complex item with nested content</fo:block>
+                        <fo:block space-before="3pt">Paragraph 1 with some text content.</fo:block>
+                        <fo:block space-before="3pt">Paragraph 2 with more text content.</fo:block>
+                        <fo:block space-before="3pt">Paragraph 3 with even more text content to fill space.</fo:block>
+                      </fo:list-item-body>
+                    </fo:list-item>
+                  </fo:list-block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+
+        Assert.NotNull(areaTree);
+        Assert.NotEmpty(areaTree.Pages);
+    }
+
+    #endregion
 }

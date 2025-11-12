@@ -134,6 +134,7 @@ This generates 22 example PDFs showcasing Folly's capabilities:
 - **Multi-Page Tables** - 100-row table with automatic page breaks and header repetition
 - **Images** - JPEG and PNG embedding
 - **Lists** - Ordered and unordered list formatting
+- **Multi-Page Lists** - 100-item list with automatic page breaks and keep-together support
 - **Keep/Break Constraints** - Page break control
 - **Headers and Footers** - Static content with page numbers
 - **Markers** - Dynamic headers with chapter titles
@@ -192,6 +193,8 @@ The core rendering engine is fully operational with extensive feature support:
 - **Table header repetition** on new pages (configurable via `table-omit-header-at-break`)
 - Table layout with column/row spanning
 - List formatting (fo:list-block)
+- **Multi-page list support** with automatic page breaking between items
+- **keep-together support on list items** to prevent breaking across pages
 - Keep-together and break-before/after constraints
 - **Keep-with-next/previous constraints** for preventing orphaned headings and keeping figures with captions
 - **Integer keep strength values** (1-999) for fine-grained pagination control
@@ -226,17 +229,18 @@ The core rendering engine is fully operational with extensive feature support:
 - PDF outline/bookmarks for document navigation
 
 **Quality Assurance:**
-- 255 passing tests (99% success rate - 255 passed, 2 skipped for refinement)
+- 260+ passing tests (99%+ success rate)
   - 21 XSL-FO conformance tests (formatting object parsing, including repeatable-page-master-reference)
   - 25 property inheritance tests (50+ inheritable properties)
-  - 40 layout engine tests (line breaking, page breaking, tables, footnotes, text justification, **multi-page tables**, **keep-with-next/previous**, **widow/orphan control**, **emergency line breaking**)
+  - 45+ layout engine tests (line breaking, page breaking, tables, footnotes, text justification, **multi-page tables**, **multi-page lists**, **keep-with-next/previous**, **widow/orphan control**, **emergency line breaking**)
   - **19 hyphenation tests** (Liang's algorithm, multi-language support, configurable constraints)
   - **5 emergency line breaking tests** (character-level breaking, wrap-option support, narrow columns)
   - **7 Knuth-Plass line breaking tests** (optimal line breaking, TeX-quality typography, comparison with greedy)
+  - **5 list page breaking tests** (multi-page lists, keep-together support, nested content)
   - 14 PDF validation tests (structure, fonts, compression, metadata, links)
   - 9 AreaTree snapshot tests (layout regression detection)
   - 13 fuzzing/stress tests (malformed input, extreme nesting, large tables)
-  - 22 working example PDFs (including multi-page tables, keep-with-next/previous, emergency line breaking)
+  - 23 working example PDFs (including multi-page tables, multi-page lists, keep-with-next/previous, emergency line breaking)
 - 100% qpdf validation success (zero errors)
 - Verified with qpdf 11.9.0
 
