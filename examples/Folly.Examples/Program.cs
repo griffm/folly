@@ -844,7 +844,7 @@ static void GenerateKeepBreakExample(string outputPath)
               </fo:block>
 
               <fo:block font-size="12pt" margin-bottom="12pt">
-                This example demonstrates XSL-FO keep and break constraints for pagination control.
+                This example demonstrates XSL-FO keep and break constraints for pagination control, including keep-together, keep-with-next, keep-with-previous, and break-before/after.
               </fo:block>
 
               <fo:block font-size="14pt" font-family="Helvetica" font-weight="bold" margin-top="12pt" margin-bottom="6pt">
@@ -891,8 +891,32 @@ static void GenerateKeepBreakExample(string outputPath)
                 This section appears on a new page due to the break-after constraint in the previous section.
               </fo:block>
 
+              <fo:block font-size="14pt" font-family="Helvetica" font-weight="bold" margin-top="12pt" margin-bottom="6pt" keep-with-next="always">
+                Section 6: Keep With Next
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt" padding="8pt" background-color="#e8f4f8" border-width="1pt" border-style="solid" border-color="#7fb3d5">
+                The heading above has keep-with-next="always", which ensures it stays together with this following block. This prevents orphaned headings at the bottom of pages - a heading will always have at least its first paragraph with it.
+              </fo:block>
+
+              <fo:block font-size="14pt" font-family="Helvetica" font-weight="bold" margin-top="12pt" margin-bottom="6pt">
+                Regular Heading
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt" padding="8pt" background-color="#f8f0e8" border-width="1pt" border-style="solid" border-color="#d5b37f" keep-with-previous="always">
+                This block has keep-with-previous="always", which keeps it together with the heading above. This achieves the same effect as keep-with-next but is specified on the following block instead.
+              </fo:block>
+
+              <fo:block font-size="14pt" font-family="Helvetica" font-weight="bold" margin-top="12pt" margin-bottom="6pt" keep-with-next="500">
+                Figure 1: Diagram Example
+              </fo:block>
+
+              <fo:block font-size="10pt" font-style="italic" margin-bottom="12pt" padding="8pt" background-color="#f0f8f0" border-width="1pt" border-style="solid" border-color="#7fd59f">
+                This is a figure caption. The heading above uses keep-with-next="500" (integer strength), which ensures the figure title and caption stay together on the same page. Integer values (1-999) allow fine-tuned control over keep priorities.
+              </fo:block>
+
               <fo:block font-size="12pt" margin-bottom="12pt">
-                These pagination controls give you precise control over document layout and ensure professional formatting.
+                These pagination controls give you precise control over document layout and ensure professional formatting. Keep constraints are essential for maintaining document quality and readability.
               </fo:block>
             </fo:flow>
           </fo:page-sequence>

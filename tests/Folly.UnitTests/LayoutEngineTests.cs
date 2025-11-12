@@ -1049,4 +1049,263 @@ public class LayoutEngineTests
         Assert.True(areaTree.Pages.Count >= 2,
             "Keep-together constraint should create at least 2 pages");
     }
+
+    [Fact]
+    public void KeepWithNext_KeepsHeadingWithParagraph()
+    {
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="210pt" page-height="297pt">
+                  <fo:region-body margin="20pt"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:block font-size="12pt">
+                    Filler text to push the heading near the bottom of the page.
+                    This paragraph takes up enough space so that the heading
+                    will be near the page break. We need several lines of text
+                    to achieve this. More filler text here. Even more text to ensure
+                    we get close to the page break. Additional content to fill space.
+                    Another line of text. And another. One more line. Final filler line.
+                  </fo:block>
+                  <fo:block font-size="16pt" font-weight="bold" keep-with-next="always">
+                    Important Heading
+                  </fo:block>
+                  <fo:block font-size="12pt">
+                    This paragraph should stay with the heading above due to keep-with-next.
+                  </fo:block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+        Assert.NotNull(areaTree);
+
+        // Both the heading and the following paragraph should be on the same page
+        // Find the pages containing the heading and the paragraph
+        var headingFound = false;
+        var paragraphFound = false;
+        var headingPageIndex = -1;
+        var paragraphPageIndex = -1;
+
+        for (int i = 0; i < areaTree.Pages.Count; i++)
+        {
+            var page = areaTree.Pages[i];
+            foreach (var area in page.Areas)
+            {
+                if (area is BlockArea blockArea)
+                {
+                    // Check if this block contains the heading or paragraph text
+                    var hasHeading = blockArea.Children.Any(child =>
+                        child is LineArea line && line.Inlines.Any(inline =>
+                            inline.Text?.Contains("Important Heading") == true));
+
+                    var hasParagraph = blockArea.Children.Any(child =>
+                        child is LineArea line && line.Inlines.Any(inline =>
+                            inline.Text?.Contains("paragraph should") == true || inline.Text?.Contains("stay") == true));
+
+                    if (hasHeading)
+                    {
+                        headingFound = true;
+                        headingPageIndex = i;
+                    }
+
+                    if (hasParagraph)
+                    {
+                        paragraphFound = true;
+                        paragraphPageIndex = i;
+                    }
+                }
+            }
+        }
+
+        Assert.True(headingFound, "Heading should be found in the area tree");
+        Assert.True(paragraphFound, "Paragraph should be found in the area tree");
+        Assert.Equal(headingPageIndex, paragraphPageIndex);
+    }
+
+    [Fact]
+    public void KeepWithPrevious_KeepsBlocksWithPrevious()
+    {
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="210pt" page-height="297pt">
+                  <fo:region-body margin="20pt"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:block font-size="12pt">
+                    Filler text to push blocks near the bottom of the page.
+                    This paragraph takes up enough space. We need several lines.
+                    More filler. Even more. Additional content. Another line.
+                    And another. One more. Final filler line. More text here.
+                  </fo:block>
+                  <fo:block font-size="12pt">
+                    First block without keep constraint.
+                  </fo:block>
+                  <fo:block font-size="12pt" keep-with-previous="always">
+                    Second block should stay with previous due to keep-with-previous.
+                  </fo:block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+        Assert.NotNull(areaTree);
+
+        // Both blocks should be on the same page
+        var firstBlockFound = false;
+        var secondBlockFound = false;
+        var firstBlockPageIndex = -1;
+        var secondBlockPageIndex = -1;
+
+        for (int i = 0; i < areaTree.Pages.Count; i++)
+        {
+            var page = areaTree.Pages[i];
+            foreach (var area in page.Areas)
+            {
+                if (area is BlockArea blockArea)
+                {
+                    var hasFirstBlock = blockArea.Children.Any(child =>
+                        child is LineArea line && line.Inlines.Any(inline =>
+                            inline.Text?.Contains("First block without") == true));
+
+                    var hasSecondBlock = blockArea.Children.Any(child =>
+                        child is LineArea line && line.Inlines.Any(inline =>
+                            inline.Text?.Contains("Second block") == true || inline.Text?.Contains("should stay") == true));
+
+                    if (hasFirstBlock)
+                    {
+                        firstBlockFound = true;
+                        firstBlockPageIndex = i;
+                    }
+
+                    if (hasSecondBlock)
+                    {
+                        secondBlockFound = true;
+                        secondBlockPageIndex = i;
+                    }
+                }
+            }
+        }
+
+        Assert.True(firstBlockFound, "First block should be found");
+        Assert.True(secondBlockFound, "Second block should be found");
+        Assert.Equal(firstBlockPageIndex, secondBlockPageIndex);
+    }
+
+    [Fact]
+    public void KeepWithNext_IntegerStrength_Works()
+    {
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="210pt" page-height="297pt">
+                  <fo:region-body margin="20pt"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:block font-size="12pt">
+                    Filler text to push content near page break.
+                    More text. Even more. Additional lines. Another line.
+                    And more. One more. Final filler. More content here.
+                  </fo:block>
+                  <fo:block font-size="14pt" keep-with-next="500">
+                    Figure 1: Diagram
+                  </fo:block>
+                  <fo:block font-size="12pt">
+                    Caption text that should stay with figure above.
+                  </fo:block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+        Assert.NotNull(areaTree);
+
+        // Integer keep strength (500) should work like "always"
+        var figurePageIndex = -1;
+        var captionPageIndex = -1;
+
+        for (int i = 0; i < areaTree.Pages.Count; i++)
+        {
+            var page = areaTree.Pages[i];
+            foreach (var area in page.Areas)
+            {
+                if (area is BlockArea blockArea)
+                {
+                    var hasFigure = blockArea.Children.Any(child =>
+                        child is LineArea line && line.Inlines.Any(inline =>
+                            inline.Text?.Contains("Figure 1") == true));
+
+                    var hasCaption = blockArea.Children.Any(child =>
+                        child is LineArea line && line.Inlines.Any(inline =>
+                            inline.Text?.Contains("Caption text") == true));
+
+                    if (hasFigure) figurePageIndex = i;
+                    if (hasCaption) captionPageIndex = i;
+                }
+            }
+        }
+
+        Assert.True(figurePageIndex >= 0, "Figure should be found");
+        Assert.True(captionPageIndex >= 0, "Caption should be found");
+        Assert.Equal(figurePageIndex, captionPageIndex);
+    }
+
+    [Fact]
+    public void KeepWithNext_WithBreakBefore_BreakTakesPrecedence()
+    {
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="210pt" page-height="297pt">
+                  <fo:region-body margin="20pt"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:block font-size="14pt" keep-with-next="always">
+                    First Block
+                  </fo:block>
+                  <fo:block font-size="14pt" break-before="page">
+                    Second Block with break-before
+                  </fo:block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+        Assert.NotNull(areaTree);
+
+        // break-before should take precedence over keep-with-next
+        // so blocks should be on different pages
+        Assert.True(areaTree.Pages.Count >= 2,
+            "break-before should override keep-with-next and create at least 2 pages");
+    }
 }

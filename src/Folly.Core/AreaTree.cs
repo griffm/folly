@@ -66,6 +66,16 @@ public sealed class PageViewport
     }
 
     /// <summary>
+    /// Removes an area from the page.
+    /// Used for keep-with-next/previous constraints when blocks need to move together.
+    /// </summary>
+    internal void RemoveArea(Area area)
+    {
+        ArgumentNullException.ThrowIfNull(area);
+        _areas.Remove(area);
+    }
+
+    /// <summary>
     /// Adds a link area to the page for PDF annotation generation.
     /// </summary>
     internal void AddLink(LinkArea link)
