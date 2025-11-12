@@ -16,9 +16,12 @@ This library is designed to be generic and reusable - it has no dependencies on 
 - ✅ **Comprehensive Metrics**: Font metrics (ascender, descender, line gap, units per em)
 - ✅ **Character Mapping**: Unicode character-to-glyph index mapping
 - ✅ **Glyph Metrics**: Advance widths and left side bearings for all glyphs
+- ✅ **Glyph Data**: Bounding boxes and outline information for TrueType glyphs
+- ✅ **Kerning Support**: Automatic kerning pair adjustments from kern table
 - ✅ **Font Metadata**: Family name, style, version, PostScript name
 - ✅ **Multiple cmap Formats**: Supports formats 0, 4, and 12 (full Unicode range)
-- ✅ **Table Parsing**: head, maxp, hhea, hmtx, name, cmap, loca, post, OS/2
+- ✅ **Helper Methods**: Text width calculation, unit conversion, line height
+- ✅ **Table Parsing**: head, maxp, hhea, hmtx, name, cmap, loca, post, OS/2, kern, glyf
 
 ## Installation
 
@@ -74,6 +77,46 @@ ushort width = font.GetAdvanceWidth('A');
 Console.WriteLine($"Character 'A' width: {width} font units");
 ```
 
+### Kerning
+
+```csharp
+// Get kerning adjustment between two characters
+short kerning = font.GetKerning('A', 'V');
+Console.WriteLine($"Kerning for 'AV': {kerning} font units");
+
+// Calculate text width with kerning
+int textWidth = font.GetTextWidth("WAVE");
+Console.WriteLine($"Width of 'WAVE': {textWidth} font units");
+```
+
+### Glyph Data
+
+```csharp
+// Get glyph bounding box for a character
+var glyphData = font.GetGlyphData('A');
+if (glyphData != null)
+{
+    Console.WriteLine($"Glyph 'A' bounding box:");
+    Console.WriteLine($"  XMin={glyphData.XMin}, YMin={glyphData.YMin}");
+    Console.WriteLine($"  XMax={glyphData.XMax}, YMax={glyphData.YMax}");
+    Console.WriteLine($"  Width={glyphData.Width}, Height={glyphData.Height}");
+    Console.WriteLine($"  Contours={glyphData.NumberOfContours}");
+}
+```
+
+### Helper Methods
+
+```csharp
+// Convert font units to pixels
+double pixels = font.FontUnitsToPixels(2048, pointSize: 12, dpi: 72);
+
+// Get line height
+int lineHeight = font.GetLineHeight();
+
+// Get glyph index
+ushort? glyphIndex = font.GetGlyphIndex('€');
+```
+
 ### Font Validation
 
 ```csharp
@@ -99,9 +142,9 @@ if (isValid)
 | `loca` | Glyph locations | ✅ Complete |
 | `post` | PostScript information | ✅ Complete |
 | `OS/2` | Windows metrics | ✅ Complete |
-| `glyf` | Glyph data (TrueType) | 🔄 Planned (outline parsing) |
+| `kern` | Kerning pairs | ✅ Complete (format 0) |
+| `glyf` | Glyph data (TrueType) | ✅ Complete (headers & bounding boxes) |
 | `CFF ` | Glyph data (OpenType) | 🔄 Planned |
-| `kern` | Kerning pairs | 🔄 Planned |
 | `GPOS` | Glyph positioning | 🔄 Planned |
 | `GSUB` | Glyph substitution | 🔄 Planned |
 
@@ -138,20 +181,23 @@ dotnet test tests/Folly.FontTests/Folly.FontTests.csproj
 
 ## Roadmap
 
-### Phase 3.1 (Current)
+### Phase 3.1 ✅ COMPLETE
 - ✅ Parse required tables (head, maxp, hhea, hmtx, name, cmap, loca, post, OS/2)
 - ✅ Character-to-glyph mapping
 - ✅ Basic font metrics
-- ✅ Comprehensive test suite
+- ✅ Comprehensive test suite with real fonts
+- ✅ Parse `kern` table for kerning pairs (format 0)
+- ✅ Parse `glyf` table for glyph headers & bounding boxes
+- ✅ Helper methods (GetTextWidth, FontUnitsToPixels, GetLineHeight)
 
 ### Phase 3.2 (Next)
-- ⏳ Parse `kern` table for basic kerning pairs
-- ⏳ Parse `glyf` table for TrueType glyph outlines
-- ⏳ Parse `CFF ` table for OpenType glyph outlines
+- ⏳ Full `glyf` table parsing (contours, points, instructions)
+- ⏳ Parse `CFF ` table for OpenType/CFF glyph outlines
+- ⏳ Additional kern table formats (if needed)
 
 ### Phase 3.3 (Future)
 - ⏳ Font subsetting (extract only used glyphs)
-- ⏳ Font embedding (generate subset fonts)
+- ⏳ Font embedding (generate subset fonts for PDF)
 - ⏳ Advanced OpenType features (GPOS, GSUB tables)
 
 ### Phase 3.4 (Future)

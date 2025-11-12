@@ -110,7 +110,20 @@ public class FontParser
                 OS2TableParser.Parse(stream, os2Table, font);
             }
 
-            // TODO: Parse 'kern' table for kerning pairs
+            // Parse 'kern' (kerning pairs - optional)
+            if (directory.HasTable("kern"))
+            {
+                var kernTable = directory.GetTable("kern")!;
+                KernTableParser.Parse(stream, kernTable, font);
+            }
+
+            // Parse 'glyf' (glyph data for TrueType fonts - optional but recommended)
+            if (directory.HasTable("glyf") && font.IsTrueType && font.GlyphOffsets != null)
+            {
+                var glyfTable = directory.GetTable("glyf")!;
+                font.Glyphs = GlyfTableParser.Parse(stream, glyfTable, font);
+            }
+
             // TODO: Parse 'GPOS' table for advanced positioning (OpenType)
             // TODO: Parse 'GSUB' table for glyph substitution (OpenType)
             // TODO: Parse 'CFF ' table for OpenType/CFF fonts
