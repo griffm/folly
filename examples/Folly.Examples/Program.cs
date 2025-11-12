@@ -126,6 +126,10 @@ GenerateMultiPageListExample(Path.Combine(outputDir, "23-multi-page-lists.pdf"))
 Console.WriteLine("Generating Example 24: TrueType Fonts...");
 GenerateTrueTypeFontsExample(Path.Combine(outputDir, "24-truetype-fonts.pdf"), examplesDir);
 
+// Example 25: Font Fallback and System Fonts
+Console.WriteLine("Generating Example 25: Font Fallback and System Fonts...");
+GenerateFontFallbackExample(Path.Combine(outputDir, "25-font-fallback.pdf"));
+
 Console.WriteLine("\n✓ All examples generated successfully!");
 Console.WriteLine($"\nView PDFs in: {outputDir}");
 Console.WriteLine("\nValidate with qpdf:");
@@ -2384,6 +2388,129 @@ static void GenerateTrueTypeFontsExample(string outputPath, string examplesDir)
     // Map font families to TrueType font files
     options.TrueTypeFonts["Roboto"] = robotoPath;
     options.TrueTypeFonts["LiberationSans"] = liberationPath;
+
+    doc.SavePdf(outputPath, options);
+}
+
+static void GenerateFontFallbackExample(string outputPath)
+{
+    var foXml = """
+        <?xml version="1.0"?>
+        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+          <fo:layout-master-set>
+            <fo:simple-page-master master-name="A4" page-width="595pt" page-height="842pt">
+              <fo:region-body margin="72pt"/>
+            </fo:simple-page-master>
+          </fo:layout-master-set>
+          <fo:page-sequence master-reference="A4">
+            <fo:flow flow-name="xsl-region-body">
+              <fo:block font-family="Roboto, Arial, Helvetica, sans-serif" font-size="24pt" text-align="center" margin-bottom="24pt" color="#2196F3">
+                Font Fallback &amp; System Font Resolution
+              </fo:block>
+
+              <fo:block font-family="Arial, Helvetica, sans-serif" font-size="14pt" margin-bottom="12pt">
+                This document demonstrates automatic font resolution with fallback support. When a specific font is not available,
+                the system will try alternative fonts in the font-family stack.
+              </fo:block>
+
+              <fo:block font-family="sans-serif" font-size="18pt" margin-top="24pt" margin-bottom="12pt" color="#1976D2">
+                Generic Font Families
+              </fo:block>
+
+              <fo:block font-family="sans-serif" font-size="12pt" margin-bottom="12pt">
+                Sans-serif: This text uses the generic "sans-serif" family, which resolves to system fonts like Arial,
+                Helvetica, Liberation Sans, or DejaVu Sans depending on what's available on your system.
+              </fo:block>
+
+              <fo:block font-family="serif" font-size="12pt" margin-bottom="12pt">
+                Serif: This text uses the generic "serif" family, which resolves to system fonts like Times New Roman,
+                Times, Liberation Serif, or DejaVu Serif.
+              </fo:block>
+
+              <fo:block font-family="monospace" font-size="12pt" margin-bottom="12pt">
+                Monospace: This text uses the generic "monospace" family, which resolves to system fonts like Courier New,
+                Courier, Liberation Mono, or DejaVu Sans Mono.
+              </fo:block>
+
+              <fo:block font-family="Arial, Helvetica, sans-serif" font-size="18pt" margin-top="24pt" margin-bottom="12pt" color="#1976D2">
+                Font Family Stacks
+              </fo:block>
+
+              <fo:block font-family="Roboto, Arial, Helvetica, sans-serif" font-size="12pt" margin-bottom="12pt">
+                This paragraph uses a font stack: "Roboto, Arial, Helvetica, sans-serif". If Roboto is available, it will be used.
+                Otherwise, the system falls back to Arial, then Helvetica, then any sans-serif font.
+              </fo:block>
+
+              <fo:block font-family="Georgia, Times New Roman, serif" font-size="12pt" margin-bottom="12pt">
+                This paragraph uses: "Georgia, Times New Roman, serif". The system will try Georgia first, then Times New Roman,
+                then fall back to any serif font.
+              </fo:block>
+
+              <fo:block font-family="Consolas, Monaco, Courier New, monospace" font-size="12pt" margin-bottom="12pt">
+                This paragraph uses: "Consolas, Monaco, Courier New, monospace". Perfect for code snippets and technical content.
+              </fo:block>
+
+              <fo:block font-family="sans-serif" font-size="18pt" margin-top="24pt" margin-bottom="12pt" color="#1976D2">
+                How Font Resolution Works
+              </fo:block>
+
+              <fo:block font-family="sans-serif" font-size="12pt" margin-bottom="6pt">
+                1. Check custom font mappings in PdfOptions.TrueTypeFonts
+              </fo:block>
+              <fo:block font-family="sans-serif" font-size="12pt" margin-bottom="6pt">
+                2. Scan system font directories if EnableFontFallback is true
+              </fo:block>
+              <fo:block font-family="sans-serif" font-size="12pt" margin-bottom="6pt">
+                3. Map generic families (sans-serif, serif, monospace) to common fonts
+              </fo:block>
+              <fo:block font-family="sans-serif" font-size="12pt" margin-bottom="6pt">
+                4. Fall back to PDF base fonts (Helvetica, Times-Roman, Courier) if needed
+              </fo:block>
+
+              <fo:block font-family="sans-serif" font-size="18pt" margin-top="24pt" margin-bottom="12pt" color="#1976D2">
+                Cross-Platform Support
+              </fo:block>
+
+              <fo:block font-family="sans-serif" font-size="12pt" margin-bottom="12pt">
+                The font resolver automatically discovers system fonts on Windows, macOS, and Linux:
+              </fo:block>
+
+              <fo:block font-family="monospace" font-size="10pt" margin-bottom="6pt" margin-left="12pt">
+                • Windows: C:\Windows\Fonts, %LOCALAPPDATA%\Microsoft\Windows\Fonts
+              </fo:block>
+              <fo:block font-family="monospace" font-size="10pt" margin-bottom="6pt" margin-left="12pt">
+                • macOS: /Library/Fonts, /System/Library/Fonts, ~/Library/Fonts
+              </fo:block>
+              <fo:block font-family="monospace" font-size="10pt" margin-bottom="12pt" margin-left="12pt">
+                • Linux: /usr/share/fonts, /usr/local/share/fonts, ~/.fonts, ~/.local/share/fonts
+              </fo:block>
+
+              <fo:block font-family="sans-serif" font-size="12pt" margin-top="24pt" padding="12pt" background-color="#E3F2FD" border="1pt solid #2196F3">
+                This PDF demonstrates automatic font fallback. Set EnableFontFallback=true in PdfOptions to enable this feature.
+                The system will automatically discover and use available system fonts.
+              </fo:block>
+            </fo:flow>
+          </fo:page-sequence>
+        </fo:root>
+        """;
+
+    // Render to PDF with font fallback enabled
+    using var doc = FoDocument.Load(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml)));
+
+    // Configure PDF options with font fallback
+    var options = new PdfOptions
+    {
+        EnableFontFallback = true,  // Enable automatic font resolution
+        SubsetFonts = true,
+        CompressStreams = true,
+        Metadata = new PdfMetadata
+        {
+            Title = "Font Fallback and System Font Resolution",
+            Author = "Folly PDF Engine",
+            Subject = "Demonstration of automatic font resolution with fallback support",
+            Keywords = "fonts, fallback, system fonts, font stacks, cross-platform"
+        }
+    };
 
     doc.SavePdf(outputPath, options);
 }
