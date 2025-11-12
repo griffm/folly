@@ -54,6 +54,10 @@ GenerateInvoice(Path.Combine(outputDir, "06-invoice.pdf"));
 Console.WriteLine("Generating Example 7: Table Example...");
 GenerateTableExample(Path.Combine(outputDir, "07-table.pdf"));
 
+// Example 7.5: Multi-Page Table
+Console.WriteLine("Generating Example 7.5: Multi-Page Table...");
+GenerateMultiPageTableExample(Path.Combine(outputDir, "07b-multi-page-table.pdf"));
+
 // Example 8: Images
 Console.WriteLine("Generating Example 8: Image Example...");
 GenerateImageExample(Path.Combine(outputDir, "08-images.pdf"));
@@ -552,6 +556,134 @@ static void GenerateTableExample(string outputPath)
                   </fo:table-row>
                 </fo:table-body>
               </fo:table>
+            </fo:flow>
+          </fo:page-sequence>
+        </fo:root>
+        """;
+
+    using var doc = FoDocument.Load(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml)));
+    doc.SavePdf(outputPath);
+}
+
+static void GenerateMultiPageTableExample(string outputPath)
+{
+    // Generate a table with enough rows to span multiple pages
+    var tableRows = new System.Text.StringBuilder();
+
+    // Generate 100 rows of data
+    for (int i = 1; i <= 100; i++)
+    {
+        tableRows.AppendLine($@"
+                  <fo:table-row>
+                    <fo:table-cell padding=""4pt"" border-width=""0.5pt"" border-style=""solid"" border-color=""#CCCCCC"">
+                      <fo:block font-size=""9pt"">
+                        Item #{i:D3}
+                      </fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding=""4pt"" border-width=""0.5pt"" border-style=""solid"" border-color=""#CCCCCC"">
+                      <fo:block font-size=""9pt"">
+                        Product {(i % 5) + 1}
+                      </fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding=""4pt"" border-width=""0.5pt"" border-style=""solid"" border-color=""#CCCCCC"">
+                      <fo:block font-size=""9pt"" text-align=""center"">
+                        {(i % 10) + 1}
+                      </fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding=""4pt"" border-width=""0.5pt"" border-style=""solid"" border-color=""#CCCCCC"">
+                      <fo:block font-size=""9pt"" text-align=""end"">
+                        ${(i * 12.50):F2}
+                      </fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>");
+    }
+
+    var foXml = $"""
+        <?xml version="1.0"?>
+        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+          <fo:layout-master-set>
+            <fo:simple-page-master master-name="A4" page-width="595pt" page-height="842pt">
+              <fo:region-body margin="72pt"/>
+              <fo:region-before extent="36pt"/>
+              <fo:region-after extent="36pt"/>
+            </fo:simple-page-master>
+          </fo:layout-master-set>
+          <fo:page-sequence master-reference="A4">
+            <!-- Header with page number -->
+            <fo:static-content flow-name="xsl-region-before">
+              <fo:block font-size="10pt" font-family="Helvetica" text-align="end" padding-bottom="6pt" border-bottom-width="0.5pt" border-bottom-style="solid" border-bottom-color="black">
+                Page <fo:page-number/> - Multi-Page Table Example
+              </fo:block>
+            </fo:static-content>
+
+            <!-- Footer -->
+            <fo:static-content flow-name="xsl-region-after">
+              <fo:block font-size="9pt" font-family="Helvetica" text-align="center" padding-top="6pt" border-top-width="0.5pt" border-top-style="solid" border-top-color="black">
+                Folly XSL-FO Processor - Table Page Breaking Demo
+              </fo:block>
+            </fo:static-content>
+
+            <fo:flow flow-name="xsl-region-body">
+              <fo:block font-size="18pt" font-family="Helvetica" text-align="center" margin-bottom="12pt" space-after="12pt">
+                Multi-Page Table Example
+              </fo:block>
+
+              <fo:block font-size="11pt" margin-bottom="12pt">
+                This example demonstrates Phase 1.1 functionality: tables that automatically break across pages
+                with header repetition. The table below contains 100 rows and will span multiple pages.
+              </fo:block>
+
+              <!-- Table with header repetition (default behavior) -->
+              <fo:table border-collapse="separate" border-spacing="0pt" space-before="12pt">
+                <fo:table-column column-width="100pt"/>
+                <fo:table-column column-width="120pt"/>
+                <fo:table-column column-width="80pt"/>
+                <fo:table-column column-width="100pt"/>
+
+                <!-- Table header - will be repeated on each page -->
+                <fo:table-header>
+                  <fo:table-row>
+                    <fo:table-cell padding="6pt" border-width="1pt" border-style="solid"
+                                   border-color="black" background-color="#4A90E2">
+                      <fo:block font-family="Helvetica" font-size="10pt" color="white" font-weight="bold">
+                        ID
+                      </fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="6pt" border-width="1pt" border-style="solid"
+                                   border-color="black" background-color="#4A90E2">
+                      <fo:block font-family="Helvetica" font-size="10pt" color="white" font-weight="bold">
+                        Product Name
+                      </fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="6pt" border-width="1pt" border-style="solid"
+                                   border-color="black" background-color="#4A90E2">
+                      <fo:block font-family="Helvetica" font-size="10pt" color="white" font-weight="bold" text-align="center">
+                        Quantity
+                      </fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="6pt" border-width="1pt" border-style="solid"
+                                   border-color="black" background-color="#4A90E2">
+                      <fo:block font-family="Helvetica" font-size="10pt" color="white" font-weight="bold" text-align="end">
+                        Amount
+                      </fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>
+                </fo:table-header>
+
+                <fo:table-body>
+                {tableRows}
+                </fo:table-body>
+              </fo:table>
+
+              <fo:block font-size="10pt" margin-top="12pt" space-before="12pt">
+                ✓ Header automatically repeats on each page
+              </fo:block>
+              <fo:block font-size="10pt">
+                ✓ Rows break cleanly across page boundaries
+              </fo:block>
+              <fo:block font-size="10pt">
+                ✓ Table spans {(100 / 30) + 1} pages
+              </fo:block>
             </fo:flow>
           </fo:page-sequence>
         </fo:root>
