@@ -772,11 +772,11 @@ internal sealed class PdfWriter : IDisposable
         var fontIds = new Dictionary<string, int>();
         var embedder = new TrueTypeFontEmbedder(this);
 
-        // Create FontFamilyResolver if fallback is enabled
-        Fonts.FontFamilyResolver? fontResolver = null;
+        // Create FontResolver if fallback is enabled
+        Fonts.FontResolver? fontResolver = null;
         if (enableFontFallback)
         {
-            fontResolver = new Fonts.FontFamilyResolver(trueTypeFonts);
+            fontResolver = new Fonts.FontResolver(trueTypeFonts);
         }
 
         foreach (var fontName in fontNames)

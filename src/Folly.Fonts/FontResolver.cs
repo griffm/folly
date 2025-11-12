@@ -10,7 +10,7 @@ namespace Folly.Fonts;
 /// Resolves font families with fallback support and system font discovery.
 /// Handles font family stacks like "Roboto, Arial, Helvetica, sans-serif".
 /// </summary>
-public class FontFamilyResolver
+public class FontResolver
 {
     private readonly Dictionary<string, string> _customFonts;
     private readonly Dictionary<string, string> _systemFontCache;
@@ -18,10 +18,10 @@ public class FontFamilyResolver
     private bool _systemFontsScanned;
 
     /// <summary>
-    /// Creates a new font resolver.
+    /// Creates a new font resolver for font-family stack resolution.
     /// </summary>
     /// <param name="customFonts">Dictionary mapping font family names to TTF file paths.</param>
-    public FontFamilyResolver(Dictionary<string, string>? customFonts = null)
+    public FontResolver(Dictionary<string, string>? customFonts = null)
     {
         _customFonts = customFonts ?? new Dictionary<string, string>();
         _systemFontCache = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);

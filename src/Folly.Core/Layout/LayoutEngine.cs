@@ -750,7 +750,7 @@ internal sealed class LayoutEngine
 
         // Create font metrics for measurement (used by both links and regular text)
         // Use FontResolver to handle font family normalization and variant selection
-        var blockFontFamily = Fonts.FontResolver.ResolveFont(
+        var blockFontFamily = Fonts.PdfBaseFontMapper.ResolveFont(
             foBlock.FontFamily,
             foBlock.FontWeight,
             foBlock.FontStyle);
@@ -789,7 +789,7 @@ internal sealed class LayoutEngine
                         var inlineFontSize = inline.FontSize ?? 12;
 
                         // Use FontResolver to handle font family normalization and variant selection
-                        var inlineFontFamily = Fonts.FontResolver.ResolveFont(
+                        var inlineFontFamily = Fonts.PdfBaseFontMapper.ResolveFont(
                             inline.FontFamily,
                             inline.FontWeight,
                             inline.FontStyle);
@@ -871,7 +871,7 @@ internal sealed class LayoutEngine
                         var bidiDirection = bidiOverride.Direction;
 
                         // Use FontResolver to handle font family normalization and variant selection
-                        var bidiFontFamily = Fonts.FontResolver.ResolveFont(
+                        var bidiFontFamily = Fonts.PdfBaseFontMapper.ResolveFont(
                             bidiOverride.FontFamily,
                             bidiOverride.FontWeight,
                             bidiOverride.FontStyle);
