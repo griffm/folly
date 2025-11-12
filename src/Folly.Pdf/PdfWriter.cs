@@ -766,19 +766,38 @@ internal sealed class PdfWriter : IDisposable
         HashSet<string> fontNames,
         Dictionary<string, HashSet<char>> characterUsage,
         bool subsetFonts,
-        Dictionary<string, string>? trueTypeFonts = null)
+        Dictionary<string, string>? trueTypeFonts = null,
+        bool enableFontFallback = false)
     {
         var fontIds = new Dictionary<string, int>();
         var embedder = new TrueTypeFontEmbedder(this);
 
+        // Create FontFamilyResolver if fallback is enabled
+        Fonts.FontFamilyResolver? fontResolver = null;
+        if (enableFontFallback)
+        {
+            fontResolver = new Fonts.FontFamilyResolver(trueTypeFonts);
+        }
+
         foreach (var fontName in fontNames)
         {
             int fontId;
+            string? fontPath = null;
 
-            // Check if this is a TrueType font
-            if (trueTypeFonts != null && trueTypeFonts.TryGetValue(fontName, out var fontPath))
+            // Try to get font path from explicit mapping first
+            if (trueTypeFonts != null && trueTypeFonts.TryGetValue(fontName, out fontPath))
             {
-                // Try to embed TrueType font
+                // Font explicitly mapped
+            }
+            // Try font resolution with fallback if enabled
+            else if (fontResolver != null)
+            {
+                fontPath = fontResolver.ResolveFontFamily(fontName);
+            }
+
+            // If we have a font path, try to embed it
+            if (fontPath != null)
+            {
                 try
                 {
                     fontId = EmbedTrueTypeFont(fontPath, fontName, characterUsage, subsetFonts, embedder);

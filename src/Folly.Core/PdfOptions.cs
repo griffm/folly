@@ -40,4 +40,12 @@ public sealed class PdfOptions
     /// Example: TrueTypeFonts["Roboto"] = "/path/to/Roboto-Regular.ttf"
     /// </summary>
     public Dictionary<string, string> TrueTypeFonts { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets whether to enable automatic font resolution with fallback.
+    /// When enabled, font families will be resolved using system fonts if not found in TrueTypeFonts.
+    /// Supports font family stacks like "Roboto, Arial, sans-serif".
+    /// Default is false for backward compatibility.
+    /// </summary>
+    public bool EnableFontFallback { get; set; } = false;
 }

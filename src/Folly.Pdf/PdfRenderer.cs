@@ -44,7 +44,7 @@ public sealed class PdfRenderer : IDisposable
         var catalogId = _writer.WriteCatalog(areaTree.Pages.Count, bookmarkTree);
 
         // Write font resources with subsetting if enabled
-        var fontIds = _writer.WriteFonts(fonts, characterUsage, _options.SubsetFonts, _options.TrueTypeFonts);
+        var fontIds = _writer.WriteFonts(fonts, characterUsage, _options.SubsetFonts, _options.TrueTypeFonts, _options.EnableFontFallback);
 
         // Write image resources
         var imageIds = _writer.WriteImages(images);
