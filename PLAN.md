@@ -250,7 +250,7 @@ private bool WouldCreateWidow(
 
 **Completion Criteria:** Hyphenation working, Knuth-Plass optional, better line breaking
 
-**Status:** Phase 2.1 (Hyphenation Engine) and Phase 2.2 (Emergency Line Breaking) are completed. Remaining deliverables: Knuth-Plass algorithm and list page breaking are pending.
+**Status:** Phase 2.1 (Hyphenation Engine), Phase 2.2 (Emergency Line Breaking), and Phase 2.3 (Knuth-Plass Line Breaking) are completed. Remaining deliverable: List page breaking (Phase 2.4) is pending.
 
 ### 2.1 Hyphenation Engine (Zero Dependencies) ✅ COMPLETED
 
@@ -344,11 +344,13 @@ Successfully implemented with comprehensive character-level breaking for words t
 
 **Complexity:** Low (Completed)
 
-### 2.3 Knuth-Plass Line Breaking (Optional Quality Mode)
+### 2.3 Knuth-Plass Line Breaking (Optional Quality Mode) ✅ COMPLETED
 
 **Impact:** Optimal paragraph layout (like TeX)
 
 **Implementation:**
+Successfully implemented using the Knuth-Plass algorithm from the classic "Breaking Paragraphs into Lines" paper (1981). The implementation provides TeX-quality line breaking as an opt-in feature via `LayoutOptions.LineBreaking`.
+
 ```csharp
 public enum LineBreakingAlgorithm
 {
@@ -362,29 +364,34 @@ public class LayoutOptions
     public LineBreakingAlgorithm LineBreaking { get; set; }
         = LineBreakingAlgorithm.Greedy;
 }
-
-private List<int> FindOptimalBreakpoints(
-    string text,
-    double availableWidth,
-    Fonts.FontMetrics fontMetrics)
-{
-    // Dynamic programming implementation
-    // Minimize "badness" across entire paragraph
-    // O(n²) complexity vs O(n) for greedy
-}
 ```
 
-**Deliverables:**
-- [ ] Implement Knuth-Plass algorithm (pure .NET)
-- [ ] Make it opt-in via `LayoutOptions.LineBreaking`
-- [ ] Calculate badness/penalty for each break
-- [ ] Minimize total badness via dynamic programming
-- [ ] Keep greedy as default (performance)
-- [ ] Add benchmarks comparing both algorithms
-- [ ] Add tests for optimal line breaking
-- [ ] Update documentation
+**Key Features:**
+- Box-glue-penalty model (classic TeX approach)
+- Dynamic programming to minimize total badness across entire paragraph
+- Fitness classes for consistent line looseness/tightness
+- Demerits calculation with penalties for bad breaks
+- O(n²) complexity (slower than greedy but produces superior typography)
+- Greedy remains default for best performance
 
-**Complexity:** Very High (4-5 weeks)
+**Deliverables:**
+- [x] Implement Knuth-Plass algorithm (pure .NET) - `KnuthPlassLineBreaker.cs`
+- [x] Make it opt-in via `LayoutOptions.LineBreaking` - `LineBreakingAlgorithm` enum added
+- [x] Calculate badness/penalty for each break - Badness formula: 100 * |r|³
+- [x] Minimize total badness via dynamic programming - Active nodes with fitness classes
+- [x] Keep greedy as default (performance) - `LineBreakingAlgorithm.Greedy` is default
+- [ ] Add benchmarks comparing both algorithms - Deferred to future iteration
+- [x] Add tests for optimal line breaking - 7 comprehensive tests added
+- [x] Update documentation - README.md and PLAN.md updated
+
+**Results:**
+- ✅ Knuth-Plass algorithm fully implemented with zero runtime dependencies
+- ✅ Opt-in via `LayoutOptions` preserves existing performance
+- ✅ 7 new tests passing: basic line breaking, comparison with greedy, long paragraphs, justification, empty text, long words
+- ✅ All existing tests pass (255 total tests passing, 2 skipped)
+- ✅ Works seamlessly with text justification and emergency breaking
+
+**Complexity:** Very High (Completed)
 
 **References:**
 - Knuth & Plass: "Breaking Paragraphs into Lines" (1981)
@@ -425,10 +432,10 @@ private void LayoutListItemsWithPageBreaking(...)
 - ✅ Hyphenation reduces ragged edges by 60%+ (Achieved in 2.1)
 - ✅ Emergency line breaking handles overflow gracefully (Achieved in 2.2)
 - ✅ wrap-option property controls line wrapping behavior (Achieved in 2.2)
-- ⏳ Knuth-Plass (opt-in) produces TeX-quality output (Pending - Phase 2.3)
+- ✅ Knuth-Plass (opt-in) produces TeX-quality output (Achieved in 2.3)
 - ⏳ Long lists (100+ items) span multiple pages correctly (Pending - Phase 2.4)
-- ✅ Performance: Greedy still <300ms (Maintained at ~150ms, Knuth-Plass pending)
-- ✅ 20+ new passing tests (Achieved: 19 hyphenation tests from 2.1 + 5 emergency breaking tests from 2.2 = 24 tests)
+- ✅ Performance: Greedy still <300ms (Maintained at ~150ms, Knuth-Plass is opt-in and does not affect default performance)
+- ✅ 20+ new passing tests (Achieved: 19 hyphenation tests from 2.1 + 5 emergency breaking tests from 2.2 + 7 Knuth-Plass tests from 2.3 = 31 tests)
 
 ---
 

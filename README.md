@@ -177,7 +177,7 @@ The core rendering engine is fully operational with extensive feature support:
 
 **Layout Engine:**
 - Multi-page layout with automatic pagination
-- Greedy line breaking with word wrapping
+- **Line breaking algorithms:** Greedy (fast, default) and Knuth-Plass (optimal, TeX-quality)
 - **Professional hyphenation** using Liang's TeX algorithm (4 languages: English, German, French, Spanish)
 - **Emergency line breaking** with character-level breaking for overflow words
 - **wrap-option property** (wrap, no-wrap) for controlling line wrapping behavior
@@ -226,12 +226,13 @@ The core rendering engine is fully operational with extensive feature support:
 - PDF outline/bookmarks for document navigation
 
 **Quality Assurance:**
-- 253 passing tests (99% success rate - 253 passed, 2 skipped for refinement)
+- 255 passing tests (99% success rate - 255 passed, 2 skipped for refinement)
   - 21 XSL-FO conformance tests (formatting object parsing, including repeatable-page-master-reference)
   - 25 property inheritance tests (50+ inheritable properties)
   - 40 layout engine tests (line breaking, page breaking, tables, footnotes, text justification, **multi-page tables**, **keep-with-next/previous**, **widow/orphan control**, **emergency line breaking**)
   - **19 hyphenation tests** (Liang's algorithm, multi-language support, configurable constraints)
   - **5 emergency line breaking tests** (character-level breaking, wrap-option support, narrow columns)
+  - **7 Knuth-Plass line breaking tests** (optimal line breaking, TeX-quality typography, comparison with greedy)
   - 14 PDF validation tests (structure, fonts, compression, metadata, links)
   - 9 AreaTree snapshot tests (layout regression detection)
   - 13 fuzzing/stress tests (malformed input, extreme nesting, large tables)

@@ -1,6 +1,25 @@
 namespace Folly;
 
 /// <summary>
+/// Line breaking algorithm selection.
+/// </summary>
+public enum LineBreakingAlgorithm
+{
+    /// <summary>
+    /// Fast greedy (first-fit) algorithm. Single-pass, O(n) complexity.
+    /// Default for best performance.
+    /// </summary>
+    Greedy,
+
+    /// <summary>
+    /// Optimal Knuth-Plass algorithm from TeX. Multi-pass with dynamic programming, O(n²) complexity.
+    /// Produces better-quality line breaks by minimizing total badness across the paragraph.
+    /// Recommended for high-quality typography where rendering time is less critical.
+    /// </summary>
+    Optimal
+}
+
+/// <summary>
 /// Options for the layout engine.
 /// </summary>
 public sealed class LayoutOptions
@@ -16,6 +35,12 @@ public sealed class LayoutOptions
     /// Default is 10.
     /// </summary>
     public int MaxIterations { get; set; } = 10;
+
+    /// <summary>
+    /// Gets or sets the line breaking algorithm to use.
+    /// Default is Greedy for best performance. Set to Optimal for TeX-quality line breaking.
+    /// </summary>
+    public LineBreakingAlgorithm LineBreaking { get; set; } = LineBreakingAlgorithm.Greedy;
 
     /// <summary>
     /// Gets or sets the allowed base path for loading external images.

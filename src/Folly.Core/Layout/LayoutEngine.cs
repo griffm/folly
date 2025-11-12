@@ -1036,6 +1036,24 @@ internal sealed class LayoutEngine
             return lines;
         }
 
+        // Dispatch to the appropriate line breaking algorithm
+        if (_options.LineBreaking == LineBreakingAlgorithm.Optimal)
+        {
+            return BreakLinesOptimal(text, availableWidth, fontMetrics, foBlock);
+        }
+        else
+        {
+            return BreakLinesGreedy(text, availableWidth, fontMetrics, foBlock);
+        }
+    }
+
+    /// <summary>
+    /// Greedy (first-fit) line breaking algorithm. Fast, single-pass, O(n) complexity.
+    /// </summary>
+    private List<string> BreakLinesGreedy(string text, double availableWidth, Fonts.FontMetrics fontMetrics, Dom.FoBlock foBlock)
+    {
+        var lines = new List<string>();
+
         // Split text into words, treating dashes as part of words (allowing breaks after them)
         var words = SplitIntoWords(text);
 
@@ -1182,6 +1200,102 @@ internal sealed class LayoutEngine
             else
             {
                 // Line fits, keep it as-is
+                processedLines.Add(line);
+            }
+        }
+
+        return processedLines;
+    }
+
+    /// <summary>
+    /// Knuth-Plass optimal line breaking algorithm from TeX.
+    /// Uses dynamic programming to minimize total badness across the entire paragraph.
+    /// Slower than greedy (O(n²) vs O(n)) but produces superior typography.
+    /// </summary>
+    private List<string> BreakLinesOptimal(string text, double availableWidth, Fonts.FontMetrics fontMetrics, Dom.FoBlock foBlock)
+    {
+        var lines = new List<string>();
+
+        // Split text into words
+        var words = SplitIntoWords(text);
+
+        if (words.Count == 0)
+        {
+            lines.Add("");
+            return lines;
+        }
+
+        // Build word positions for later conversion
+        var wordPositions = new List<(int start, int end)>();
+        int currentPos = 0;
+        foreach (var word in words)
+        {
+            var start = currentPos;
+            var end = currentPos + word.Length;
+            wordPositions.Add((start, end));
+            currentPos = end + 1; // +1 for space
+        }
+
+        // Create the Knuth-Plass line breaker
+        var lineBreaker = new KnuthPlassLineBreaker(fontMetrics, availableWidth, tolerance: 1.0);
+
+        // Find optimal breakpoints
+        var breakpoints = lineBreaker.FindOptimalBreakpoints(text, words, wordPositions);
+
+        // Convert breakpoints into lines
+        if (breakpoints.Count == 0)
+        {
+            // No breaks needed or possible - return all text as single line
+            lines.Add(string.Join(" ", words));
+        }
+        else
+        {
+            // Build lines from words based on breakpoints
+            var currentLine = new StringBuilder();
+            int wordIndex = 0;
+
+            for (int i = 0; i < words.Count; i++)
+            {
+                if (currentLine.Length > 0)
+                {
+                    // Check if previous word ends with dash
+                    var prevWord = words[i - 1];
+                    if (!prevWord.EndsWith('—') && !prevWord.EndsWith('–') && !prevWord.EndsWith('-'))
+                    {
+                        currentLine.Append(' ');
+                    }
+                }
+
+                currentLine.Append(words[i]);
+
+                // Check if we should break after this word
+                if (wordIndex < breakpoints.Count && wordPositions[i].end >= breakpoints[wordIndex])
+                {
+                    lines.Add(currentLine.ToString());
+                    currentLine.Clear();
+                    wordIndex++;
+                }
+            }
+
+            // Add remaining text as last line
+            if (currentLine.Length > 0)
+            {
+                lines.Add(currentLine.ToString());
+            }
+        }
+
+        // Apply emergency breaking if any lines are still too wide
+        var processedLines = new List<string>();
+        foreach (var line in lines)
+        {
+            var lineWidth = fontMetrics.MeasureWidth(line);
+            if (lineWidth > availableWidth)
+            {
+                var brokenLines = BreakWordByCharacter(line, availableWidth, fontMetrics);
+                processedLines.AddRange(brokenLines);
+            }
+            else
+            {
                 processedLines.Add(line);
             }
         }
