@@ -11,10 +11,12 @@ This roadmap outlines Folly's evolution from a solid XSL-FO foundation (~70% spe
   - Phase 2.2 (Emergency Line Breaking) ✅ COMPLETED
   - Phase 2.3 (Knuth-Plass Line Breaking) ✅ COMPLETED
   - Phase 2.4 (List Page Breaking) ✅ COMPLETED
-- Phase 3.1 (TTF/OTF Parser) 🚧 IN PROGRESS
+- Phase 3 (TrueType/OpenType Font Support) 🚧 IN PROGRESS
+  - Phase 3.1 (TTF/OTF Parser) 🚧 SUBSTANTIALLY COMPLETE (37/37 tests passing)
+  - Phase 3.2 (Font Embedding & Subsetting) 🚧 IN PROGRESS (infrastructure created)
 - Excellent performance (66x faster than target at ~150ms for 200 pages)
 - ~75% XSL-FO 1.1 compliance (up from ~70%)
-- 258+ passing tests (99%+ success rate)
+- 295+ passing tests (99%+ success rate) - includes 37 font parsing tests
 
 **Target:** Best-in-class layout engine with ~95% spec compliance, professional typography, zero runtime dependencies
 
@@ -447,7 +449,7 @@ Successfully implemented using the `LayoutListBlockWithPageBreaking` method, fol
 
 **Completion Criteria:** Load and embed TTF/OTF fonts, basic kerning
 
-**Status:** Phase 3.1 (TTF/OTF Parser) is in progress. Core table parsers implemented for TrueType fonts. Remaining work: CFF support, font caching, system font discovery, and integration with layout engine.
+**Status:** Phase 3.1 (TTF/OTF Parser) is substantially complete with all TrueType table parsers working and 37 tests passing. Font subsetting infrastructure started. Remaining work: CFF support (deferred), font embedding in PDF, font caching, system font discovery, and integration with layout engine.
 
 ### 3.1 TTF/OTF Parser (Zero Dependencies Implementation) 🚧 IN PROGRESS
 
@@ -523,24 +525,29 @@ namespace Folly.Fonts
 - `post` - PostScript information
 
 **Deliverables:**
-- [x] Implement TrueType table parser (pure .NET) - `Folly.Fonts` project created
-- [x] Parse required tables: head, hhea, hmtx, maxp, name, cmap, loca, glyf, post, OS/2, kern - All implemented
-- [ ] Parse CFF table for OpenType/CFF fonts - TODO (see FontParser.cs:129)
-- [x] Build character-to-glyph mapping - `CmapTableParser` implemented
-- [x] Extract glyph metrics (width, height, bearings) - `HmtxTableParser` and `GlyfTableParser` implemented
-- [x] Support Unicode cmap (format 4, format 12) - Implemented in `CmapTableParser`
-- [x] Add kerning support - `KernTableParser` implemented
-- [ ] Add font caching mechanism - Not yet implemented
-- [x] Add tests with real TTF/OTF files - `Folly.FontTests` project with integration tests
-- [ ] Support Windows, macOS, Linux font directories - Not yet implemented
+- [x] Implement TrueType table parser (pure .NET) - `Folly.Fonts` project created with 11 table parsers
+- [x] Parse required tables: head, hhea, hmtx, maxp, name, cmap, loca, glyf, post, OS/2, kern - All implemented and tested
+- [ ] Parse CFF table for OpenType/CFF fonts - Deferred (most common fonts are TrueType)
+- [x] Build character-to-glyph mapping - `CmapTableParser` with format 4 and 12 support
+- [x] Extract glyph metrics (width, height, bearings) - `HmtxTableParser` and `GlyfTableParser` with robust error handling
+- [x] Support Unicode cmap (format 4, format 12) - Fully implemented and tested
+- [x] Add kerning support - `KernTableParser` implemented with pair kerning
+- [x] Fix HmtxTableParser IndexOutOfRangeException - Fixed with proper bounds checking
+- [ ] Add font caching mechanism - Not yet implemented (deferred to Phase 3.3)
+- [x] Add tests with real TTF/OTF files - 37 comprehensive tests with Liberation Sans and Roboto fonts (100% passing)
+- [ ] Support Windows, macOS, Linux font directories - Not yet implemented (deferred to Phase 3.3)
 
 **Current Implementation Status:**
 - ✅ Core table parsing infrastructure complete (`FontFileReader`, `BigEndianBinaryReader`)
-- ✅ All required TrueType tables parsed: head, hhea, hmtx, maxp, name, cmap, loca, glyf, post, OS/2
+- ✅ All required TrueType tables parsed: head, hhea, hmtx, maxp, name, cmap, loca, glyf, post, OS/2, kern
 - ✅ Kerning support via kern table parser
-- ✅ Character-to-glyph mapping working
-- ✅ Glyph metrics extraction complete
-- ⏳ CFF table parser needed for OpenType/CFF fonts
+- ✅ Character-to-glyph mapping working (cmap formats 4 and 12)
+- ✅ Glyph metrics extraction complete with bounds checking
+- ✅ All 37 font parsing tests passing (100% success rate)
+- ✅ Font subsetting infrastructure created (`FontSubsetter.cs` with glyph mapping logic)
+- ⏳ CFF table parser needed for OpenType/CFF fonts (deferred - most fonts are TrueType)
+- ⏳ Font subsetting serialization to TrueType format (pending)
+- ⏳ Font embedding in PDF with TrueType font streams (pending)
 - ⏳ Font caching and system font discovery pending
 - ⏳ Integration with layout engine pending
 
@@ -581,12 +588,12 @@ public class TrueTypeFontEmbedder
 ```
 
 **Deliverables:**
-- [ ] Implement font subsetting (extract used glyphs)
-- [ ] Rebuild font tables for subset
-- [ ] Embed TrueType fonts in PDF
-- [ ] Generate ToUnicode CMap for text extraction
-- [ ] Support CIDFont for large character sets (CJK)
-- [ ] Add tests for embedding and subsetting
+- [x] Design font subsetting infrastructure - `FontSubsetter.cs` created with glyph mapping logic
+- [ ] Implement TrueType font serialization - Generate valid TTF files from subsetted font data
+- [ ] Embed TrueType fonts in PDF - Write TrueType font descriptor and font stream objects
+- [ ] Generate ToUnicode CMap for text extraction - Map character codes to Unicode
+- [ ] Support CIDFont for large character sets (CJK) - For fonts with >256 glyphs
+- [ ] Add tests for embedding and subsetting - Validate embedded fonts render correctly
 - [ ] Update examples with custom fonts
 
 **Complexity:** High (4-5 weeks)
