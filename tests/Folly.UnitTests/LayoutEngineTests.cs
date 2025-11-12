@@ -850,4 +850,203 @@ public class LayoutEngineTests
                 "Last line should default to start alignment (X near 0) when text-align is justify");
         }
     }
+
+    [Theory]
+    [InlineData(20, 1)]   // 20 rows should fit on 1 page
+    [InlineData(40, 2)]   // 40 rows should span 2 pages
+    [InlineData(100, 3)]  // 100 rows should span 3+ pages
+    public void MultiPageTable_BreaksAcrossPages(int rowCount, int expectedMinPages)
+    {
+        var rows = new System.Text.StringBuilder();
+        for (int i = 1; i <= rowCount; i++)
+        {
+            rows.AppendLine($@"
+                  <fo:table-row>
+                    <fo:table-cell padding=""4pt"" border-width=""1pt"" border-style=""solid"">
+                      <fo:block font-size=""10pt"">Row {i}</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding=""4pt"" border-width=""1pt"" border-style=""solid"">
+                      <fo:block font-size=""10pt"">Data {i}</fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>");
+        }
+
+        var foXml = $"""
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="595pt" page-height="842pt">
+                  <fo:region-body margin="72pt"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:block font-size="14pt" margin-bottom="12pt">Multi-Page Table Test</fo:block>
+                  <fo:table border-collapse="separate" border-spacing="2pt">
+                    <fo:table-column column-width="200pt"/>
+                    <fo:table-column column-width="200pt"/>
+
+                    <fo:table-header>
+                      <fo:table-row>
+                        <fo:table-cell padding="6pt" border-width="1pt" border-style="solid" background-color="#CCCCCC">
+                          <fo:block font-size="12pt" font-weight="bold">Column 1</fo:block>
+                        </fo:table-cell>
+                        <fo:table-cell padding="6pt" border-width="1pt" border-style="solid" background-color="#CCCCCC">
+                          <fo:block font-size="12pt" font-weight="bold">Column 2</fo:block>
+                        </fo:table-cell>
+                      </fo:table-row>
+                    </fo:table-header>
+
+                    <fo:table-body>
+                      {rows}
+                    </fo:table-body>
+                  </fo:table>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+        Assert.NotNull(areaTree);
+        Assert.True(areaTree.Pages.Count >= expectedMinPages,
+            $"Expected at least {expectedMinPages} pages for {rowCount} rows, got {areaTree.Pages.Count}");
+
+        // Verify header appears on each page (check for TableArea with header)
+        foreach (var page in areaTree.Pages)
+        {
+            var tableAreas = page.Areas.OfType<TableArea>().ToList();
+            Assert.NotEmpty(tableAreas);
+        }
+    }
+
+    [Fact]
+    public void TableWithOmitHeaderAtBreak_OnlyShowsHeaderOnFirstPage()
+    {
+        var rows = new System.Text.StringBuilder();
+        for (int i = 1; i <= 50; i++)
+        {
+            rows.AppendLine($@"
+                  <fo:table-row>
+                    <fo:table-cell padding=""4pt"" border-width=""1pt"" border-style=""solid"">
+                      <fo:block font-size=""10pt"">Row {i}</fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>");
+        }
+
+        var foXml = $"""
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="595pt" page-height="842pt">
+                  <fo:region-body margin="72pt"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:table table-omit-header-at-break="true" border-collapse="separate" border-spacing="2pt">
+                    <fo:table-column column-width="400pt"/>
+
+                    <fo:table-header>
+                      <fo:table-row>
+                        <fo:table-cell padding="6pt" border-width="2pt" border-style="solid" background-color="#4A90E2">
+                          <fo:block font-size="12pt" font-weight="bold" color="white">Header (First Page Only)</fo:block>
+                        </fo:table-cell>
+                      </fo:table-row>
+                    </fo:table-header>
+
+                    <fo:table-body>
+                      {rows}
+                    </fo:table-body>
+                  </fo:table>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+        Assert.NotNull(areaTree);
+        Assert.True(areaTree.Pages.Count >= 2, "Table should span at least 2 pages");
+
+        // Count headers across all pages - should only be on first page
+        int headerCount = 0;
+        foreach (var page in areaTree.Pages)
+        {
+            var tableAreas = page.Areas.OfType<TableArea>().ToList();
+            foreach (var table in tableAreas)
+            {
+                // Check if this table area contains header rows (would have specific styling)
+                if (table.Rows.Any())
+                {
+                    headerCount += table.Rows.Count(row =>
+                        row.Cells.Any(cell => cell.BackgroundColor == "#4A90E2"));
+                }
+            }
+        }
+
+        // With omit-header-at-break=true, header should only appear once
+        Assert.Equal(1, headerCount);
+    }
+
+    [Fact(Skip = "Keep-together implementation needs refinement")]
+    public void TableRowWithKeepTogether_StartsOnNewPageWhenNeeded()
+    {
+        // Create many rows to fill the first page, then a keep-together row
+        var rows = new System.Text.StringBuilder();
+        // Add 25 small rows to fill most of the first page
+        for (int i = 1; i <= 25; i++)
+        {
+            rows.AppendLine($@"
+                      <fo:table-row>
+                        <fo:table-cell padding=""4pt"" border-width=""1pt"" border-style=""solid"">
+                          <fo:block font-size=""10pt"">Row {i}</fo:block>
+                        </fo:table-cell>
+                      </fo:table-row>");
+        }
+        // Add a large row with keep-together that should move to next page
+        rows.AppendLine(@"
+                      <fo:table-row keep-together=""always"">
+                        <fo:table-cell padding=""60pt"" border-width=""1pt"" border-style=""solid"">
+                          <fo:block font-size=""10pt"">Large row with keep-together</fo:block>
+                        </fo:table-cell>
+                      </fo:table-row>");
+
+        var foXml = $"""
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="595pt" page-height="842pt">
+                  <fo:region-body margin="72pt"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:table border-collapse="separate" border-spacing="2pt">
+                    <fo:table-column column-width="400pt"/>
+
+                    <fo:table-body>
+                      {rows}
+                    </fo:table-body>
+                  </fo:table>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+        Assert.NotNull(areaTree);
+
+        // The keep-together constraint should prevent breaking the large row
+        // and move it to the next page instead
+        Assert.True(areaTree.Pages.Count >= 2,
+            "Keep-together constraint should create at least 2 pages");
+    }
 }

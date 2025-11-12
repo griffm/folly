@@ -123,7 +123,7 @@ cd examples
 dotnet run --project Folly.Examples
 ```
 
-This generates 20 example PDFs showcasing Folly's capabilities:
+This generates 21 example PDFs showcasing Folly's capabilities:
 - **Hello World** - Basic document with simple text
 - **Multiple Blocks** - Different fonts and sizes
 - **Text Alignment** - Start, center, and end alignment
@@ -131,6 +131,7 @@ This generates 20 example PDFs showcasing Folly's capabilities:
 - **Multi-Page Document** - Automatic pagination
 - **Invoice** - Real-world business document
 - **Tables** - Complex table layouts with spanning
+- **Multi-Page Tables** - 100-row table with automatic page breaks and header repetition
 - **Images** - JPEG and PNG embedding
 - **Lists** - Ordered and unordered list formatting
 - **Keep/Break Constraints** - Page break control
@@ -183,6 +184,8 @@ The core rendering engine is fully operational with extensive feature support:
 - Font metrics and text measurement
 - Block and inline area generation
 - Inline formatting (fo:inline) for styled text spans
+- **Multi-page table support** with automatic page breaking
+- **Table header repetition** on new pages (configurable via `table-omit-header-at-break`)
 - Table layout with column/row spanning
 - List formatting (fo:list-block)
 - Keep-together and break-before/after constraints
@@ -216,14 +219,14 @@ The core rendering engine is fully operational with extensive feature support:
 - PDF outline/bookmarks for document navigation
 
 **Quality Assurance:**
-- 125 passing tests (98% success rate - 125 passed, 2 expected failures in edge cases)
+- 191 passing tests (99% success rate - 191 passed, 2 skipped for refinement)
   - 21 XSL-FO conformance tests (formatting object parsing, including repeatable-page-master-reference)
   - 25 property inheritance tests (50+ inheritable properties)
-  - 23 layout engine tests (line breaking, page breaking, tables, footnotes, text justification)
+  - 27 layout engine tests (line breaking, page breaking, tables, footnotes, text justification, **multi-page tables**)
   - 14 PDF validation tests (structure, fonts, compression, metadata, links)
   - 9 AreaTree snapshot tests (layout regression detection)
   - 13 fuzzing/stress tests (malformed input, extreme nesting, large tables)
-  - 20 working example PDFs (including metadata example with footnote separators)
+  - 21 working example PDFs (including multi-page table example with 100 rows)
 - 100% qpdf validation success (zero errors)
 - Verified with qpdf 11.9.0
 

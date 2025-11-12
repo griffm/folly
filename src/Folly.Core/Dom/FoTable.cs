@@ -47,6 +47,20 @@ public sealed class FoTable : FoElement
     /// Gets the table layout algorithm.
     /// </summary>
     public string TableLayout => Properties.GetString("table-layout", "auto");
+
+    /// <summary>
+    /// Gets whether to omit the table header at page breaks.
+    /// When "true", the header is only shown on the first page.
+    /// When "false" (default), the header is repeated on every page.
+    /// </summary>
+    public bool TableOmitHeaderAtBreak => Properties.GetString("table-omit-header-at-break", "false").ToLowerInvariant() == "true";
+
+    /// <summary>
+    /// Gets whether to omit the table footer at page breaks.
+    /// When "true", the footer is only shown on the last page.
+    /// When "false" (default), the footer is repeated on every page.
+    /// </summary>
+    public bool TableOmitFooterAtBreak => Properties.GetString("table-omit-footer-at-break", "false").ToLowerInvariant() == "true";
 }
 
 /// <summary>
@@ -132,6 +146,11 @@ public sealed class FoTableRow : FoElement
     /// Gets the row height.
     /// </summary>
     public double Height => LengthParser.Parse(Properties.GetString("height", "auto"));
+
+    /// <summary>
+    /// Gets the keep-together constraint for this row.
+    /// </summary>
+    public string KeepTogether => Properties.GetString("keep-together", "auto");
 }
 
 /// <summary>

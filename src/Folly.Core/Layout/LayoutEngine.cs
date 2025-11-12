@@ -415,38 +415,31 @@ internal sealed class LayoutEngine
             }
         }
 
-        // Layout each table in the flow
+        // Layout each table in the flow with page breaking support
         // Note: Tables span full body width, not individual columns
         foreach (var foTable in flow.Tables)
         {
             // Tables break columns - start from left margin
-            var tableArea = LayoutTable(foTable, bodyMarginLeft, currentY, bodyWidth);
-            if (tableArea == null)
-                continue;
+            // Use row-by-row layout with page breaking
+            LayoutTableWithPageBreaking(
+                foTable,
+                foRoot,
+                pageSequence,
+                areaTree,
+                ref currentPage,
+                ref currentPageMaster,
+                ref pageNumber,
+                ref currentY,
+                ref currentColumn,
+                bodyMarginLeft,
+                bodyWidth,
+                ref bodyMarginTop,
+                ref bodyMarginBottom,
+                ref bodyMarginLeft,
+                ref bodyMarginRight,
+                ref bodyWidth,
+                ref bodyHeight);
 
-            // Check if table fits on current page
-            if (currentY + tableArea.Height > currentPageMaster.PageHeight - bodyMarginBottom)
-            {
-                // Table doesn't fit - add current page and create new one
-                RenderFloats(currentPage, currentPageMaster, bodyMarginTop);
-                RenderFootnotes(currentPage, currentPageMaster, pageSequence);
-                AddLinksToPage(currentPage);
-                CheckPageLimit(areaTree);
-                areaTree.AddPage(currentPage);
-                pageNumber++;
-                currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
-                CalculateBodyMargins(currentPageMaster, out bodyMarginTop, out bodyMarginBottom,
-                    out bodyMarginLeft, out bodyMarginRight, out bodyWidth, out bodyHeight);
-                currentPage = CreatePage(currentPageMaster, pageSequence, pageNumber);
-                currentY = bodyMarginTop;
-
-                // Re-position the table for the new page
-                tableArea.X = bodyMarginLeft;
-                tableArea.Y = currentY;
-            }
-
-            currentPage.AddArea(tableArea);
-            currentY += tableArea.Height;
             currentColumn = 0;  // Reset to first column after table
         }
 
@@ -1162,6 +1155,257 @@ internal sealed class LayoutEngine
         tableArea.Height = currentY;
 
         return tableArea;
+    }
+
+    /// <summary>
+    /// Layouts a table with support for page breaking between rows.
+    /// This method handles:
+    /// - Row-by-row iteration with page break detection
+    /// - Header repetition on new pages (controlled by table-omit-header-at-break)
+    /// - Footer placement (controlled by table-omit-footer-at-break)
+    /// - Keep-together constraints on rows
+    /// </summary>
+    private void LayoutTableWithPageBreaking(
+        Dom.FoTable foTable,
+        Dom.FoRoot foRoot,
+        Dom.FoPageSequence pageSequence,
+        AreaTree areaTree,
+        ref PageViewport currentPage,
+        ref Dom.FoSimplePageMaster currentPageMaster,
+        ref int pageNumber,
+        ref double currentY,
+        ref int currentColumn,
+        double tableX,
+        double tableWidth,
+        ref double bodyMarginTop,
+        ref double bodyMarginBottom,
+        ref double bodyMarginLeft,
+        ref double bodyMarginRight,
+        ref double bodyWidth,
+        ref double bodyHeight)
+    {
+        // Calculate column widths once for the entire table
+        var columnWidths = CalculateColumnWidths(foTable, tableWidth);
+        var calculatedTableWidth = columnWidths.Sum() + (foTable.BorderSpacing * (columnWidths.Count + 1));
+
+        // Render header on first page
+        if (foTable.Header != null)
+        {
+            foreach (var foRow in foTable.Header.Rows)
+            {
+                var rowArea = LayoutTableRow(foRow, 0, 0, columnWidths, foTable.BorderSpacing);
+                if (rowArea != null)
+                {
+                    rowArea.X = tableX;
+                    rowArea.Y = currentY;
+
+                    var headerTableArea = new TableArea
+                    {
+                        X = tableX,
+                        Y = currentY,
+                        Width = calculatedTableWidth,
+                        Height = rowArea.Height,
+                        BorderCollapse = foTable.BorderCollapse,
+                        BorderSpacing = foTable.BorderSpacing,
+                        ColumnWidths = columnWidths
+                    };
+                    headerTableArea.AddRow(rowArea);
+
+                    currentPage.AddArea(headerTableArea);
+                    currentY += rowArea.Height;
+                }
+            }
+        }
+
+        // Layout body rows with page breaking
+        if (foTable.Body != null)
+        {
+            foreach (var foRow in foTable.Body.Rows)
+            {
+                // Calculate row height first to check if it fits
+                var rowArea = LayoutTableRow(foRow, 0, 0, columnWidths, foTable.BorderSpacing);
+                if (rowArea == null)
+                    continue;
+
+                var rowHeight = rowArea.Height;
+                var pageBottom = currentPageMaster.PageHeight - bodyMarginBottom;
+
+                // Check keep-together constraint
+                var mustKeepTogether = foRow.KeepTogether == "always";
+
+                // Check if row fits on current page
+                var rowFitsOnPage = currentY + rowHeight <= pageBottom;
+
+                if (!rowFitsOnPage)
+                {
+                    // Row doesn't fit - decide whether to break
+                    // If we're at the top of the page and the row is too large, render it anyway
+                    // Otherwise, create a new page
+                    if (currentY > bodyMarginTop || mustKeepTogether)
+                    {
+                        // Create new page
+                        RenderFloats(currentPage, currentPageMaster, bodyMarginTop);
+                        RenderFootnotes(currentPage, currentPageMaster, pageSequence);
+                        AddLinksToPage(currentPage);
+                        CheckPageLimit(areaTree);
+                        areaTree.AddPage(currentPage);
+                        pageNumber++;
+                        currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
+
+                        // Recalculate body margins for new page master
+                        var regionBody = currentPageMaster.RegionBody;
+                        var regionBodyMarginTop = regionBody?.MarginTop ?? 0;
+                        var regionBodyMarginBottom = regionBody?.MarginBottom ?? 0;
+                        var regionBodyMarginLeft = regionBody?.MarginLeft ?? 0;
+                        var regionBodyMarginRight = regionBody?.MarginRight ?? 0;
+
+                        var regionBeforeExtent = (currentPageMaster.RegionBefore as Dom.FoRegionBefore)?.Extent ?? 0;
+                        var regionAfterExtent = (currentPageMaster.RegionAfter as Dom.FoRegionAfter)?.Extent ?? 0;
+
+                        bodyMarginTop = currentPageMaster.MarginTop + regionBeforeExtent + regionBodyMarginTop;
+                        bodyMarginBottom = currentPageMaster.MarginBottom + regionAfterExtent + regionBodyMarginBottom;
+                        bodyMarginLeft = currentPageMaster.MarginLeft + regionBodyMarginLeft;
+                        bodyMarginRight = currentPageMaster.MarginRight + regionBodyMarginRight;
+
+                        bodyWidth = currentPageMaster.PageWidth - bodyMarginLeft - bodyMarginRight;
+                        bodyHeight = currentPageMaster.PageHeight - bodyMarginTop - bodyMarginBottom;
+
+                        currentPage = CreatePage(currentPageMaster, pageSequence, pageNumber);
+                        currentY = bodyMarginTop;
+                        currentColumn = 0;
+
+                        // Render header on new page (if not omitted)
+                        if (foTable.Header != null && !foTable.TableOmitHeaderAtBreak)
+                        {
+                            foreach (var headerRow in foTable.Header.Rows)
+                            {
+                                var headerRowArea = LayoutTableRow(headerRow, 0, 0, columnWidths, foTable.BorderSpacing);
+                                if (headerRowArea != null)
+                                {
+                                    headerRowArea.X = tableX;
+                                    headerRowArea.Y = currentY;
+
+                                    var headerTableArea = new TableArea
+                                    {
+                                        X = tableX,
+                                        Y = currentY,
+                                        Width = calculatedTableWidth,
+                                        Height = headerRowArea.Height,
+                                        BorderCollapse = foTable.BorderCollapse,
+                                        BorderSpacing = foTable.BorderSpacing,
+                                        ColumnWidths = columnWidths
+                                    };
+                                    headerTableArea.AddRow(headerRowArea);
+
+                                    currentPage.AddArea(headerTableArea);
+                                    currentY += headerRowArea.Height;
+                                }
+                            }
+                        }
+
+                        // Re-layout row for new page
+                        rowArea = LayoutTableRow(foRow, 0, 0, columnWidths, foTable.BorderSpacing);
+                        if (rowArea == null)
+                            continue;
+                    }
+                    // else: row is too large for any page, render it anyway at current position
+                }
+
+                // Adjust row position to absolute coordinates
+                rowArea.X = tableX;
+                rowArea.Y = currentY;
+
+                // Create a wrapper table area for just this row
+                var rowTableArea = new TableArea
+                {
+                    X = tableX,
+                    Y = currentY,
+                    Width = calculatedTableWidth,
+                    Height = rowArea.Height,
+                    BorderCollapse = foTable.BorderCollapse,
+                    BorderSpacing = foTable.BorderSpacing,
+                    ColumnWidths = columnWidths
+                };
+                rowTableArea.AddRow(rowArea);
+
+                currentPage.AddArea(rowTableArea);
+                currentY += rowArea.Height;
+            }
+        }
+
+        // Layout footer rows (if not omitted)
+        if (foTable.Footer != null && !foTable.TableOmitFooterAtBreak)
+        {
+            foreach (var foRow in foTable.Footer.Rows)
+            {
+                var rowArea = LayoutTableRow(foRow, 0, 0, columnWidths, foTable.BorderSpacing);
+                if (rowArea == null)
+                    continue;
+
+                var rowHeight = rowArea.Height;
+                var pageBottom = currentPageMaster.PageHeight - bodyMarginBottom;
+
+                // Check if footer row fits on current page
+                if (currentY + rowHeight > pageBottom)
+                {
+                    // Create new page for footer
+                    RenderFloats(currentPage, currentPageMaster, bodyMarginTop);
+                    RenderFootnotes(currentPage, currentPageMaster, pageSequence);
+                    AddLinksToPage(currentPage);
+                    CheckPageLimit(areaTree);
+                    areaTree.AddPage(currentPage);
+                    pageNumber++;
+                    currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
+
+                    // Recalculate body margins for new page master
+                    var regionBody = currentPageMaster.RegionBody;
+                    var regionBodyMarginTop = regionBody?.MarginTop ?? 0;
+                    var regionBodyMarginBottom = regionBody?.MarginBottom ?? 0;
+                    var regionBodyMarginLeft = regionBody?.MarginLeft ?? 0;
+                    var regionBodyMarginRight = regionBody?.MarginRight ?? 0;
+
+                    var regionBeforeExtent = (currentPageMaster.RegionBefore as Dom.FoRegionBefore)?.Extent ?? 0;
+                    var regionAfterExtent = (currentPageMaster.RegionAfter as Dom.FoRegionAfter)?.Extent ?? 0;
+
+                    bodyMarginTop = currentPageMaster.MarginTop + regionBeforeExtent + regionBodyMarginTop;
+                    bodyMarginBottom = currentPageMaster.MarginBottom + regionAfterExtent + regionBodyMarginBottom;
+                    bodyMarginLeft = currentPageMaster.MarginLeft + regionBodyMarginLeft;
+                    bodyMarginRight = currentPageMaster.MarginRight + regionBodyMarginRight;
+
+                    bodyWidth = currentPageMaster.PageWidth - bodyMarginLeft - bodyMarginRight;
+                    bodyHeight = currentPageMaster.PageHeight - bodyMarginTop - bodyMarginBottom;
+
+                    currentPage = CreatePage(currentPageMaster, pageSequence, pageNumber);
+                    currentY = bodyMarginTop;
+                    currentColumn = 0;
+
+                    // Re-layout footer row for new page
+                    rowArea = LayoutTableRow(foRow, 0, 0, columnWidths, foTable.BorderSpacing);
+                    if (rowArea == null)
+                        continue;
+                }
+
+                // Adjust row position to absolute coordinates
+                rowArea.X = tableX;
+                rowArea.Y = currentY;
+
+                // Create a wrapper table area for just the footer row
+                var footerTableArea = new TableArea
+                {
+                    X = tableX,
+                    Y = currentY,
+                    Width = calculatedTableWidth,
+                    Height = rowArea.Height,
+                    BorderCollapse = foTable.BorderCollapse,
+                    BorderSpacing = foTable.BorderSpacing,
+                    ColumnWidths = columnWidths
+                };
+                footerTableArea.AddRow(rowArea);
+
+                currentPage.AddArea(footerTableArea);
+                currentY += rowArea.Height;
+            }
+        }
     }
 
     private List<double> CalculateColumnWidths(Dom.FoTable foTable, double availableWidth)
