@@ -12,11 +12,11 @@ This roadmap outlines Folly's evolution from a solid XSL-FO foundation (~70% spe
   - Phase 2.3 (Knuth-Plass Line Breaking) ✅ COMPLETED
   - Phase 2.4 (List Page Breaking) ✅ COMPLETED
 - Phase 3 (TrueType/OpenType Font Support) 🚧 IN PROGRESS
-  - Phase 3.1 (TTF/OTF Parser) ✅ COMPLETE (37/37 tests passing)
-  - Phase 3.2 (Font Embedding & Subsetting) 🚧 IN PROGRESS (50% complete - serialization done, PDF embedding pending)
+  - Phase 3.1 (TTF/OTF Parser) ✅ COMPLETE (37 tests passing)
+  - Phase 3.2 (Font Embedding & Subsetting) 🚧 ~75% COMPLETE (23 tests passing: 13 subsetting + 10 embedding)
 - Excellent performance (66x faster than target at ~150ms for 200 pages)
 - ~75% XSL-FO 1.1 compliance (up from ~70%)
-- 295+ passing tests (99%+ success rate) - includes 50 font tests (37 parsing + 13 subsetting)
+- 305+ passing tests (99%+ success rate) - includes 60 font tests (37 parsing + 13 subsetting + 10 embedding)
 
 **Target:** Best-in-class layout engine with ~95% spec compliance, professional typography, zero runtime dependencies
 
@@ -547,12 +547,13 @@ namespace Folly.Fonts
 - ✅ Font subsetting infrastructure complete (`FontSubsetter.cs` with full glyph mapping and serialization)
 - ✅ TrueType font serialization complete (`TrueTypeFontSerializer.cs` with all table serializers)
 - ✅ Binary writer for TrueType format (`BigEndianBinaryWriter.cs`)
-- ✅ 13 font subsetting tests passing (100% success rate)
-- ✅ Total: 50 font tests passing (37 parsing + 13 subsetting)
+- ✅ PDF font embedding infrastructure complete (`TrueTypeFontEmbedder.cs`)
+- ✅ ToUnicode CMap generation for text extraction
+- ✅ Font descriptor and font stream creation
+- ✅ 60 total font tests passing: 37 parsing + 13 subsetting + 10 embedding (100% success rate)
 - ⏳ CFF table parser needed for OpenType/CFF fonts (deferred - most fonts are TrueType)
-- ⏳ Font embedding in PDF with TrueType font streams (pending)
+- ⏳ Integration with PdfRenderer and layout engine (pending)
 - ⏳ Font caching and system font discovery pending
-- ⏳ Integration with layout engine pending
 
 **Complexity:** Very High (6-7 weeks)
 
@@ -600,19 +601,25 @@ public class TrueTypeFontSerializer
 - [x] Implement TrueType font serialization - `TrueTypeFontSerializer.cs` with all table serializers
 - [x] Binary writer for big-endian TrueType data - `BigEndianBinaryWriter.cs`
 - [x] Add tests for subsetting - 13 comprehensive tests (all passing)
-- [ ] Embed TrueType fonts in PDF - Write TrueType font descriptor and font stream objects
-- [ ] Generate ToUnicode CMap for text extraction - Map character codes to Unicode
-- [ ] Support CIDFont for large character sets (CJK) - For fonts with >256 glyphs
+- [x] Embed TrueType fonts in PDF - `TrueTypeFontEmbedder.cs` with font descriptor and font stream
+- [x] Generate ToUnicode CMap for text extraction - Complete implementation with proper Unicode mapping
+- [x] Add tests for embedding - 10 comprehensive tests for ToUnicode CMap generation (all passing)
+- [ ] Support CIDFont for large character sets (CJK) - For fonts with >256 glyphs (deferred)
+- [ ] Integrate with PdfRenderer and layout engine
 - [ ] Update examples with custom fonts
+- [ ] Documentation updates
 
 **Results:**
 - ✅ Font subsetting reduces glyph count to only used characters + .notdef
 - ✅ Generated subsets are valid TrueType fonts (can be reparsed)
 - ✅ Metrics preserved (advance widths, side bearings, kerning)
 - ✅ Unique subset PostScript names (6-character tag prefix)
-- ✅ All 50 font tests passing (37 parsing + 13 subsetting)
+- ✅ PDF embedding infrastructure complete with font descriptors and font streams
+- ✅ ToUnicode CMap generation for proper text extraction from PDFs
+- ✅ Compressed font streams using Flate compression
+- ✅ All 60 font tests passing (37 parsing + 13 subsetting + 10 embedding)
 
-**Complexity:** High (4-5 weeks) - Approximately 50% complete
+**Complexity:** High (4-5 weeks) - Approximately 75% complete
 
 ### 3.3 Font Fallback & Family Stacks
 
