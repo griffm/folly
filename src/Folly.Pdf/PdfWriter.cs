@@ -762,47 +762,147 @@ internal sealed class PdfWriter : IDisposable
     /// <summary>
     /// Writes font resources and returns a mapping of font names to object IDs.
     /// </summary>
-    public Dictionary<string, int> WriteFonts(HashSet<string> fontNames, Dictionary<string, HashSet<char>> characterUsage, bool subsetFonts)
+    public Dictionary<string, int> WriteFonts(
+        HashSet<string> fontNames,
+        Dictionary<string, HashSet<char>> characterUsage,
+        bool subsetFonts,
+        Dictionary<string, string>? trueTypeFonts = null)
     {
         var fontIds = new Dictionary<string, int>();
+        var embedder = new TrueTypeFontEmbedder(this);
 
-        // First, write all encoding dictionaries if subsetting is enabled
-        var encodingIds = new Dictionary<string, int>();
-        if (subsetFonts)
-        {
-            foreach (var fontName in fontNames)
-            {
-                if (characterUsage.TryGetValue(fontName, out var usedChars) && usedChars.Count > 0)
-                {
-                    var encodingId = WriteCustomEncoding(fontName, usedChars);
-                    encodingIds[fontName] = encodingId;
-                }
-            }
-        }
-
-        // Now write font dictionaries
         foreach (var fontName in fontNames)
         {
-            var pdfFontName = GetPdfFontName(fontName);
-            var fontId = BeginObject();
-            WriteLine("<<");
-            WriteLine("  /Type /Font");
-            WriteLine("  /Subtype /Type1");
-            WriteLine($"  /BaseFont /{pdfFontName}");
+            int fontId;
 
-            // Reference the encoding dictionary if one was created
-            if (encodingIds.TryGetValue(fontName, out var encodingId))
+            // Check if this is a TrueType font
+            if (trueTypeFonts != null && trueTypeFonts.TryGetValue(fontName, out var fontPath))
             {
-                WriteLine($"  /Encoding {encodingId} 0 R");
+                // Try to embed TrueType font
+                try
+                {
+                    fontId = EmbedTrueTypeFont(fontPath, fontName, characterUsage, subsetFonts, embedder);
+                }
+                catch (Exception)
+                {
+                    // Fall back to Type1 font if TrueType embedding fails
+                    fontId = WriteType1Font(fontName, characterUsage, subsetFonts);
+                }
             }
-
-            WriteLine(">>");
-            EndObject();
+            else
+            {
+                // Use Type1 font
+                fontId = WriteType1Font(fontName, characterUsage, subsetFonts);
+            }
 
             fontIds[fontName] = fontId;
         }
 
         return fontIds;
+    }
+
+    /// <summary>
+    /// Embeds a TrueType font from a file path.
+    /// </summary>
+    private int EmbedTrueTypeFont(
+        string fontPath,
+        string fontName,
+        Dictionary<string, HashSet<char>> characterUsage,
+        bool subsetFonts,
+        TrueTypeFontEmbedder embedder)
+    {
+        // Load the font
+        var font = Fonts.FontParser.Parse(fontPath);
+
+        // Get used characters for this font
+        var usedChars = characterUsage.TryGetValue(fontName, out var chars) ? chars : new HashSet<char>();
+
+        if (subsetFonts && usedChars.Count > 0)
+        {
+            // Create subset
+            var subsetData = Fonts.FontSubsetter.CreateSubset(font, usedChars);
+
+            // Re-parse the subset to get metrics
+            using var ms = new MemoryStream(subsetData);
+            var subsetFont = Fonts.FontParser.Parse(ms);
+
+            // Build character to glyph index mapping
+            var charToGlyph = new Dictionary<char, ushort>();
+            foreach (var ch in usedChars)
+            {
+                if (subsetFont.CharacterToGlyphIndex.TryGetValue((int)ch, out var glyphIndex))
+                {
+                    charToGlyph[ch] = glyphIndex;
+                }
+            }
+
+            // Embed the subset
+            return embedder.EmbedTrueTypeFont(
+                subsetFont.PostScriptName,
+                subsetData,
+                charToGlyph,
+                subsetFont.UnitsPerEm,
+                subsetFont.Ascender,
+                subsetFont.Descender,
+                subsetFont.XMin,
+                subsetFont.YMin,
+                subsetFont.XMax,
+                subsetFont.YMax);
+        }
+        else
+        {
+            // Embed full font (no subsetting)
+            var fontData = File.ReadAllBytes(fontPath);
+
+            var charToGlyph = new Dictionary<char, ushort>();
+            foreach (var kvp in font.CharacterToGlyphIndex)
+            {
+                if (kvp.Key <= char.MaxValue)
+                {
+                    charToGlyph[(char)kvp.Key] = kvp.Value;
+                }
+            }
+
+            return embedder.EmbedTrueTypeFont(
+                font.PostScriptName,
+                fontData,
+                charToGlyph,
+                font.UnitsPerEm,
+                font.Ascender,
+                font.Descender,
+                font.XMin,
+                font.YMin,
+                font.XMax,
+                font.YMax);
+        }
+    }
+
+    /// <summary>
+    /// Writes a Type1 font (PDF base font).
+    /// </summary>
+    private int WriteType1Font(
+        string fontName,
+        Dictionary<string, HashSet<char>> characterUsage,
+        bool subsetFonts)
+    {
+        var pdfFontName = GetPdfFontName(fontName);
+        var fontId = BeginObject();
+        WriteLine("<<");
+        WriteLine("  /Type /Font");
+        WriteLine("  /Subtype /Type1");
+        WriteLine($"  /BaseFont /{pdfFontName}");
+
+        // Reference the encoding dictionary if one was created for subsetting
+        if (subsetFonts && characterUsage.TryGetValue(fontName, out var usedChars) && usedChars.Count > 0)
+        {
+            var encodingId = WriteCustomEncoding(fontName, usedChars);
+            WriteLine($"  /Encoding {encodingId} 0 R");
+        }
+
+        WriteLine(">>");
+        EndObject();
+
+        return fontId;
     }
 
     /// <summary>

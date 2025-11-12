@@ -32,4 +32,12 @@ public sealed class PdfOptions
     /// Gets or sets document metadata.
     /// </summary>
     public PdfMetadata Metadata { get; set; } = new();
+
+    /// <summary>
+    /// Mapping of font family names to TrueType font file paths.
+    /// When a font family is used in the document, if it's found in this dictionary,
+    /// the TrueType font will be embedded. Otherwise, fallback to PDF base fonts.
+    /// Example: TrueTypeFonts["Roboto"] = "/path/to/Roboto-Regular.ttf"
+    /// </summary>
+    public Dictionary<string, string> TrueTypeFonts { get; set; } = new();
 }
