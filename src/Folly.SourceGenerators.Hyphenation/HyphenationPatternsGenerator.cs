@@ -255,6 +255,7 @@ namespace Folly.SourceGenerators.Hyphenation
         private void GenerateLanguageMethod(StringBuilder sb, string languageCode, LanguagePatterns patterns)
         {
             var methodName = $"Get{SanitizeLanguageCode(languageCode)}Patterns";
+            var sortedPatterns = patterns.Patterns.OrderBy(x => x.Key).ToList();
 
             sb.AppendLine($"        /// <summary>");
             sb.AppendLine($"        /// Gets hyphenation patterns for {languageCode}.");
@@ -262,22 +263,73 @@ namespace Folly.SourceGenerators.Hyphenation
             sb.AppendLine($"        /// </summary>");
             sb.AppendLine($"        private static Dictionary<string, int[]> {methodName}()");
             sb.AppendLine("        {");
-            sb.AppendLine("            return new Dictionary<string, int[]>");
-            sb.AppendLine("            {");
 
-            // Sort patterns alphabetically for better code organization
-            foreach (var kvp in patterns.Patterns.OrderBy(x => x.Key))
+            // TODO: For large pattern sets (>5000 patterns), we split into batches to avoid stack overflow
+            // The German pattern set has 36k+ patterns which causes issues with single-method initialization
+            const int batchSize = 5000;
+            var needsBatching = sortedPatterns.Count > batchSize;
+
+            if (needsBatching)
             {
-                var pattern = kvp.Key;
-                var priorities = kvp.Value;
-                var escapedPattern = pattern.Replace("\\", "\\\\").Replace("\"", "\\\"");
-                var prioritiesStr = string.Join(", ", priorities);
-                sb.AppendLine($"                [\"{escapedPattern}\"] = new[] {{ {prioritiesStr} }},");
+                // Generate batched initialization
+                var batchCount = (sortedPatterns.Count + batchSize - 1) / batchSize;
+                sb.AppendLine($"            var dict = new Dictionary<string, int[]>({sortedPatterns.Count});");
+
+                for (int i = 0; i < batchCount; i++)
+                {
+                    sb.AppendLine($"            {methodName}_Batch{i}(dict);");
+                }
+
+                sb.AppendLine("            return dict;");
+            }
+            else
+            {
+                // Generate single-method initialization for smaller sets
+                sb.AppendLine($"            return new Dictionary<string, int[]>({sortedPatterns.Count})");
+                sb.AppendLine("            {");
+
+                foreach (var kvp in sortedPatterns)
+                {
+                    var pattern = kvp.Key;
+                    var priorities = kvp.Value;
+                    var escapedPattern = pattern.Replace("\\", "\\\\").Replace("\"", "\\\"");
+                    var prioritiesStr = string.Join(", ", priorities);
+                    sb.AppendLine($"                [\"{escapedPattern}\"] = new[] {{ {prioritiesStr} }},");
+                }
+
+                sb.AppendLine("            };");
             }
 
-            sb.AppendLine("            };");
             sb.AppendLine("        }");
             sb.AppendLine();
+
+            // Generate batch methods if needed
+            if (needsBatching)
+            {
+                var batchCount = (sortedPatterns.Count + batchSize - 1) / batchSize;
+
+                for (int batchIndex = 0; batchIndex < batchCount; batchIndex++)
+                {
+                    var batchStart = batchIndex * batchSize;
+                    var batchEnd = Math.Min(batchStart + batchSize, sortedPatterns.Count);
+                    var batchPatterns = sortedPatterns.Skip(batchStart).Take(batchEnd - batchStart);
+
+                    sb.AppendLine($"        private static void {methodName}_Batch{batchIndex}(Dictionary<string, int[]> dict)");
+                    sb.AppendLine("        {");
+
+                    foreach (var kvp in batchPatterns)
+                    {
+                        var pattern = kvp.Key;
+                        var priorities = kvp.Value;
+                        var escapedPattern = pattern.Replace("\\", "\\\\").Replace("\"", "\\\"");
+                        var prioritiesStr = string.Join(", ", priorities);
+                        sb.AppendLine($"            dict[\"{escapedPattern}\"] = new[] {{ {prioritiesStr} }};");
+                    }
+
+                    sb.AppendLine("        }");
+                    sb.AppendLine();
+                }
+            }
         }
 
         private string SanitizeLanguageCode(string languageCode)
