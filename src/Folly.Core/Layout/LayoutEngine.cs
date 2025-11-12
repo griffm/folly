@@ -437,43 +437,118 @@ internal sealed class LayoutEngine
                 // (if we're at the top, the block is too large for any page, so we must render it anyway)
                 if (currentY > bodyMarginTop || mustKeepTogether)
                 {
-                    // Try moving to next column
-                    if (currentColumn < columnCount - 1)
+                    // Before moving the entire block, check if we can split it to avoid widows/orphans
+                    // Only consider splitting if keep-together is NOT set
+                    var availableHeight = currentPageMaster.PageHeight - bodyMarginBottom - currentY;
+                    var splitPoint = 0;
+
+                    if (!mustKeepTogether && availableHeight > 0)
                     {
-                        // Move to next column on same page
-                        currentColumn++;
-                        currentY = bodyMarginTop;
-                        columnX = bodyMarginLeft + currentColumn * (columnWidth + columnGap);
+                        splitPoint = CalculateOptimalSplitPoint(blockArea, foBlock, availableHeight, foBlock.LineHeight);
+                    }
+
+                    if (splitPoint > 0)
+                    {
+                        // We can split the block to avoid widows/orphans
+                        // Split the block: first part stays on current page, second part goes to next page/column
+                        var (firstPart, secondPart) = SplitBlockAtLine(blockArea, foBlock, splitPoint, columnX, currentY, 0, 0);
+
+                        // Add first part to current page
+                        firstPart.X = columnX + foBlock.MarginLeft;
+                        firstPart.Y = currentY + foBlock.SpaceBefore + foBlock.MarginTop;
+                        currentPage.AddArea(firstPart);
+                        currentY += firstPart.SpaceBefore + firstPart.MarginTop + firstPart.Height;
+
+                        // Move to next column/page
+                        if (currentColumn < columnCount - 1)
+                        {
+                            // Move to next column on same page
+                            currentColumn++;
+                            currentY = bodyMarginTop;
+                            columnX = bodyMarginLeft + currentColumn * (columnWidth + columnGap);
+                        }
+                        else
+                        {
+                            // All columns filled - create new page
+                            RenderFloats(currentPage, currentPageMaster, bodyMarginTop);
+                            RenderFootnotes(currentPage, currentPageMaster, pageSequence);
+                            AddLinksToPage(currentPage);
+                            CheckPageLimit(areaTree);
+                            areaTree.AddPage(currentPage);
+                            pageNumber++;
+                            currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
+                            CalculateBodyMargins(currentPageMaster, out bodyMarginTop, out bodyMarginBottom,
+                                out bodyMarginLeft, out bodyMarginRight, out bodyWidth, out bodyHeight);
+                            currentPage = CreatePage(currentPageMaster, pageSequence, pageNumber);
+                            currentY = bodyMarginTop;
+                            currentColumn = 0;
+                            columnX = bodyMarginLeft;
+                        }
+
+                        // Add second part to new column/page
+                        secondPart.X = columnX + foBlock.MarginLeft;
+                        secondPart.Y = currentY;
+                        currentPage.AddArea(secondPart);
+                        currentY += secondPart.Height + secondPart.MarginBottom + secondPart.SpaceAfter;
+
+                        // Update blockArea to secondPart for tracking purposes
+                        blockArea = secondPart;
+                        blockTotalHeight = secondPart.Height + secondPart.MarginBottom + secondPart.SpaceAfter;
                     }
                     else
                     {
-                        // All columns filled - create new page
-                        RenderFloats(currentPage, currentPageMaster, bodyMarginTop);
-                        RenderFootnotes(currentPage, currentPageMaster, pageSequence);
-                        AddLinksToPage(currentPage);
-                        CheckPageLimit(areaTree);
-                        areaTree.AddPage(currentPage);
-                        pageNumber++;
-                        currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
-                        currentPage = CreatePage(currentPageMaster, pageSequence, pageNumber);
-                        currentY = bodyMarginTop;
-                        currentColumn = 0;
-                        columnX = bodyMarginLeft;
+                        // Can't split or shouldn't split - move entire block to next column/page
+                        // Try moving to next column
+                        if (currentColumn < columnCount - 1)
+                        {
+                            // Move to next column on same page
+                            currentColumn++;
+                            currentY = bodyMarginTop;
+                            columnX = bodyMarginLeft + currentColumn * (columnWidth + columnGap);
+                        }
+                        else
+                        {
+                            // All columns filled - create new page
+                            RenderFloats(currentPage, currentPageMaster, bodyMarginTop);
+                            RenderFootnotes(currentPage, currentPageMaster, pageSequence);
+                            AddLinksToPage(currentPage);
+                            CheckPageLimit(areaTree);
+                            areaTree.AddPage(currentPage);
+                            pageNumber++;
+                            currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
+                            CalculateBodyMargins(currentPageMaster, out bodyMarginTop, out bodyMarginBottom,
+                                out bodyMarginLeft, out bodyMarginRight, out bodyWidth, out bodyHeight);
+                            currentPage = CreatePage(currentPageMaster, pageSequence, pageNumber);
+                            currentY = bodyMarginTop;
+                            currentColumn = 0;
+                            columnX = bodyMarginLeft;
+                        }
+
+                        // Re-layout the block for the new column/page
+                        blockY = currentY + foBlock.SpaceBefore;
+                        blockArea = LayoutBlock(foBlock, columnX, blockY, columnWidth);
+                        if (blockArea == null)
+                            continue;
+
+                        blockTotalHeight = blockArea.SpaceBefore + blockArea.MarginTop + blockArea.Height + blockArea.MarginBottom + blockArea.SpaceAfter;
+
+                        currentPage.AddArea(blockArea);
+                        currentY += blockArea.SpaceBefore + blockArea.MarginTop + blockArea.Height + blockArea.MarginBottom + blockArea.SpaceAfter;
                     }
-
-                    // Re-layout the block for the new column/page
-                    blockY = currentY + foBlock.SpaceBefore;
-                    blockArea = LayoutBlock(foBlock, columnX, blockY, columnWidth);
-                    if (blockArea == null)
-                        continue;
-
-                    blockTotalHeight = blockArea.SpaceBefore + blockArea.MarginTop + blockArea.Height + blockArea.MarginBottom + blockArea.SpaceAfter;
                 }
-                // else: block is too large for any page, render it anyway at top of current page
+                else
+                {
+                    // Block is too large for any page, render it anyway at top of current page
+                    currentPage.AddArea(blockArea);
+                    currentY += blockArea.SpaceBefore + blockArea.MarginTop + blockArea.Height + blockArea.MarginBottom + blockArea.SpaceAfter;
+                }
             }
-
-            currentPage.AddArea(blockArea);
-            currentY += blockArea.SpaceBefore + blockArea.MarginTop + blockArea.Height + blockArea.MarginBottom + blockArea.SpaceAfter;
+            else
+            {
+                // Block fits on current page
+                currentPage.AddArea(blockArea);
+                currentY += blockArea.SpaceBefore + blockArea.MarginTop + blockArea.Height + blockArea.MarginBottom + blockArea.SpaceAfter;
+            }
 
             // Track this block as previous for next iteration
             previousBlock = foBlock;
@@ -2113,6 +2188,222 @@ internal sealed class LayoutEngine
             // If path resolution fails, reject it
             return false;
         }
+    }
+
+    /// <summary>
+    /// Calculates the optimal split point for a block to avoid widow/orphan lines.
+    /// Returns the number of lines that should go on the first page, or 0 if the block shouldn't be split.
+    /// </summary>
+    private static int CalculateOptimalSplitPoint(
+        BlockArea blockArea,
+        Dom.FoBlock foBlock,
+        double availableHeight,
+        double lineHeight)
+    {
+        // Check if this block contains line areas (text block with multiple lines)
+        var lineAreas = blockArea.Children.OfType<LineArea>().ToList();
+        if (lineAreas.Count == 0)
+            return 0; // Not a text block with lines
+
+        // Calculate how many complete lines fit in the available height
+        // Account for padding and margins
+        var availableForLines = availableHeight - blockArea.PaddingTop - blockArea.MarginTop;
+        var maxLinesThatFit = (int)Math.Floor(availableForLines / lineHeight);
+
+        // If all lines fit, no split needed
+        if (maxLinesThatFit >= lineAreas.Count)
+            return 0;
+
+        // If no lines fit (or only one would fit and we need at least orphans), don't split here
+        if (maxLinesThatFit < foBlock.Orphans)
+            return 0;
+
+        // Calculate the split point considering widow/orphan constraints
+        var linesForFirstPage = maxLinesThatFit;
+        var linesForSecondPage = lineAreas.Count - linesForFirstPage;
+
+        // Check orphan constraint (minimum lines on first page)
+        if (linesForFirstPage < foBlock.Orphans)
+            return 0; // Can't satisfy orphan constraint
+
+        // Check widow constraint (minimum lines on second page)
+        if (linesForSecondPage < foBlock.Widows)
+        {
+            // Try to move some lines to second page to satisfy widow constraint
+            linesForFirstPage = lineAreas.Count - foBlock.Widows;
+            linesForSecondPage = foBlock.Widows;
+
+            // Verify orphan constraint still holds
+            if (linesForFirstPage < foBlock.Orphans)
+                return 0; // Can't satisfy both constraints
+        }
+
+        return linesForFirstPage;
+    }
+
+    /// <summary>
+    /// Splits a block area at the specified line number, returning two block areas.
+    /// The first block contains lines [0, splitAtLine), the second contains [splitAtLine, end).
+    /// </summary>
+    private static (BlockArea firstPart, BlockArea secondPart) SplitBlockAtLine(
+        BlockArea originalBlock,
+        Dom.FoBlock foBlock,
+        int splitAtLine,
+        double firstPageX,
+        double firstPageY,
+        double secondPageX,
+        double secondPageY)
+    {
+        // Get all line areas
+        var allLines = originalBlock.Children.OfType<LineArea>().ToList();
+
+        // Create first block (lines 0 to splitAtLine-1)
+        var firstBlock = new BlockArea
+        {
+            X = firstPageX + foBlock.MarginLeft,
+            Y = firstPageY + foBlock.MarginTop,
+            Width = originalBlock.Width,
+            FontFamily = originalBlock.FontFamily,
+            FontSize = originalBlock.FontSize,
+            TextAlign = originalBlock.TextAlign,
+            MarginTop = originalBlock.MarginTop,
+            MarginBottom = 0, // No bottom margin on split first part
+            MarginLeft = originalBlock.MarginLeft,
+            MarginRight = originalBlock.MarginRight,
+            SpaceBefore = originalBlock.SpaceBefore,
+            SpaceAfter = 0, // No space-after on split first part
+            PaddingTop = originalBlock.PaddingTop,
+            PaddingBottom = 0, // No bottom padding on split first part
+            PaddingLeft = originalBlock.PaddingLeft,
+            PaddingRight = originalBlock.PaddingRight,
+            BackgroundColor = originalBlock.BackgroundColor,
+            BorderTopWidth = originalBlock.BorderTopWidth,
+            BorderBottomWidth = 0, // No bottom border on split first part
+            BorderLeftWidth = originalBlock.BorderLeftWidth,
+            BorderRightWidth = originalBlock.BorderRightWidth,
+            BorderTopStyle = originalBlock.BorderTopStyle,
+            BorderBottomStyle = "none",
+            BorderLeftStyle = originalBlock.BorderLeftStyle,
+            BorderRightStyle = originalBlock.BorderRightStyle,
+            BorderTopColor = originalBlock.BorderTopColor,
+            BorderLeftColor = originalBlock.BorderLeftColor,
+            BorderRightColor = originalBlock.BorderRightColor
+        };
+
+        var currentY = firstBlock.PaddingTop;
+        for (int i = 0; i < splitAtLine; i++)
+        {
+            var line = allLines[i];
+            var newLine = new LineArea
+            {
+                X = line.X,
+                Y = currentY,
+                Width = line.Width,
+                Height = line.Height
+            };
+
+            // Copy inline areas
+            foreach (var inline in line.Inlines)
+            {
+                newLine.AddInline(new InlineArea
+                {
+                    X = inline.X,
+                    Y = inline.Y,
+                    Width = inline.Width,
+                    Height = inline.Height,
+                    Text = inline.Text,
+                    FontFamily = inline.FontFamily,
+                    FontSize = inline.FontSize,
+                    FontWeight = inline.FontWeight,
+                    FontStyle = inline.FontStyle,
+                    Color = inline.Color,
+                    TextDecoration = inline.TextDecoration,
+                    BackgroundColor = inline.BackgroundColor,
+                    BaselineOffset = inline.BaselineOffset,
+                    Direction = inline.Direction,
+                    WordSpacing = inline.WordSpacing
+                });
+            }
+
+            firstBlock.AddChild(newLine);
+            currentY += line.Height;
+        }
+        firstBlock.Height = currentY; // No bottom padding on split part
+
+        // Create second block (lines splitAtLine to end)
+        var secondBlock = new BlockArea
+        {
+            X = secondPageX + foBlock.MarginLeft,
+            Y = secondPageY, // No top margin on split second part
+            Width = originalBlock.Width,
+            FontFamily = originalBlock.FontFamily,
+            FontSize = originalBlock.FontSize,
+            TextAlign = originalBlock.TextAlign,
+            MarginTop = 0, // No top margin on split second part
+            MarginBottom = originalBlock.MarginBottom,
+            MarginLeft = originalBlock.MarginLeft,
+            MarginRight = originalBlock.MarginRight,
+            SpaceBefore = 0, // No space-before on split second part
+            SpaceAfter = originalBlock.SpaceAfter,
+            PaddingTop = 0, // No top padding on split second part
+            PaddingBottom = originalBlock.PaddingBottom,
+            PaddingLeft = originalBlock.PaddingLeft,
+            PaddingRight = originalBlock.PaddingRight,
+            BackgroundColor = originalBlock.BackgroundColor,
+            BorderTopWidth = 0, // No top border on split second part
+            BorderBottomWidth = originalBlock.BorderBottomWidth,
+            BorderLeftWidth = originalBlock.BorderLeftWidth,
+            BorderRightWidth = originalBlock.BorderRightWidth,
+            BorderTopStyle = "none",
+            BorderBottomStyle = originalBlock.BorderBottomStyle,
+            BorderLeftStyle = originalBlock.BorderLeftStyle,
+            BorderRightStyle = originalBlock.BorderRightStyle,
+            BorderBottomColor = originalBlock.BorderBottomColor,
+            BorderLeftColor = originalBlock.BorderLeftColor,
+            BorderRightColor = originalBlock.BorderRightColor
+        };
+
+        currentY = 0; // No top padding on split part
+        for (int i = splitAtLine; i < allLines.Count; i++)
+        {
+            var line = allLines[i];
+            var newLine = new LineArea
+            {
+                X = line.X,
+                Y = currentY,
+                Width = line.Width,
+                Height = line.Height
+            };
+
+            // Copy inline areas
+            foreach (var inline in line.Inlines)
+            {
+                newLine.AddInline(new InlineArea
+                {
+                    X = inline.X,
+                    Y = inline.Y,
+                    Width = inline.Width,
+                    Height = inline.Height,
+                    Text = inline.Text,
+                    FontFamily = inline.FontFamily,
+                    FontSize = inline.FontSize,
+                    FontWeight = inline.FontWeight,
+                    FontStyle = inline.FontStyle,
+                    Color = inline.Color,
+                    TextDecoration = inline.TextDecoration,
+                    BackgroundColor = inline.BackgroundColor,
+                    BaselineOffset = inline.BaselineOffset,
+                    Direction = inline.Direction,
+                    WordSpacing = inline.WordSpacing
+                });
+            }
+
+            secondBlock.AddChild(newLine);
+            currentY += line.Height;
+        }
+        secondBlock.Height = currentY + secondBlock.PaddingBottom;
+
+        return (firstBlock, secondBlock);
     }
 
     /// <summary>

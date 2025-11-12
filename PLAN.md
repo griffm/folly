@@ -204,14 +204,23 @@ private bool WouldCreateWidow(
 ```
 
 **Deliverables:**
-- [ ] Implement widow detection (last line alone on new page)
-- [ ] Implement orphan detection (first line alone on old page)
-- [ ] Support `widows` and `orphans` properties
-- [ ] Add lookahead to avoid widow/orphan situations
-- [ ] Add tests
-- [ ] Update examples
+- [x] Implement widow detection (last line alone on new page)
+- [x] Implement orphan detection (first line alone on old page)
+- [x] Support `widows` and `orphans` properties
+- [x] Add lookahead to avoid widow/orphan situations
+- [x] Add tests (4 comprehensive tests added)
+- [x] Update examples
 
-**Complexity:** Medium (2-3 weeks)
+**Results:**
+- ✅ Widows constraint prevents too few lines at top of new page (minimum 2 lines by default)
+- ✅ Orphans constraint prevents too few lines at bottom of old page (minimum 2 lines by default)
+- ✅ Both constraints work together to find optimal split points
+- ✅ keep-together constraint correctly overrides widow/orphan control
+- ✅ Block splitting preserves formatting (borders, padding, margins split appropriately)
+- ✅ 4 new tests added: Widows_PreventsLonelyLinesAtTopOfPage, Orphans_PreventsLonelyLinesAtBottomOfPage, WidowsAndOrphans_RespectsBothConstraints, KeepTogether_OverridesWidowOrphanControl
+- ✅ All existing tests pass without regression
+
+**Complexity:** Medium (Completed)
 
 **Phase 1 Success Metrics:**
 - ✅ Tables of 100+ rows render correctly across pages (Completed in 1.1)
