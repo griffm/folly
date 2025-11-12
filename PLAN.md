@@ -12,11 +12,11 @@ This roadmap outlines Folly's evolution from a solid XSL-FO foundation (~70% spe
   - Phase 2.3 (Knuth-Plass Line Breaking) ✅ COMPLETED
   - Phase 2.4 (List Page Breaking) ✅ COMPLETED
 - Phase 3 (TrueType/OpenType Font Support) 🚧 IN PROGRESS
-  - Phase 3.1 (TTF/OTF Parser) 🚧 SUBSTANTIALLY COMPLETE (37/37 tests passing)
-  - Phase 3.2 (Font Embedding & Subsetting) 🚧 IN PROGRESS (infrastructure created)
+  - Phase 3.1 (TTF/OTF Parser) ✅ COMPLETE (37/37 tests passing)
+  - Phase 3.2 (Font Embedding & Subsetting) 🚧 IN PROGRESS (50% complete - serialization done, PDF embedding pending)
 - Excellent performance (66x faster than target at ~150ms for 200 pages)
 - ~75% XSL-FO 1.1 compliance (up from ~70%)
-- 295+ passing tests (99%+ success rate) - includes 37 font parsing tests
+- 295+ passing tests (99%+ success rate) - includes 50 font tests (37 parsing + 13 subsetting)
 
 **Target:** Best-in-class layout engine with ~95% spec compliance, professional typography, zero runtime dependencies
 
@@ -544,9 +544,12 @@ namespace Folly.Fonts
 - ✅ Character-to-glyph mapping working (cmap formats 4 and 12)
 - ✅ Glyph metrics extraction complete with bounds checking
 - ✅ All 37 font parsing tests passing (100% success rate)
-- ✅ Font subsetting infrastructure created (`FontSubsetter.cs` with glyph mapping logic)
+- ✅ Font subsetting infrastructure complete (`FontSubsetter.cs` with full glyph mapping and serialization)
+- ✅ TrueType font serialization complete (`TrueTypeFontSerializer.cs` with all table serializers)
+- ✅ Binary writer for TrueType format (`BigEndianBinaryWriter.cs`)
+- ✅ 13 font subsetting tests passing (100% success rate)
+- ✅ Total: 50 font tests passing (37 parsing + 13 subsetting)
 - ⏳ CFF table parser needed for OpenType/CFF fonts (deferred - most fonts are TrueType)
-- ⏳ Font subsetting serialization to TrueType format (pending)
 - ⏳ Font embedding in PDF with TrueType font streams (pending)
 - ⏳ Font caching and system font discovery pending
 - ⏳ Integration with layout engine pending
@@ -558,45 +561,58 @@ namespace Folly.Fonts
 - TrueType Reference: https://developer.apple.com/fonts/TrueType-Reference-Manual/
 - Pure .NET implementation
 
-### 3.2 Font Embedding & Subsetting
+### 3.2 Font Embedding & Subsetting 🚧 IN PROGRESS
 
 **Implementation:**
+Successfully implemented font subsetting with TrueType serialization! The `FontSubsetter` class creates minimal font files containing only used glyphs, and `TrueTypeFontSerializer` generates valid TrueType font data.
+
 ```csharp
-public class TrueTypeFontEmbedder
+public class FontSubsetter
 {
-    public byte[] CreateSubset(
-        FontData font,
+    public static byte[] CreateSubset(
+        FontFile font,
         HashSet<char> usedCharacters)
     {
-        // Create minimal font with only used glyphs
-        // 1. Identify required glyphs
-        // 2. Extract glyph outlines
-        // 3. Rebuild font tables with subset
-        // 4. Generate valid TTF/OTF output
-    }
+        // 1. Build glyph mapping (old index -> new index)
+        var glyphMapping = BuildGlyphMapping(font, usedCharacters);
 
-    public void EmbedInPdf(
-        PdfWriter writer,
-        FontData font,
-        byte[] subsetBytes)
+        // 2. Create subset font with remapped glyphs
+        var subsetFont = CreateSubsetFontFile(font, glyphMapping);
+
+        // 3. Serialize to TrueType format
+        return TrueTypeFontSerializer.Serialize(subsetFont);
+    }
+}
+
+public class TrueTypeFontSerializer
+{
+    public static byte[] Serialize(FontFile font)
     {
-        // Embed as TrueType or CIDFont (for CJK)
-        // Generate ToUnicode CMap
-        // Create font descriptor
+        // Generates all required tables:
+        // head, hhea, maxp, hmtx, name, cmap, loca, glyf, post, OS/2
+        // Calculates checksums and creates valid TrueType font file
     }
 }
 ```
 
 **Deliverables:**
-- [x] Design font subsetting infrastructure - `FontSubsetter.cs` created with glyph mapping logic
-- [ ] Implement TrueType font serialization - Generate valid TTF files from subsetted font data
+- [x] Design font subsetting infrastructure - `FontSubsetter.cs` with full implementation
+- [x] Implement TrueType font serialization - `TrueTypeFontSerializer.cs` with all table serializers
+- [x] Binary writer for big-endian TrueType data - `BigEndianBinaryWriter.cs`
+- [x] Add tests for subsetting - 13 comprehensive tests (all passing)
 - [ ] Embed TrueType fonts in PDF - Write TrueType font descriptor and font stream objects
 - [ ] Generate ToUnicode CMap for text extraction - Map character codes to Unicode
 - [ ] Support CIDFont for large character sets (CJK) - For fonts with >256 glyphs
-- [ ] Add tests for embedding and subsetting - Validate embedded fonts render correctly
 - [ ] Update examples with custom fonts
 
-**Complexity:** High (4-5 weeks)
+**Results:**
+- ✅ Font subsetting reduces glyph count to only used characters + .notdef
+- ✅ Generated subsets are valid TrueType fonts (can be reparsed)
+- ✅ Metrics preserved (advance widths, side bearings, kerning)
+- ✅ Unique subset PostScript names (6-character tag prefix)
+- ✅ All 50 font tests passing (37 parsing + 13 subsetting)
+
+**Complexity:** High (4-5 weeks) - Approximately 50% complete
 
 ### 3.3 Font Fallback & Family Stacks
 

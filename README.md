@@ -229,7 +229,7 @@ The core rendering engine is fully operational with extensive feature support:
 - PDF outline/bookmarks for document navigation
 
 **Quality Assurance:**
-- 260+ passing tests (99%+ success rate)
+- 295+ passing tests (99%+ success rate)
   - 21 XSL-FO conformance tests (formatting object parsing, including repeatable-page-master-reference)
   - 25 property inheritance tests (50+ inheritable properties)
   - 45+ layout engine tests (line breaking, page breaking, tables, footnotes, text justification, **multi-page tables**, **multi-page lists**, **keep-with-next/previous**, **widow/orphan control**, **emergency line breaking**)
@@ -237,6 +237,7 @@ The core rendering engine is fully operational with extensive feature support:
   - **5 emergency line breaking tests** (character-level breaking, wrap-option support, narrow columns)
   - **7 Knuth-Plass line breaking tests** (optimal line breaking, TeX-quality typography, comparison with greedy)
   - **5 list page breaking tests** (multi-page lists, keep-together support, nested content)
+  - **50 font parsing and subsetting tests** (TrueType parsing, font subsetting, serialization)
   - 14 PDF validation tests (structure, fonts, compression, metadata, links)
   - 9 AreaTree snapshot tests (layout regression detection)
   - 13 fuzzing/stress tests (malformed input, extreme nesting, large tables)
