@@ -312,6 +312,11 @@ internal sealed class LayoutEngine
         var currentY = bodyMarginTop;
         var currentColumn = 0;  // Current column index (0-based)
 
+        // Track previous block for keep-with-next/previous constraints
+        Dom.FoBlock? previousBlock = null;
+        BlockArea? previousBlockArea = null;
+        double previousBlockTotalHeight = 0;
+
         // Layout each block in the flow
         foreach (var foBlock in flow.Blocks)
         {
@@ -333,6 +338,11 @@ internal sealed class LayoutEngine
                     currentPage = CreatePage(currentPageMaster, pageSequence, pageNumber);
                     currentY = bodyMarginTop;
                     currentColumn = 0;
+
+                    // Reset previous block tracking after page break
+                    previousBlock = null;
+                    previousBlockArea = null;
+                    previousBlockTotalHeight = 0;
                 }
             }
 
@@ -352,6 +362,73 @@ internal sealed class LayoutEngine
             // Handle keep-together constraint
             var mustKeepTogether = foBlock.KeepTogether == "always";
             var blockFitsInColumn = currentY + blockTotalHeight <= currentPageMaster.PageHeight - bodyMarginBottom;
+
+            // Check for keep-with-next/previous constraints
+            var mustKeepWithPrevious = (previousBlock != null && GetKeepStrength(previousBlock.KeepWithNext) > 0) ||
+                                      GetKeepStrength(foBlock.KeepWithPrevious) > 0;
+
+            // If block doesn't fit and must keep with previous, we need to move both blocks together
+            if (!blockFitsInColumn && mustKeepWithPrevious && previousBlockArea != null && currentY > bodyMarginTop)
+            {
+                // Remove previous block from current page
+                currentPage.RemoveArea(previousBlockArea);
+
+                // Adjust currentY to remove previous block's contribution
+                currentY -= previousBlockTotalHeight;
+
+                // Try moving to next column
+                if (currentColumn < columnCount - 1)
+                {
+                    // Move to next column on same page
+                    currentColumn++;
+                    currentY = bodyMarginTop;
+                    columnX = bodyMarginLeft + currentColumn * (columnWidth + columnGap);
+                }
+                else
+                {
+                    // All columns filled - create new page
+                    RenderFloats(currentPage, currentPageMaster, bodyMarginTop);
+                    RenderFootnotes(currentPage, currentPageMaster, pageSequence);
+                    AddLinksToPage(currentPage);
+                    CheckPageLimit(areaTree);
+                    areaTree.AddPage(currentPage);
+                    pageNumber++;
+                    currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
+                    CalculateBodyMargins(currentPageMaster, out bodyMarginTop, out bodyMarginBottom,
+                        out bodyMarginLeft, out bodyMarginRight, out bodyWidth, out bodyHeight);
+                    currentPage = CreatePage(currentPageMaster, pageSequence, pageNumber);
+                    currentY = bodyMarginTop;
+                    currentColumn = 0;
+                    columnX = bodyMarginLeft;
+                }
+
+                // Re-layout the previous block for the new column/page
+                var prevBlockY = currentY + previousBlock!.SpaceBefore;
+                var prevBlockArea = LayoutBlock(previousBlock, columnX, prevBlockY, columnWidth);
+                if (prevBlockArea != null)
+                {
+                    currentPage.AddArea(prevBlockArea);
+                    currentY += prevBlockArea.SpaceBefore + prevBlockArea.MarginTop + prevBlockArea.Height +
+                               prevBlockArea.MarginBottom + prevBlockArea.SpaceAfter;
+                    previousBlockArea = prevBlockArea;
+                    previousBlockTotalHeight = prevBlockArea.SpaceBefore + prevBlockArea.MarginTop +
+                                              prevBlockArea.Height + prevBlockArea.MarginBottom + prevBlockArea.SpaceAfter;
+                }
+
+                // Re-layout the current block for the new column/page
+                blockY = currentY + foBlock.SpaceBefore;
+                blockArea = LayoutBlock(foBlock, columnX, blockY, columnWidth);
+                if (blockArea == null)
+                {
+                    previousBlock = foBlock;
+                    previousBlockArea = null;
+                    previousBlockTotalHeight = 0;
+                    continue;
+                }
+
+                blockTotalHeight = blockArea.SpaceBefore + blockArea.MarginTop + blockArea.Height + blockArea.MarginBottom + blockArea.SpaceAfter;
+                blockFitsInColumn = true; // We've moved to new page/column, so it should fit
+            }
 
             // If block doesn't fit in current column/page
             if (!blockFitsInColumn)
@@ -398,6 +475,11 @@ internal sealed class LayoutEngine
             currentPage.AddArea(blockArea);
             currentY += blockArea.SpaceBefore + blockArea.MarginTop + blockArea.Height + blockArea.MarginBottom + blockArea.SpaceAfter;
 
+            // Track this block as previous for next iteration
+            previousBlock = foBlock;
+            previousBlockArea = blockArea;
+            previousBlockTotalHeight = blockTotalHeight;
+
             // Handle break-after constraint
             if (foBlock.BreakAfter == "always" || foBlock.BreakAfter == "page")
             {
@@ -412,6 +494,11 @@ internal sealed class LayoutEngine
                 currentPage = CreatePage(currentPageMaster, pageSequence, pageNumber);
                 currentY = bodyMarginTop;
                 currentColumn = 0;
+
+                // Reset previous block tracking after page break
+                previousBlock = null;
+                previousBlockArea = null;
+                previousBlockTotalHeight = 0;
             }
         }
 
@@ -2026,5 +2113,27 @@ internal sealed class LayoutEngine
             // If path resolution fails, reject it
             return false;
         }
+    }
+
+    /// <summary>
+    /// Gets the keep strength from a keep property value.
+    /// Returns 0 for "auto", 999 for "always", or the integer value (1-999) if specified.
+    /// </summary>
+    private static int GetKeepStrength(string? keepValue)
+    {
+        if (string.IsNullOrEmpty(keepValue) || keepValue == "auto")
+            return 0;
+
+        if (keepValue == "always")
+            return 999;
+
+        // Try parsing as integer (1-999)
+        if (int.TryParse(keepValue, out var strength))
+        {
+            // Clamp to valid range
+            return Math.Max(1, Math.Min(999, strength));
+        }
+
+        return 0;
     }
 }

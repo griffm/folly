@@ -189,6 +189,8 @@ The core rendering engine is fully operational with extensive feature support:
 - Table layout with column/row spanning
 - List formatting (fo:list-block)
 - Keep-together and break-before/after constraints
+- **Keep-with-next/previous constraints** for preventing orphaned headings and keeping figures with captions
+- **Integer keep strength values** (1-999) for fine-grained pagination control
 - Static-content for headers and footers
 - Markers for dynamic content (fo:marker, fo:retrieve-marker)
 - Multi-column layout (column-count, column-gap)
@@ -219,14 +221,14 @@ The core rendering engine is fully operational with extensive feature support:
 - PDF outline/bookmarks for document navigation
 
 **Quality Assurance:**
-- 191 passing tests (99% success rate - 191 passed, 2 skipped for refinement)
+- 195 passing tests (99% success rate - 195 passed, 2 skipped for refinement)
   - 21 XSL-FO conformance tests (formatting object parsing, including repeatable-page-master-reference)
   - 25 property inheritance tests (50+ inheritable properties)
-  - 27 layout engine tests (line breaking, page breaking, tables, footnotes, text justification, **multi-page tables**)
+  - 31 layout engine tests (line breaking, page breaking, tables, footnotes, text justification, **multi-page tables**, **keep-with-next/previous**)
   - 14 PDF validation tests (structure, fonts, compression, metadata, links)
   - 9 AreaTree snapshot tests (layout regression detection)
   - 13 fuzzing/stress tests (malformed input, extreme nesting, large tables)
-  - 21 working example PDFs (including multi-page table example with 100 rows)
+  - 21 working example PDFs (including multi-page table example with 100 rows, keep-with-next/previous demonstrations)
 - 100% qpdf validation success (zero errors)
 - Verified with qpdf 11.9.0
 
