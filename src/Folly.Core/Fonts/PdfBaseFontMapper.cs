@@ -38,18 +38,19 @@ public enum FontStyle
 }
 
 /// <summary>
-/// Centralized font resolution service that handles mapping from
-/// generic font families and style properties to specific font names.
+/// Maps generic font families and style properties to PDF base font names.
+/// Handles normalization of generic families (serif, sans-serif, monospace) and
+/// resolution of font variants (bold, italic) to the 14 standard PDF fonts.
 /// </summary>
-public static class FontResolver
+public static class PdfBaseFontMapper
 {
     /// <summary>
-    /// Resolves a font family name, weight, and style to a specific font name.
+    /// Resolves a font family name, weight, and style to a specific PDF base font name.
     /// </summary>
     /// <param name="familyName">The font family name (e.g., "serif", "Helvetica", "Times-Roman")</param>
     /// <param name="isBold">Whether the font should be bold</param>
     /// <param name="isItalic">Whether the font should be italic or oblique</param>
-    /// <returns>The resolved font name (e.g., "Times-BoldItalic")</returns>
+    /// <returns>The resolved PDF base font name (e.g., "Times-BoldItalic")</returns>
     public static string ResolveFont(string familyName, bool isBold, bool isItalic)
     {
         // Normalize the family name to a base font family
@@ -60,12 +61,12 @@ public static class FontResolver
     }
 
     /// <summary>
-    /// Resolves a font family name and CSS-style font-weight string to a specific font name.
+    /// Resolves a font family name and CSS-style font-weight string to a specific PDF base font name.
     /// </summary>
     /// <param name="familyName">The font family name</param>
     /// <param name="fontWeight">CSS font-weight value (e.g., "bold", "700", "400")</param>
     /// <param name="fontStyle">CSS font-style value (e.g., "italic", "oblique", "normal")</param>
-    /// <returns>The resolved font name</returns>
+    /// <returns>The resolved PDF base font name</returns>
     public static string ResolveFont(string familyName, string? fontWeight, string? fontStyle)
     {
         var isBold = IsBoldWeight(fontWeight);
@@ -75,7 +76,9 @@ public static class FontResolver
     }
 
     /// <summary>
-    /// Normalizes generic font family names to specific base font families.
+    /// Normalizes generic font family names to specific PDF base font families.
+    /// Maps generic families (serif, sans-serif, monospace) and common aliases
+    /// to the 14 standard PDF fonts.
     /// </summary>
     /// <param name="familyName">The font family name to normalize</param>
     /// <returns>The normalized base font family name</returns>
@@ -147,7 +150,7 @@ public static class FontResolver
     }
 
     /// <summary>
-    /// Checks if a font name is a known font variant name.
+    /// Checks if a font name is a known PDF base font variant name.
     /// </summary>
     private static bool IsKnownFontName(string fontName)
     {
@@ -172,7 +175,7 @@ public static class FontResolver
     }
 
     /// <summary>
-    /// Gets the canonical (properly-cased) font name for a known font.
+    /// Gets the canonical (properly-cased) font name for a known PDF base font.
     /// </summary>
     private static string GetCanonicalFontName(string fontName)
     {

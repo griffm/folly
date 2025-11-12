@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Folly.Fonts.Tests;
 
-public class FontFamilyResolverTests
+public class FontResolverTests
 {
     private static string GetTestFontPath(string fontName)
     {
@@ -23,7 +23,7 @@ public class FontFamilyResolverTests
         {
             ["Roboto"] = GetTestFontPath("Roboto-Regular.ttf")
         };
-        var resolver = new FontFamilyResolver(customFonts);
+        var resolver = new FontResolver(customFonts);
 
         // Act
         var result = resolver.ResolveFontFamily("Roboto");
@@ -41,7 +41,7 @@ public class FontFamilyResolverTests
         {
             ["LiberationSans"] = GetTestFontPath("LiberationSans-Regular.ttf")
         };
-        var resolver = new FontFamilyResolver(customFonts);
+        var resolver = new FontResolver(customFonts);
 
         // Act - try non-existent font first, then available font
         var result = resolver.ResolveFontFamily("NonExistentFont, LiberationSans, Arial");
@@ -59,7 +59,7 @@ public class FontFamilyResolverTests
         {
             ["Roboto"] = GetTestFontPath("Roboto-Regular.ttf")
         };
-        var resolver = new FontFamilyResolver(customFonts);
+        var resolver = new FontResolver(customFonts);
 
         // Act - extra whitespace around font names
         var result = resolver.ResolveFontFamily("  NonExistent  ,  Roboto  ,  Arial  ");
@@ -73,7 +73,7 @@ public class FontFamilyResolverTests
     public void ResolveFontFamily_WithEmptyStack_ReturnsNull()
     {
         // Arrange
-        var resolver = new FontFamilyResolver();
+        var resolver = new FontResolver();
 
         // Act
         var result = resolver.ResolveFontFamily("");
@@ -86,7 +86,7 @@ public class FontFamilyResolverTests
     public void ResolveFontFamily_WithNullStack_ReturnsNull()
     {
         // Arrange
-        var resolver = new FontFamilyResolver();
+        var resolver = new FontResolver();
 
         // Act
         var result = resolver.ResolveFontFamily(null!);
@@ -99,7 +99,7 @@ public class FontFamilyResolverTests
     public void ResolveFontFamily_WithNoMatchingFonts_ReturnsNull()
     {
         // Arrange
-        var resolver = new FontFamilyResolver();
+        var resolver = new FontResolver();
 
         // Act
         var result = resolver.ResolveFontFamily("NonExistentFont1, NonExistentFont2");
@@ -112,7 +112,7 @@ public class FontFamilyResolverTests
     public void ResolveFontFamily_WithGenericFamily_ResolvesToSystemFont()
     {
         // Arrange
-        var resolver = new FontFamilyResolver();
+        var resolver = new FontResolver();
 
         // Act - generic families should resolve to system fonts
         var result = resolver.ResolveFontFamily("sans-serif");
@@ -130,7 +130,7 @@ public class FontFamilyResolverTests
         {
             ["Roboto"] = GetTestFontPath("Roboto-Regular.ttf")
         };
-        var resolver = new FontFamilyResolver(customFonts);
+        var resolver = new FontResolver(customFonts);
 
         // Act
         var result = resolver.IsFontAvailable("Roboto");
@@ -143,7 +143,7 @@ public class FontFamilyResolverTests
     public void IsFontAvailable_WithNonExistentFont_ReturnsFalse()
     {
         // Arrange
-        var resolver = new FontFamilyResolver();
+        var resolver = new FontResolver();
 
         // Act
         var result = resolver.IsFontAvailable("NonExistentFont12345");
@@ -156,7 +156,7 @@ public class FontFamilyResolverTests
     public void IsFontAvailable_WithEmptyName_ReturnsFalse()
     {
         // Arrange
-        var resolver = new FontFamilyResolver();
+        var resolver = new FontResolver();
 
         // Act
         var result = resolver.IsFontAvailable("");
@@ -169,7 +169,7 @@ public class FontFamilyResolverTests
     public void GetAvailableSystemFonts_ReturnsNonNull()
     {
         // Arrange
-        var resolver = new FontFamilyResolver();
+        var resolver = new FontResolver();
 
         // Act
         var fonts = resolver.GetAvailableSystemFonts();
@@ -183,7 +183,7 @@ public class FontFamilyResolverTests
     public void ClearCache_AllowsRescan()
     {
         // Arrange
-        var resolver = new FontFamilyResolver();
+        var resolver = new FontResolver();
 
         // Act - trigger scan
         var fonts1 = resolver.GetAvailableSystemFonts();
@@ -207,7 +207,7 @@ public class FontFamilyResolverTests
         {
             ["Roboto"] = GetTestFontPath("Roboto-Regular.ttf")
         };
-        var resolver = new FontFamilyResolver(customFonts);
+        var resolver = new FontResolver(customFonts);
 
         // Act - try different cases
         var result1 = resolver.ResolveFontFamily("roboto");
@@ -230,7 +230,7 @@ public class FontFamilyResolverTests
             ["FontA"] = GetTestFontPath("Roboto-Regular.ttf"),
             ["FontB"] = GetTestFontPath("LiberationSans-Regular.ttf")
         };
-        var resolver = new FontFamilyResolver(customFonts);
+        var resolver = new FontResolver(customFonts);
 
         // Act - FontB should be chosen since FontA comes first
         var result = resolver.ResolveFontFamily("FontA, FontB, FontC");
@@ -248,7 +248,7 @@ public class FontFamilyResolverTests
             ["BadFont"] = "/nonexistent/path/font.ttf",
             ["GoodFont"] = GetTestFontPath("Roboto-Regular.ttf")
         };
-        var resolver = new FontFamilyResolver(customFonts);
+        var resolver = new FontResolver(customFonts);
 
         // Act - should skip BadFont and find GoodFont
         var result = resolver.ResolveFontFamily("BadFont, GoodFont");

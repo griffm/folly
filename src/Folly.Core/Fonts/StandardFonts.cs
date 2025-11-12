@@ -95,7 +95,7 @@ internal static class StandardFonts
     public static StandardFont GetFont(string familyName, bool bold, bool italic)
     {
         // Use FontResolver to determine the specific font name
-        var fontName = FontResolver.ResolveFont(familyName, bold, italic);
+        var fontName = PdfBaseFontMapper.ResolveFont(familyName, bold, italic);
 
         // Look up the font by resolved name
         return GetFont(fontName);

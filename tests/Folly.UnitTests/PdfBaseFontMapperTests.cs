@@ -4,9 +4,9 @@ using Xunit;
 namespace Folly.UnitTests;
 
 /// <summary>
-/// Unit tests for FontResolver and font variant resolution logic.
+/// Unit tests for PdfBaseFontMapper and font variant resolution logic.
 /// </summary>
-public class FontResolverTests
+public class PdfBaseFontMapperTests
 {
     #region Generic Family Normalization Tests
 
@@ -22,7 +22,7 @@ public class FontResolverTests
     [InlineData("courier new", "Courier")]
     public void NormalizeFamily_GenericFamilies_ReturnCorrectBaseFont(string input, string expected)
     {
-        var result = FontResolver.NormalizeFamily(input);
+        var result = PdfBaseFontMapper.NormalizeFamily(input);
         Assert.Equal(expected, result);
     }
 
@@ -34,7 +34,7 @@ public class FontResolverTests
     [InlineData("TIMES-ROMAN", "Times-Roman")]
     public void NormalizeFamily_CaseInsensitive_ReturnsCorrectFont(string input, string expected)
     {
-        var result = FontResolver.NormalizeFamily(input);
+        var result = PdfBaseFontMapper.NormalizeFamily(input);
         Assert.Equal(expected, result);
     }
 
@@ -43,21 +43,21 @@ public class FontResolverTests
     [InlineData("CustomFamily", "CustomFamily")]
     public void NormalizeFamily_UnknownFamilies_ReturnsInputAsIs(string input, string expected)
     {
-        var result = FontResolver.NormalizeFamily(input);
+        var result = PdfBaseFontMapper.NormalizeFamily(input);
         Assert.Equal(expected, result);
     }
 
     [Fact]
     public void NormalizeFamily_EmptyString_ReturnsHelvetica()
     {
-        var result = FontResolver.NormalizeFamily("");
+        var result = PdfBaseFontMapper.NormalizeFamily("");
         Assert.Equal("Helvetica", result);
     }
 
     [Fact]
     public void NormalizeFamily_Null_ReturnsHelvetica()
     {
-        var result = FontResolver.NormalizeFamily(null!);
+        var result = PdfBaseFontMapper.NormalizeFamily(null!);
         Assert.Equal("Helvetica", result);
     }
 
@@ -74,7 +74,7 @@ public class FontResolverTests
     [InlineData("900", true)]
     public void IsBoldWeight_BoldWeights_ReturnsTrue(string weight, bool expected)
     {
-        var result = FontResolver.IsBoldWeight(weight);
+        var result = PdfBaseFontMapper.IsBoldWeight(weight);
         Assert.Equal(expected, result);
     }
 
@@ -88,7 +88,7 @@ public class FontResolverTests
     [InlineData(null, false)]
     public void IsBoldWeight_NormalWeights_ReturnsFalse(string? weight, bool expected)
     {
-        var result = FontResolver.IsBoldWeight(weight);
+        var result = PdfBaseFontMapper.IsBoldWeight(weight);
         Assert.Equal(expected, result);
     }
 
@@ -103,7 +103,7 @@ public class FontResolverTests
     [InlineData("Oblique", true)]
     public void IsItalicStyle_ItalicStyles_ReturnsTrue(string style, bool expected)
     {
-        var result = FontResolver.IsItalicStyle(style);
+        var result = PdfBaseFontMapper.IsItalicStyle(style);
         Assert.Equal(expected, result);
     }
 
@@ -114,7 +114,7 @@ public class FontResolverTests
     [InlineData("unknown", false)]
     public void IsItalicStyle_NonItalicStyles_ReturnsFalse(string? style, bool expected)
     {
-        var result = FontResolver.IsItalicStyle(style);
+        var result = PdfBaseFontMapper.IsItalicStyle(style);
         Assert.Equal(expected, result);
     }
 
@@ -125,28 +125,28 @@ public class FontResolverTests
     [Fact]
     public void ResolveFont_HelveticaNormal_ReturnsHelvetica()
     {
-        var result = FontResolver.ResolveFont("Helvetica", false, false);
+        var result = PdfBaseFontMapper.ResolveFont("Helvetica", false, false);
         Assert.Equal("Helvetica", result);
     }
 
     [Fact]
     public void ResolveFont_HelveticaBold_ReturnsHelveticaBold()
     {
-        var result = FontResolver.ResolveFont("Helvetica", true, false);
+        var result = PdfBaseFontMapper.ResolveFont("Helvetica", true, false);
         Assert.Equal("Helvetica-Bold", result);
     }
 
     [Fact]
     public void ResolveFont_HelveticaItalic_ReturnsHelveticaOblique()
     {
-        var result = FontResolver.ResolveFont("Helvetica", false, true);
+        var result = PdfBaseFontMapper.ResolveFont("Helvetica", false, true);
         Assert.Equal("Helvetica-Oblique", result);
     }
 
     [Fact]
     public void ResolveFont_HelveticaBoldItalic_ReturnsHelveticaBoldOblique()
     {
-        var result = FontResolver.ResolveFont("Helvetica", true, true);
+        var result = PdfBaseFontMapper.ResolveFont("Helvetica", true, true);
         Assert.Equal("Helvetica-BoldOblique", result);
     }
 
@@ -157,28 +157,28 @@ public class FontResolverTests
     [Fact]
     public void ResolveFont_TimesNormal_ReturnsTimesRoman()
     {
-        var result = FontResolver.ResolveFont("Times-Roman", false, false);
+        var result = PdfBaseFontMapper.ResolveFont("Times-Roman", false, false);
         Assert.Equal("Times-Roman", result);
     }
 
     [Fact]
     public void ResolveFont_TimesBold_ReturnsTimesBold()
     {
-        var result = FontResolver.ResolveFont("Times-Roman", true, false);
+        var result = PdfBaseFontMapper.ResolveFont("Times-Roman", true, false);
         Assert.Equal("Times-Bold", result);
     }
 
     [Fact]
     public void ResolveFont_TimesItalic_ReturnsTimesItalic()
     {
-        var result = FontResolver.ResolveFont("Times-Roman", false, true);
+        var result = PdfBaseFontMapper.ResolveFont("Times-Roman", false, true);
         Assert.Equal("Times-Italic", result);
     }
 
     [Fact]
     public void ResolveFont_TimesBoldItalic_ReturnsTimesBoldItalic()
     {
-        var result = FontResolver.ResolveFont("Times-Roman", true, true);
+        var result = PdfBaseFontMapper.ResolveFont("Times-Roman", true, true);
         Assert.Equal("Times-BoldItalic", result);
     }
 
@@ -189,28 +189,28 @@ public class FontResolverTests
     [Fact]
     public void ResolveFont_CourierNormal_ReturnsCourier()
     {
-        var result = FontResolver.ResolveFont("Courier", false, false);
+        var result = PdfBaseFontMapper.ResolveFont("Courier", false, false);
         Assert.Equal("Courier", result);
     }
 
     [Fact]
     public void ResolveFont_CourierBold_ReturnsCourierBold()
     {
-        var result = FontResolver.ResolveFont("Courier", true, false);
+        var result = PdfBaseFontMapper.ResolveFont("Courier", true, false);
         Assert.Equal("Courier-Bold", result);
     }
 
     [Fact]
     public void ResolveFont_CourierItalic_ReturnsCourierOblique()
     {
-        var result = FontResolver.ResolveFont("Courier", false, true);
+        var result = PdfBaseFontMapper.ResolveFont("Courier", false, true);
         Assert.Equal("Courier-Oblique", result);
     }
 
     [Fact]
     public void ResolveFont_CourierBoldItalic_ReturnsCourierBoldOblique()
     {
-        var result = FontResolver.ResolveFont("Courier", true, true);
+        var result = PdfBaseFontMapper.ResolveFont("Courier", true, true);
         Assert.Equal("Courier-BoldOblique", result);
     }
 
@@ -228,7 +228,7 @@ public class FontResolverTests
     public void ResolveFont_WithCssStrings_ReturnsCorrectVariant(
         string family, string? weight, string? style, string expected)
     {
-        var result = FontResolver.ResolveFont(family, weight, style);
+        var result = PdfBaseFontMapper.ResolveFont(family, weight, style);
         Assert.Equal(expected, result);
     }
 
@@ -246,7 +246,7 @@ public class FontResolverTests
     public void ResolveFont_GenericFamiliesWithVariants_ReturnsCorrectFont(
         string family, string? weight, string? style, string expected)
     {
-        var result = FontResolver.ResolveFont(family, weight, style);
+        var result = PdfBaseFontMapper.ResolveFont(family, weight, style);
         Assert.Equal(expected, result);
     }
 
@@ -258,7 +258,7 @@ public class FontResolverTests
     public void ResolveFont_UnknownFamily_AppliesVariantSyntax()
     {
         // For unknown families, the system should still attempt to apply variant suffixes
-        var result = FontResolver.ResolveFont("UnknownFont", true, true);
+        var result = PdfBaseFontMapper.ResolveFont("UnknownFont", true, true);
         // Should get some variant name with Bold and Italic/Oblique
         Assert.Contains("Bold", result);
     }
@@ -269,7 +269,7 @@ public class FontResolverTests
     [InlineData("", false, true)]
     public void ResolveFont_EmptyOrNullFamily_ReturnsFallback(string? family, bool bold, bool italic)
     {
-        var result = FontResolver.ResolveFont(family ?? "", bold, italic);
+        var result = PdfBaseFontMapper.ResolveFont(family ?? "", bold, italic);
         Assert.NotNull(result);
         Assert.NotEmpty(result);
         // Should fallback to some default (likely Helvetica variant)
@@ -286,7 +286,7 @@ public class FontResolverTests
     [InlineData("Courier-BoldOblique", "Courier-BoldOblique")]
     public void NormalizeFamily_AlreadyResolvedNames_ReturnsCanonicalName(string input, string expected)
     {
-        var result = FontResolver.NormalizeFamily(input);
+        var result = PdfBaseFontMapper.NormalizeFamily(input);
         Assert.Equal(expected, result);
     }
 
@@ -303,7 +303,7 @@ public class FontResolverTests
     public void ResolveFont_VariousInputs_ReturnsWellFormedFontName(
         string family, bool bold, bool italic, string expected)
     {
-        var fontName = FontResolver.ResolveFont(family, bold, italic);
+        var fontName = PdfBaseFontMapper.ResolveFont(family, bold, italic);
 
         Assert.NotNull(fontName);
         Assert.NotEmpty(fontName);
@@ -317,7 +317,7 @@ public class FontResolverTests
     public void ResolveFont_CssStrings_ReturnsWellFormedFontName(
         string family, string? weight, string? style, string expected)
     {
-        var fontName = FontResolver.ResolveFont(family, weight, style);
+        var fontName = PdfBaseFontMapper.ResolveFont(family, weight, style);
 
         Assert.NotNull(fontName);
         Assert.NotEmpty(fontName);
@@ -332,8 +332,8 @@ public class FontResolverTests
     public void ResolveFont_BooleanAndStringOverloads_ProduceSameResults()
     {
         // Test that both overloads produce the same results
-        var result1 = FontResolver.ResolveFont("Helvetica", true, true);
-        var result2 = FontResolver.ResolveFont("Helvetica", "bold", "italic");
+        var result1 = PdfBaseFontMapper.ResolveFont("Helvetica", true, true);
+        var result2 = PdfBaseFontMapper.ResolveFont("Helvetica", "bold", "italic");
 
         Assert.Equal(result1, result2);
     }
@@ -345,8 +345,8 @@ public class FontResolverTests
     public void ResolveFont_OverloadConsistency_ProducesSameResult(
         string family, bool bold, bool italic, string? weight, string? style)
     {
-        var result1 = FontResolver.ResolveFont(family, bold, italic);
-        var result2 = FontResolver.ResolveFont(family, weight, style);
+        var result1 = PdfBaseFontMapper.ResolveFont(family, bold, italic);
+        var result2 = PdfBaseFontMapper.ResolveFont(family, weight, style);
 
         Assert.Equal(result1, result2);
     }
