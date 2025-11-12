@@ -53,4 +53,40 @@ public sealed class LayoutOptions
     /// Default is 100. Set to prevent stack overflow from deeply nested structures.
     /// </summary>
     public int MaxNestingDepth { get; set; } = 100;
+
+    /// <summary>
+    /// Gets or sets whether to enable automatic hyphenation.
+    /// Default is false. When enabled, words will be hyphenated according to language rules.
+    /// </summary>
+    public bool EnableHyphenation { get; set; } = false;
+
+    /// <summary>
+    /// Gets or sets the language code for hyphenation.
+    /// Default is "en-US". Supported values: "en-US", "de-DE", "fr-FR", "es-ES".
+    /// </summary>
+    public string HyphenationLanguage { get; set; } = "en-US";
+
+    /// <summary>
+    /// Gets or sets the minimum word length for hyphenation.
+    /// Default is 5. Words shorter than this will not be hyphenated.
+    /// </summary>
+    public int HyphenationMinWordLength { get; set; } = 5;
+
+    /// <summary>
+    /// Gets or sets the minimum number of characters before a hyphen.
+    /// Default is 2.
+    /// </summary>
+    public int HyphenationMinLeftChars { get; set; } = 2;
+
+    /// <summary>
+    /// Gets or sets the minimum number of characters after a hyphen.
+    /// Default is 3.
+    /// </summary>
+    public int HyphenationMinRightChars { get; set; } = 3;
+
+    /// <summary>
+    /// Gets or sets the hyphenation character to use.
+    /// Default is '-' (regular hyphen). Can be set to '\u00AD' (soft hyphen) for PDF.
+    /// </summary>
+    public char HyphenationCharacter { get; set; } = '-';
 }
