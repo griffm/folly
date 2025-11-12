@@ -180,22 +180,6 @@ public class FontSubsetter
     /// </summary>
     private static byte[] SerializeToTrueType(FontFile font)
     {
-        // TODO: Implement TrueType font file generation
-        // This requires rebuilding all font tables in the correct format:
-        // 1. head - Font header
-        // 2. hhea - Horizontal header
-        // 3. maxp - Maximum profile
-        // 4. hmtx - Horizontal metrics
-        // 5. name - Font naming table
-        // 6. cmap - Character to glyph mapping
-        // 7. loca - Glyph location index
-        // 8. glyf - Glyph data
-        // 9. post - PostScript information
-        // 10. OS/2 - Windows metrics
-        // Plus table directory and checksum calculation
-
-        throw new NotImplementedException(
-            "TrueType font serialization is not yet implemented. " +
-            "This will be completed in the next iteration of Phase 3.2.");
+        return TrueTypeFontSerializer.Serialize(font);
     }
 }
