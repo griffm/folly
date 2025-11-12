@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Folly.Fonts\Folly.Fonts.csproj" />
+    <ProjectReference Include="..\..\src\Folly.Pdf\Folly.Pdf.csproj" />
   </ItemGroup>
 
   <!-- Include test fonts as embedded resources -->

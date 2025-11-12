@@ -1244,7 +1244,7 @@ internal sealed class PdfWriter : IDisposable
         WriteLine("endobj");
     }
 
-    private void Write(string text)
+    internal void Write(string text)
     {
         _writer.Write(text);
         _position += Encoding.ASCII.GetByteCount(text);
@@ -1310,7 +1310,7 @@ internal sealed class PdfWriter : IDisposable
         WriteLine("%%EOF");
     }
 
-    private int BeginObject()
+    internal int BeginObject()
     {
         var id = _nextObjectId++;
         _objectOffsets.Add(_position);
@@ -1318,15 +1318,33 @@ internal sealed class PdfWriter : IDisposable
         return id;
     }
 
-    private void EndObject()
+    internal void EndObject()
     {
         WriteLine("endobj");
     }
 
-    private void WriteLine(string line)
+    internal void WriteLine(string line)
     {
         _writer.WriteLine(line);
         _position += Encoding.ASCII.GetByteCount(line) + 1; // +1 for newline
+    }
+
+    /// <summary>
+    /// Gets the underlying stream for writing binary data.
+    /// Used by font embedder and other binary data writers.
+    /// </summary>
+    internal Stream GetStream()
+    {
+        _writer.Flush();
+        return _output;
+    }
+
+    /// <summary>
+    /// Updates the position counter after writing binary data directly to the stream.
+    /// </summary>
+    internal void UpdatePosition(int bytesWritten)
+    {
+        _position += bytesWritten;
     }
 
     /// <summary>
