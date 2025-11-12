@@ -93,6 +93,13 @@ public class FontFile
     public Dictionary<(ushort, ushort), short> KerningPairs { get; set; } = new();
 
     /// <summary>
+    /// Glyph data for each glyph (from 'glyf' table for TrueType fonts).
+    /// Contains glyph bounding boxes and outline information.
+    /// Null for CFF fonts or if glyf table was not parsed.
+    /// </summary>
+    public GlyphData[]? Glyphs { get; set; }
+
+    /// <summary>
     /// Font bounding box minimum X coordinate (from 'head' table).
     /// </summary>
     public short XMin { get; set; }
@@ -174,5 +181,79 @@ public class FontFile
     public bool HasCharacter(char character)
     {
         return CharacterToGlyphIndex.ContainsKey(character);
+    }
+
+    /// <summary>
+    /// Gets the glyph index for a character.
+    /// Returns null if the character is not in the font.
+    /// </summary>
+    public ushort? GetGlyphIndex(char character)
+    {
+        if (CharacterToGlyphIndex.TryGetValue(character, out ushort glyphIndex))
+            return glyphIndex;
+        return null;
+    }
+
+    /// <summary>
+    /// Gets the glyph data for a character.
+    /// Returns null if the character is not in the font or glyph data is not available.
+    /// </summary>
+    public GlyphData? GetGlyphData(char character)
+    {
+        var glyphIndex = GetGlyphIndex(character);
+        if (glyphIndex == null || Glyphs == null || glyphIndex >= Glyphs.Length)
+            return null;
+
+        return Glyphs[glyphIndex.Value];
+    }
+
+    /// <summary>
+    /// Calculates the total width of a string in font units, including kerning.
+    /// Returns 0 if any character is not in the font.
+    /// </summary>
+    public int GetTextWidth(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return 0;
+
+        int totalWidth = 0;
+        char? previousChar = null;
+
+        foreach (char c in text)
+        {
+            // Add advance width
+            totalWidth += GetAdvanceWidth(c);
+
+            // Add kerning if we have a previous character
+            if (previousChar.HasValue)
+            {
+                totalWidth += GetKerning(previousChar.Value, c);
+            }
+
+            previousChar = c;
+        }
+
+        return totalWidth;
+    }
+
+    /// <summary>
+    /// Converts font units to pixels at a given point size and DPI.
+    /// </summary>
+    /// <param name="fontUnits">Value in font units.</param>
+    /// <param name="pointSize">Font size in points (e.g., 12pt).</param>
+    /// <param name="dpi">Dots per inch (typically 72 or 96).</param>
+    /// <returns>Value in pixels.</returns>
+    public double FontUnitsToPixels(int fontUnits, double pointSize, double dpi = 72.0)
+    {
+        return fontUnits * pointSize * dpi / (72.0 * UnitsPerEm);
+    }
+
+    /// <summary>
+    /// Gets the line height in font units.
+    /// Line height = ascender - descender + line gap.
+    /// </summary>
+    public int GetLineHeight()
+    {
+        return Ascender - Descender + LineGap;
     }
 }
