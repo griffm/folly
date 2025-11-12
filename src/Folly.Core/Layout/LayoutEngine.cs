@@ -610,35 +610,26 @@ internal sealed class LayoutEngine
         // Note: Lists span full body width, not individual columns
         foreach (var foList in flow.Lists)
         {
-            // Lists break columns - start from left margin
-            var listArea = LayoutListBlock(foList, bodyMarginLeft, currentY, bodyWidth);
-            if (listArea == null)
-                continue;
+            // Use new page breaking approach for lists (similar to tables)
+            LayoutListBlockWithPageBreaking(
+                foList,
+                foRoot,
+                pageSequence,
+                areaTree,
+                ref currentPage,
+                ref currentPageMaster,
+                ref pageNumber,
+                ref currentY,
+                ref currentColumn,
+                bodyMarginLeft,
+                bodyWidth,
+                ref bodyMarginTop,
+                ref bodyMarginBottom,
+                ref bodyMarginLeft,
+                ref bodyMarginRight,
+                ref bodyWidth,
+                ref bodyHeight);
 
-            // Check if list fits on current page
-            if (currentY + listArea.Height > currentPageMaster.PageHeight - bodyMarginBottom)
-            {
-                // List doesn't fit - add current page and create new one
-                RenderFloats(currentPage, currentPageMaster, bodyMarginTop);
-                RenderFootnotes(currentPage, currentPageMaster, pageSequence);
-                AddLinksToPage(currentPage);
-                CheckPageLimit(areaTree);
-                areaTree.AddPage(currentPage);
-                pageNumber++;
-                currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
-                CalculateBodyMargins(currentPageMaster, out bodyMarginTop, out bodyMarginBottom,
-                    out bodyMarginLeft, out bodyMarginRight, out bodyWidth, out bodyHeight);
-                currentPage = CreatePage(currentPageMaster, pageSequence, pageNumber);
-                currentY = bodyMarginTop;
-
-                // Re-position the list for the new page
-                listArea = LayoutListBlock(foList, bodyMarginLeft, currentY, bodyWidth);
-                if (listArea == null)
-                    continue;
-            }
-
-            currentPage.AddArea(listArea);
-            currentY += listArea.Height;
             currentColumn = 0;  // Reset to first column after list
         }
 
@@ -1873,6 +1864,160 @@ internal sealed class LayoutEngine
                 currentY += rowArea.Height;
             }
         }
+    }
+
+    private void LayoutListBlockWithPageBreaking(
+        Dom.FoListBlock foList,
+        Dom.FoRoot foRoot,
+        Dom.FoPageSequence pageSequence,
+        AreaTree areaTree,
+        ref PageViewport currentPage,
+        ref Dom.FoSimplePageMaster currentPageMaster,
+        ref int pageNumber,
+        ref double currentY,
+        ref int currentColumn,
+        double listX,
+        double listWidth,
+        ref double bodyMarginTop,
+        ref double bodyMarginBottom,
+        ref double bodyMarginLeft,
+        ref double bodyMarginRight,
+        ref double bodyWidth,
+        ref double bodyHeight)
+    {
+        // Apply space-before at the start of the list
+        currentY += foList.SpaceBefore;
+
+        // Calculate label and body widths (same for all items in the list)
+        var labelWidth = foList.ProvisionalDistanceBetweenStarts - foList.ProvisionalLabelSeparation;
+        var bodyStartX = foList.ProvisionalDistanceBetweenStarts;
+        var listBodyWidth = listWidth - bodyStartX;
+
+        // Layout each list item with page breaking
+        foreach (var foItem in foList.Items)
+        {
+            // Apply space-before for this item
+            currentY += foItem.SpaceBefore;
+
+            // First, layout the item to calculate its height
+            var itemLabelAreas = new List<BlockArea>();
+            var itemBodyAreas = new List<BlockArea>();
+            double labelHeight = 0;
+            double itemBodyHeight = 0;
+
+            // Layout label
+            if (foItem.Label != null)
+            {
+                var labelY = 0.0;
+                foreach (var labelBlock in foItem.Label.Blocks)
+                {
+                    var labelBlockArea = LayoutBlock(labelBlock, 0, labelY, labelWidth);
+                    if (labelBlockArea != null)
+                    {
+                        // Store relative position for now
+                        labelBlockArea.X = 0;
+                        labelBlockArea.Y = labelY;
+                        itemLabelAreas.Add(labelBlockArea);
+                        labelY += labelBlockArea.Height + labelBlockArea.MarginTop + labelBlockArea.MarginBottom;
+                    }
+                }
+                labelHeight = labelY;
+            }
+
+            // Layout body
+            if (foItem.Body != null)
+            {
+                var bodyY = 0.0;
+                foreach (var bodyBlock in foItem.Body.Blocks)
+                {
+                    var bodyBlockArea = LayoutBlock(bodyBlock, 0, bodyY, listBodyWidth);
+                    if (bodyBlockArea != null)
+                    {
+                        // Store relative position for now
+                        bodyBlockArea.X = 0;
+                        bodyBlockArea.Y = bodyY;
+                        itemBodyAreas.Add(bodyBlockArea);
+                        bodyY += bodyBlockArea.Height + bodyBlockArea.MarginTop + bodyBlockArea.MarginBottom;
+                    }
+                }
+                itemBodyHeight = bodyY;
+            }
+
+            // List item height is the maximum of label and body heights
+            var itemHeight = Math.Max(labelHeight, itemBodyHeight) + foItem.SpaceAfter;
+            var pageBottom = currentPageMaster.PageHeight - bodyMarginBottom;
+
+            // Check keep-together constraint
+            var mustKeepTogether = foItem.KeepTogether == "always";
+
+            // Check if item fits on current page
+            var itemFitsOnPage = currentY + itemHeight <= pageBottom;
+
+            if (!itemFitsOnPage)
+            {
+                // Item doesn't fit - decide whether to break
+                // If we're at the top of the page and the item is too large, render it anyway
+                // Otherwise, create a new page
+                if (currentY > bodyMarginTop || mustKeepTogether)
+                {
+                    // Create new page
+                    RenderFloats(currentPage, currentPageMaster, bodyMarginTop);
+                    RenderFootnotes(currentPage, currentPageMaster, pageSequence);
+                    AddLinksToPage(currentPage);
+                    CheckPageLimit(areaTree);
+                    areaTree.AddPage(currentPage);
+                    pageNumber++;
+                    currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
+
+                    // Recalculate body margins for new page master
+                    var regionBody = currentPageMaster.RegionBody;
+                    var regionBodyMarginTop = regionBody?.MarginTop ?? 0;
+                    var regionBodyMarginBottom = regionBody?.MarginBottom ?? 0;
+                    var regionBodyMarginLeft = regionBody?.MarginLeft ?? 0;
+                    var regionBodyMarginRight = regionBody?.MarginRight ?? 0;
+
+                    var regionBeforeExtent = (currentPageMaster.RegionBefore as Dom.FoRegionBefore)?.Extent ?? 0;
+                    var regionAfterExtent = (currentPageMaster.RegionAfter as Dom.FoRegionAfter)?.Extent ?? 0;
+
+                    bodyMarginTop = currentPageMaster.MarginTop + regionBeforeExtent + regionBodyMarginTop;
+                    bodyMarginBottom = currentPageMaster.MarginBottom + regionAfterExtent + regionBodyMarginBottom;
+                    bodyMarginLeft = currentPageMaster.MarginLeft + regionBodyMarginLeft;
+                    bodyMarginRight = currentPageMaster.MarginRight + regionBodyMarginRight;
+
+                    bodyWidth = currentPageMaster.PageWidth - bodyMarginLeft - bodyMarginRight;
+                    bodyHeight = currentPageMaster.PageHeight - bodyMarginTop - bodyMarginBottom;
+
+                    currentPage = CreatePage(currentPageMaster, pageSequence, pageNumber);
+                    currentY = bodyMarginTop;
+                    currentColumn = 0;
+
+                    // Note: No need to re-layout the item, we already have the areas calculated
+                }
+                // else: item is too large for any page, render it anyway at current position
+            }
+
+            // Add label areas to page with absolute positions
+            foreach (var labelArea in itemLabelAreas)
+            {
+                labelArea.X = listX;
+                labelArea.Y = currentY + labelArea.Y;
+                currentPage.AddArea(labelArea);
+            }
+
+            // Add body areas to page with absolute positions
+            foreach (var bodyArea in itemBodyAreas)
+            {
+                bodyArea.X = listX + bodyStartX;
+                bodyArea.Y = currentY + bodyArea.Y;
+                currentPage.AddArea(bodyArea);
+            }
+
+            // Move Y position past this item
+            currentY += itemHeight;
+        }
+
+        // Apply space-after at the end of the list
+        currentY += foList.SpaceAfter;
     }
 
     private List<double> CalculateColumnWidths(Dom.FoTable foTable, double availableWidth)

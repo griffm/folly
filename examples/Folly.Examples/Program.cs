@@ -118,6 +118,10 @@ GenerateFlatlandBook(Path.Combine(outputDir, "21-flatland.pdf"), examplesDir);
 Console.WriteLine("Generating Example 22: Emergency Line Breaking...");
 GenerateEmergencyLineBreaking(Path.Combine(outputDir, "22-emergency-line-breaking.pdf"));
 
+// Example 23: Multi-Page Lists
+Console.WriteLine("Generating Example 23: Multi-Page Lists...");
+GenerateMultiPageListExample(Path.Combine(outputDir, "23-multi-page-lists.pdf"));
+
 Console.WriteLine("\n✓ All examples generated successfully!");
 Console.WriteLine($"\nView PDFs in: {outputDir}");
 Console.WriteLine("\nValidate with qpdf:");
@@ -2149,6 +2153,108 @@ static void GenerateEmergencyLineBreaking(string outputPath)
 
               <fo:block font-size="11pt" margin-top="12pt" color="#666666">
                 This feature ensures that documents can handle any text input gracefully, even with extremely narrow columns or very long words that cannot be hyphenated.
+              </fo:block>
+            </fo:flow>
+          </fo:page-sequence>
+        </fo:root>
+        """;
+
+    using var doc = FoDocument.Load(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml)));
+    doc.SavePdf(outputPath);
+}
+
+static void GenerateMultiPageListExample(string outputPath)
+{
+    // Generate 100 list items that will span multiple pages
+    var listItems = string.Join("\n", Enumerable.Range(1, 100).Select(i => $"""
+                <fo:list-item space-before="6pt"{(i % 20 == 0 ? " keep-together=\"always\"" : "")}>
+                  <fo:list-item-label end-indent="label-end()">
+                    <fo:block font-weight="bold" color="#0066CC">{i}.</fo:block>
+                  </fo:list-item-label>
+                  <fo:list-item-body start-indent="body-start()">
+                    <fo:block>
+                      <fo:inline font-weight="bold">List Item {i}:</fo:inline> This is a list item with some content.
+                      {(i % 10 == 0 ? "This item has extra content to make it taller and demonstrate the page breaking behavior more effectively." : "")}
+                    </fo:block>
+                    {(i % 20 == 0 ? "<fo:block space-before=\"3pt\" font-size=\"9pt\" color=\"#666\">This item uses keep-together=\"always\" to prevent breaking across pages.</fo:block>" : "")}
+                  </fo:list-item-body>
+                </fo:list-item>
+                """));
+
+    var foXml = $"""
+        <?xml version="1.0"?>
+        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+          <fo:layout-master-set>
+            <fo:simple-page-master master-name="A4" page-width="210mm" page-height="297mm" margin="25mm">
+              <fo:region-body margin-top="20mm" margin-bottom="20mm"/>
+              <fo:region-before extent="15mm"/>
+              <fo:region-after extent="15mm"/>
+            </fo:simple-page-master>
+          </fo:layout-master-set>
+
+          <fo:page-sequence master-reference="A4">
+            <fo:static-content flow-name="xsl-region-before">
+              <fo:block text-align="center" font-size="10pt" color="#666666" border-bottom="0.5pt solid #CCCCCC" padding-bottom="3pt">
+                Example 23: Multi-Page Lists
+              </fo:block>
+            </fo:static-content>
+
+            <fo:static-content flow-name="xsl-region-after">
+              <fo:block text-align="center" font-size="9pt" color="#666666" border-top="0.5pt solid #CCCCCC" padding-top="3pt">
+                Page <fo:page-number/> — Multi-Page List Example
+              </fo:block>
+            </fo:static-content>
+
+            <fo:flow flow-name="xsl-region-body">
+              <fo:block font-size="18pt" font-weight="bold" color="#003366" margin-bottom="12pt">
+                Multi-Page Lists
+              </fo:block>
+
+              <fo:block font-size="11pt" margin-bottom="12pt" color="#666666">
+                This example demonstrates list page breaking. The list below contains 100 items that will automatically break across multiple pages. Notice how items marked with keep-together="always" (every 20th item) remain intact on a single page.
+              </fo:block>
+
+              <fo:block font-size="14pt" font-weight="bold" color="#0066CC" margin-top="12pt" margin-bottom="8pt">
+                Features Demonstrated:
+              </fo:block>
+
+              <fo:list-block provisional-distance-between-starts="30pt" provisional-label-separation="6pt" margin-bottom="12pt">
+                <fo:list-item space-before="4pt">
+                  <fo:list-item-label end-indent="label-end()">
+                    <fo:block>•</fo:block>
+                  </fo:list-item-label>
+                  <fo:list-item-body start-indent="body-start()">
+                    <fo:block>Automatic page breaks between list items</fo:block>
+                  </fo:list-item-body>
+                </fo:list-item>
+                <fo:list-item space-before="4pt">
+                  <fo:list-item-label end-indent="label-end()">
+                    <fo:block>•</fo:block>
+                  </fo:list-item-label>
+                  <fo:list-item-body start-indent="body-start()">
+                    <fo:block>keep-together constraint support on list items</fo:block>
+                  </fo:list-item-body>
+                </fo:list-item>
+                <fo:list-item space-before="4pt">
+                  <fo:list-item-label end-indent="label-end()">
+                    <fo:block>•</fo:block>
+                  </fo:list-item-label>
+                  <fo:list-item-body start-indent="body-start()">
+                    <fo:block>Proper spacing and formatting across page boundaries</fo:block>
+                  </fo:list-item-body>
+                </fo:list-item>
+              </fo:list-block>
+
+              <fo:block font-size="14pt" font-weight="bold" color="#0066CC" margin-top="18pt" margin-bottom="8pt">
+                100-Item List (Spanning Multiple Pages):
+              </fo:block>
+
+              <fo:list-block provisional-distance-between-starts="30pt" provisional-label-separation="6pt">
+                {listItems}
+              </fo:list-block>
+
+              <fo:block font-size="11pt" margin-top="18pt" padding="8pt" background-color="#F0F8FF" border="1pt solid #0066CC">
+                <fo:inline font-weight="bold">Note:</fo:inline> This list spans multiple pages seamlessly. Items with keep-together="always" (items 20, 40, 60, 80, 100) will not be split across pages, demonstrating the pagination constraint system.
               </fo:block>
             </fo:flow>
           </fo:page-sequence>
