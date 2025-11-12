@@ -114,6 +114,10 @@ GenerateMetadataExample(Path.Combine(outputDir, "20-metadata.pdf"));
 Console.WriteLine("Generating Example 21: Flatland Book...");
 GenerateFlatlandBook(Path.Combine(outputDir, "21-flatland.pdf"), examplesDir);
 
+// Example 22: Emergency Line Breaking
+Console.WriteLine("Generating Example 22: Emergency Line Breaking...");
+GenerateEmergencyLineBreaking(Path.Combine(outputDir, "22-emergency-line-breaking.pdf"));
+
 Console.WriteLine("\n✓ All examples generated successfully!");
 Console.WriteLine($"\nView PDFs in: {outputDir}");
 Console.WriteLine("\nValidate with qpdf:");
@@ -2027,4 +2031,130 @@ static void GenerateFlatlandBook(string outputPath, string examplesDir)
         // Restore original directory
         Directory.SetCurrentDirectory(originalDir);
     }
+}
+
+static void GenerateEmergencyLineBreaking(string outputPath)
+{
+    var foXml = """
+        <?xml version="1.0"?>
+        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+          <fo:layout-master-set>
+            <fo:simple-page-master master-name="A4" page-width="595pt" page-height="842pt">
+              <fo:region-body margin="72pt"/>
+            </fo:simple-page-master>
+          </fo:layout-master-set>
+
+          <fo:page-sequence master-reference="A4">
+            <fo:flow flow-name="xsl-region-body">
+              <!-- Title -->
+              <fo:block font-size="24pt" font-weight="bold" text-align="center" margin-bottom="24pt">
+                Emergency Line Breaking
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                This example demonstrates Folly's emergency line breaking features for handling overflow text in narrow columns.
+              </fo:block>
+
+              <!-- Section 1: Normal Wrapping (default) -->
+              <fo:block font-size="16pt" font-weight="bold" margin-top="18pt" margin-bottom="12pt">
+                1. Normal Wrapping (wrap-option="wrap")
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="6pt">
+                Default behavior wraps text normally at word boundaries:
+              </fo:block>
+
+              <fo:block-container width="150pt" border="1pt solid black" padding="6pt" margin-bottom="12pt">
+                <fo:block font-size="10pt" wrap-option="wrap">
+                  This is a normal paragraph with regular words that will wrap at word boundaries. Very long words like ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 will be broken character-by-character as a last resort.
+                </fo:block>
+              </fo:block-container>
+
+              <!-- Section 2: No Wrap -->
+              <fo:block font-size="16pt" font-weight="bold" margin-top="18pt" margin-bottom="12pt">
+                2. No Wrapping (wrap-option="no-wrap")
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="6pt">
+                Setting wrap-option="no-wrap" prevents all line breaking (text overflows):
+              </fo:block>
+
+              <fo:block-container width="150pt" border="1pt solid black" padding="6pt" margin-bottom="12pt">
+                <fo:block font-size="10pt" wrap-option="no-wrap">
+                  This text will not wrap even though it is much longer than the container width. It will overflow to the right.
+                </fo:block>
+              </fo:block-container>
+
+              <!-- Section 3: Emergency Breaking in Very Narrow Columns -->
+              <fo:block font-size="16pt" font-weight="bold" margin-top="18pt" margin-bottom="12pt">
+                3. Emergency Breaking in Very Narrow Columns
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="6pt">
+                When words are too long to fit even on their own line, emergency breaking splits them character-by-character:
+              </fo:block>
+
+              <fo:block-container width="80pt" border="1pt solid black" padding="6pt" margin-bottom="12pt">
+                <fo:block font-size="10pt">
+                  ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ
+                </fo:block>
+              </fo:block-container>
+
+              <!-- Section 4: Multiple Overflow Words -->
+              <fo:block font-size="16pt" font-weight="bold" margin-top="18pt" margin-bottom="12pt">
+                4. Multiple Overflow Words
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="6pt">
+                Emergency breaking handles multiple overflow words in sequence:
+              </fo:block>
+
+              <fo:block-container width="70pt" border="1pt solid black" padding="6pt" margin-bottom="12pt">
+                <fo:block font-size="10pt">
+                  OVERFLOW ANOTHERLONG YETANOTHER FINALWORD
+                </fo:block>
+              </fo:block-container>
+
+              <!-- Section 5: Mixed Content -->
+              <fo:block font-size="16pt" font-weight="bold" margin-top="18pt" margin-bottom="12pt">
+                5. Mixed Content
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="6pt">
+                Emergency breaking works alongside normal word wrapping and hyphenation:
+              </fo:block>
+
+              <fo:block-container width="120pt" border="1pt solid black" padding="6pt" margin-bottom="12pt">
+                <fo:block font-size="10pt">
+                  Normal words wrap naturally, but VERYLONGWORDSWITHNOBREAKS are handled by emergency character-level breaking.
+                </fo:block>
+              </fo:block-container>
+
+              <!-- Notes -->
+              <fo:block font-size="14pt" font-weight="bold" margin-top="24pt" margin-bottom="12pt">
+                Implementation Notes
+              </fo:block>
+
+              <fo:block font-size="11pt" margin-bottom="6pt">
+                • <fo:inline font-weight="bold">wrap-option="wrap"</fo:inline> (default): Wraps text at word boundaries, uses hyphenation if enabled, and applies emergency character-level breaking as a last resort for overflow words.
+              </fo:block>
+
+              <fo:block font-size="11pt" margin-bottom="6pt">
+                • <fo:inline font-weight="bold">wrap-option="no-wrap"</fo:inline>: Prevents all line breaking. Text will overflow the container boundaries.
+              </fo:block>
+
+              <fo:block font-size="11pt" margin-bottom="6pt">
+                • <fo:inline font-weight="bold">Emergency Breaking</fo:inline>: Automatically triggered when a word is too long to fit on a line even by itself. Breaks the word character-by-character to fit the available width.
+              </fo:block>
+
+              <fo:block font-size="11pt" margin-top="12pt" color="#666666">
+                This feature ensures that documents can handle any text input gracefully, even with extremely narrow columns or very long words that cannot be hyphenated.
+              </fo:block>
+            </fo:flow>
+          </fo:page-sequence>
+        </fo:root>
+        """;
+
+    using var doc = FoDocument.Load(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml)));
+    doc.SavePdf(outputPath);
 }

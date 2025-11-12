@@ -1005,7 +1005,7 @@ internal sealed class LayoutEngine
         }
 
         // Perform line breaking and create line areas
-        var lines = BreakLines(text, contentWidth, fontMetrics);
+        var lines = BreakLines(text, contentWidth, fontMetrics, foBlock);
 
         for (int i = 0; i < lines.Count; i++)
         {
@@ -1022,9 +1022,19 @@ internal sealed class LayoutEngine
         return blockArea;
     }
 
-    private List<string> BreakLines(string text, double availableWidth, Fonts.FontMetrics fontMetrics)
+    private List<string> BreakLines(string text, double availableWidth, Fonts.FontMetrics fontMetrics, Dom.FoBlock foBlock)
     {
         var lines = new List<string>();
+
+        // Check wrap-option property
+        var wrapOption = foBlock.WrapOption.ToLowerInvariant();
+
+        // If no-wrap, return the entire text as a single line (no breaking)
+        if (wrapOption == "no-wrap")
+        {
+            lines.Add(text);
+            return lines;
+        }
 
         // Split text into words, treating dashes as part of words (allowing breaks after them)
         var words = SplitIntoWords(text);
@@ -1102,8 +1112,34 @@ internal sealed class LayoutEngine
                 // Hyphenation not enabled or didn't help, start a new line
                 lines.Add(currentLine.ToString());
                 currentLine.Clear();
-                currentLine.Append(word);
-                previousWord = word;
+
+                // Emergency breaking: Check if the word itself is too wide for available width
+                var wordWidth = fontMetrics.MeasureWidth(word);
+                if (wordWidth > availableWidth)
+                {
+                    // Word is too wide even by itself - break it character by character
+                    var brokenLines = BreakWordByCharacter(word, availableWidth, fontMetrics);
+                    foreach (var brokenLine in brokenLines)
+                    {
+                        if (brokenLine == brokenLines[^1])
+                        {
+                            // Last fragment stays in currentLine for potential continuation
+                            currentLine.Append(brokenLine);
+                            previousWord = brokenLine;
+                        }
+                        else
+                        {
+                            // Add complete lines
+                            lines.Add(brokenLine);
+                        }
+                    }
+                }
+                else
+                {
+                    // Word fits on its own line
+                    currentLine.Append(word);
+                    previousWord = word;
+                }
             }
             else
             {
@@ -1131,7 +1167,26 @@ internal sealed class LayoutEngine
             lines.Add(currentLine.ToString());
         }
 
-        return lines;
+        // Post-processing: Apply emergency breaking to any lines that are still too wide
+        // This catches cases where a single word is placed on a line and exceeds the width
+        var processedLines = new List<string>();
+        foreach (var line in lines)
+        {
+            var lineWidth = fontMetrics.MeasureWidth(line);
+            if (lineWidth > availableWidth)
+            {
+                // This line is too wide, apply emergency character-level breaking
+                var brokenLines = BreakWordByCharacter(line, availableWidth, fontMetrics);
+                processedLines.AddRange(brokenLines);
+            }
+            else
+            {
+                // Line fits, keep it as-is
+                processedLines.Add(line);
+            }
+        }
+
+        return processedLines;
     }
 
     /// <summary>
@@ -1183,6 +1238,63 @@ internal sealed class LayoutEngine
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Emergency line breaking: Breaks a word character-by-character to fit within available width.
+    /// This is a last resort when a word is too long to fit even on its own line.
+    /// Returns a list of line fragments, where all but the last fit within the available width.
+    /// </summary>
+    /// <param name="word">The word to break.</param>
+    /// <param name="availableWidth">The available width for each line.</param>
+    /// <param name="fontMetrics">Font metrics for measuring text width.</param>
+    /// <returns>List of line fragments.</returns>
+    private List<string> BreakWordByCharacter(string word, double availableWidth, Fonts.FontMetrics fontMetrics)
+    {
+        var lines = new List<string>();
+        if (string.IsNullOrEmpty(word))
+        {
+            lines.Add("");
+            return lines;
+        }
+
+        var currentFragment = new StringBuilder();
+
+        for (int i = 0; i < word.Length; i++)
+        {
+            var ch = word[i];
+            var tentativeFragment = currentFragment.ToString() + ch;
+            var tentativeWidth = fontMetrics.MeasureWidth(tentativeFragment);
+
+            if (tentativeWidth > availableWidth && currentFragment.Length > 0)
+            {
+                // Adding this character would exceed width
+                // Complete the current fragment and start a new one
+                lines.Add(currentFragment.ToString());
+                currentFragment.Clear();
+                currentFragment.Append(ch);
+            }
+            else
+            {
+                // Character fits, add it to current fragment
+                currentFragment.Append(ch);
+            }
+        }
+
+        // Add the last fragment if not empty
+        if (currentFragment.Length > 0)
+        {
+            lines.Add(currentFragment.ToString());
+        }
+
+        // Edge case: If even a single character is too wide, we still need to return it
+        // This allows the layout to continue even with extremely narrow columns
+        if (lines.Count == 0)
+        {
+            lines.Add(word);
+        }
+
+        return lines;
     }
 
     /// <summary>
