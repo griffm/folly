@@ -10,6 +10,7 @@ internal sealed class LayoutEngine
     private readonly List<Dom.FoFootnote> _currentPageFootnotes = new();
     private readonly List<Dom.FoFloat> _currentPageFloats = new();
     private readonly List<LinkArea> _currentPageLinks = new();
+    private Core.Hyphenation.HyphenationEngine? _hyphenationEngine;
 
     public LayoutEngine(LayoutOptions options)
     {
@@ -1071,7 +1072,34 @@ internal sealed class LayoutEngine
 
             if (tentativeWidth > availableWidth && currentLine.Length > 0)
             {
-                // Adding this word would exceed width, so start a new line
+                // Adding this word would exceed width
+                // Try hyphenation if enabled
+                if (_options.EnableHyphenation && !word.Contains('-') && !word.Contains('—') && !word.Contains('–'))
+                {
+                    // Calculate available width for hyphenation
+                    var currentLineStr = currentLine.ToString();
+                    var currentLineWidth = fontMetrics.MeasureWidth(currentLineStr);
+                    var spaceWidth = needsSpaceBefore ? fontMetrics.MeasureWidth(" ") : 0;
+                    var availableForWord = availableWidth - currentLineWidth - spaceWidth;
+
+                    // Try to hyphenate the word
+                    var hyphenated = TryHyphenateWord(word, availableForWord, fontMetrics);
+
+                    if (hyphenated.HasValue)
+                    {
+                        // Hyphenation succeeded - add prefix to current line and continue with remaining
+                        if (needsSpaceBefore)
+                            currentLine.Append(' ');
+                        currentLine.Append(hyphenated.Value.prefix);
+                        lines.Add(currentLine.ToString());
+                        currentLine.Clear();
+                        currentLine.Append(hyphenated.Value.remaining);
+                        previousWord = hyphenated.Value.remaining;
+                        continue;
+                    }
+                }
+
+                // Hyphenation not enabled or didn't help, start a new line
                 lines.Add(currentLine.ToString());
                 currentLine.Clear();
                 currentLine.Append(word);
@@ -1104,6 +1132,57 @@ internal sealed class LayoutEngine
         }
 
         return lines;
+    }
+
+    /// <summary>
+    /// Gets or creates the hyphenation engine based on current options.
+    /// </summary>
+    private Core.Hyphenation.HyphenationEngine GetHyphenationEngine()
+    {
+        if (_hyphenationEngine == null)
+        {
+            _hyphenationEngine = new Core.Hyphenation.HyphenationEngine(
+                _options.HyphenationLanguage,
+                _options.HyphenationMinWordLength,
+                _options.HyphenationMinLeftChars,
+                _options.HyphenationMinRightChars);
+        }
+        return _hyphenationEngine;
+    }
+
+    /// <summary>
+    /// Tries to hyphenate a word to fit it on the current line.
+    /// Returns null if hyphenation doesn't help, otherwise returns the (prefix with hyphen, remaining part).
+    /// </summary>
+    private (string prefix, string remaining)? TryHyphenateWord(
+        string word,
+        double availableWidth,
+        Fonts.FontMetrics fontMetrics)
+    {
+        var engine = GetHyphenationEngine();
+        var hyphenPoints = engine.FindHyphenationPoints(word);
+
+        if (hyphenPoints.Length == 0)
+            return null;
+
+        var hyphenChar = _options.HyphenationCharacter;
+
+        // Try hyphenation points from right to left (prefer later breaks)
+        for (int i = hyphenPoints.Length - 1; i >= 0; i--)
+        {
+            var point = hyphenPoints[i];
+            var prefix = word.Substring(0, point) + hyphenChar;
+            var remaining = word.Substring(point);
+
+            // Check if this prefix fits
+            var prefixWidth = fontMetrics.MeasureWidth(prefix);
+            if (prefixWidth <= availableWidth)
+            {
+                return (prefix, remaining);
+            }
+        }
+
+        return null;
     }
 
     /// <summary>
