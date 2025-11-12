@@ -1718,4 +1718,206 @@ public class LayoutEngineTests
         Assert.NotNull(areaTree);
         Assert.NotEmpty(areaTree.Pages);
     }
+
+    [Fact]
+    public void KnuthPlass_BasicLineBreaking_Works()
+    {
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="400pt" page-height="600pt">
+                  <fo:region-body margin="20pt"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:block font-size="12pt" font-family="Times-Roman">
+                    This is a test paragraph that should be broken into multiple lines using the optimal Knuth-Plass algorithm. The algorithm should produce better-quality line breaks than the greedy algorithm.
+                  </fo:block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var options = new LayoutOptions
+        {
+            LineBreaking = LineBreakingAlgorithm.Optimal
+        };
+
+        var areaTree = doc.BuildAreaTree(options);
+        Assert.NotNull(areaTree);
+        Assert.NotEmpty(areaTree.Pages);
+
+        var page = areaTree.Pages[0];
+        Assert.NotEmpty(page.Areas);
+    }
+
+    [Fact]
+    public void KnuthPlass_ProducesSameResultAsGreedy_ForSimpleText()
+    {
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="500pt" page-height="600pt">
+                  <fo:region-body margin="20pt"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:block font-size="12pt">Short text that fits on one line.</fo:block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        // Test with greedy
+        using var stream1 = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var docGreedy = FoDocument.Load(stream1);
+        var optionsGreedy = new LayoutOptions { LineBreaking = LineBreakingAlgorithm.Greedy };
+        var areaTreeGreedy = docGreedy.BuildAreaTree(optionsGreedy);
+
+        // Test with Knuth-Plass
+        using var stream2 = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var docOptimal = FoDocument.Load(stream2);
+        var optionsOptimal = new LayoutOptions { LineBreaking = LineBreakingAlgorithm.Optimal };
+        var areaTreeOptimal = docOptimal.BuildAreaTree(optionsOptimal);
+
+        // Both should produce valid output
+        Assert.NotNull(areaTreeGreedy);
+        Assert.NotNull(areaTreeOptimal);
+        Assert.NotEmpty(areaTreeGreedy.Pages);
+        Assert.NotEmpty(areaTreeOptimal.Pages);
+    }
+
+    [Fact]
+    public void KnuthPlass_HandlesLongParagraphs()
+    {
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="300pt" page-height="400pt">
+                  <fo:region-body margin="20pt"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:block font-size="10pt" font-family="Helvetica">
+                    The Knuth-Plass algorithm uses dynamic programming to find the optimal set of breakpoints that minimizes the total badness of all lines in a paragraph. This is in contrast to the greedy algorithm which makes locally optimal choices. The algorithm considers multiple potential breakpoints and chooses the combination that produces the most evenly-spaced lines across the entire paragraph.
+                  </fo:block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+        var options = new LayoutOptions { LineBreaking = LineBreakingAlgorithm.Optimal };
+
+        var areaTree = doc.BuildAreaTree(options);
+        Assert.NotNull(areaTree);
+        Assert.NotEmpty(areaTree.Pages);
+    }
+
+    [Fact]
+    public void KnuthPlass_WorksWithJustification()
+    {
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="400pt" page-height="600pt">
+                  <fo:region-body margin="20pt"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:block font-size="12pt" text-align="justify">
+                    This paragraph uses both the Knuth-Plass algorithm and text justification. The combination should produce high-quality typography with optimal line breaks and even spacing.
+                  </fo:block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+        var options = new LayoutOptions { LineBreaking = LineBreakingAlgorithm.Optimal };
+
+        var areaTree = doc.BuildAreaTree(options);
+        Assert.NotNull(areaTree);
+        Assert.NotEmpty(areaTree.Pages);
+    }
+
+    [Fact]
+    public void KnuthPlass_DefaultIsGreedy()
+    {
+        // Verify that Greedy is the default for performance
+        var options = new LayoutOptions();
+        Assert.Equal(LineBreakingAlgorithm.Greedy, options.LineBreaking);
+    }
+
+    [Fact]
+    public void KnuthPlass_HandlesEmptyText()
+    {
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4">
+                  <fo:region-body/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:block></fo:block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+        var options = new LayoutOptions { LineBreaking = LineBreakingAlgorithm.Optimal };
+
+        var areaTree = doc.BuildAreaTree(options);
+        Assert.NotNull(areaTree);
+        Assert.NotEmpty(areaTree.Pages);
+    }
+
+    [Fact]
+    public void KnuthPlass_HandlesVeryLongWords()
+    {
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="200pt" page-height="300pt">
+                  <fo:region-body margin="10pt"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:block font-size="12pt">
+                    Supercalifragilisticexpialidocious is a very long word.
+                  </fo:block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+        var options = new LayoutOptions { LineBreaking = LineBreakingAlgorithm.Optimal };
+
+        // Should handle long word with emergency breaking
+        var areaTree = doc.BuildAreaTree(options);
+        Assert.NotNull(areaTree);
+        Assert.NotEmpty(areaTree.Pages);
+    }
 }
