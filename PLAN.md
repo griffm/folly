@@ -13,10 +13,12 @@ This roadmap outlines Folly's evolution from a solid XSL-FO foundation (~70% spe
   - Phase 2.4 (List Page Breaking) ✅ COMPLETED
 - Phase 3 (TrueType/OpenType Font Support) 🚧 IN PROGRESS
   - Phase 3.1 (TTF/OTF Parser) ✅ COMPLETE (37 tests passing)
-  - Phase 3.2 (Font Embedding & Subsetting) 🚧 ~75% COMPLETE (23 tests passing: 13 subsetting + 10 embedding)
+  - Phase 3.2 (Font Embedding & Subsetting) ✅ COMPLETE (60 font tests, Example 24)
+  - Phase 3.3 (Font Fallback & System Fonts) ⏳ PENDING
 - Excellent performance (66x faster than target at ~150ms for 200 pages)
 - ~75% XSL-FO 1.1 compliance (up from ~70%)
 - 305+ passing tests (99%+ success rate) - includes 60 font tests (37 parsing + 13 subsetting + 10 embedding)
+- 24 working examples including TrueType font embedding demo
 
 **Target:** Best-in-class layout engine with ~95% spec compliance, professional typography, zero runtime dependencies
 
@@ -604,10 +606,10 @@ public class TrueTypeFontSerializer
 - [x] Embed TrueType fonts in PDF - `TrueTypeFontEmbedder.cs` with font descriptor and font stream
 - [x] Generate ToUnicode CMap for text extraction - Complete implementation with proper Unicode mapping
 - [x] Add tests for embedding - 10 comprehensive tests for ToUnicode CMap generation (all passing)
-- [ ] Support CIDFont for large character sets (CJK) - For fonts with >256 glyphs (deferred)
-- [ ] Integrate with PdfRenderer and layout engine
-- [ ] Update examples with custom fonts
-- [ ] Documentation updates
+- [x] Integrate with PdfRenderer and layout engine - Complete with TrueTypeFonts dictionary in PdfOptions
+- [x] Update examples with custom fonts - Example 24 demonstrates Roboto and Liberation Sans fonts
+- [x] Documentation updates - README and PLAN updated with Phase 3.2 completion
+- [ ] Support CIDFont for large character sets (CJK) - For fonts with >256 glyphs (deferred to future phase)
 
 **Results:**
 - ✅ Font subsetting reduces glyph count to only used characters + .notdef
@@ -618,8 +620,11 @@ public class TrueTypeFontSerializer
 - ✅ ToUnicode CMap generation for proper text extraction from PDFs
 - ✅ Compressed font streams using Flate compression
 - ✅ All 60 font tests passing (37 parsing + 13 subsetting + 10 embedding)
+- ✅ Full integration with PDF rendering pipeline
+- ✅ Example 24 demonstrates TrueType font embedding (8.7KB with subsetting)
+- ✅ Graceful fallback to Type1 fonts if TrueType fails
 
-**Complexity:** High (4-5 weeks) - Approximately 75% complete
+**Complexity:** High (4-5 weeks) - ✅ COMPLETE
 
 ### 3.3 Font Fallback & Family Stacks
 
