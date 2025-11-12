@@ -262,6 +262,44 @@ public sealed class FoBlock : FoElement
     public string KeepWithPrevious => Properties.GetString("keep-with-previous", "auto");
 
     /// <summary>
+    /// Gets the widows property - minimum number of lines that must be left at the top of a page
+    /// after a block is split across pages. Default is 2.
+    /// </summary>
+    public int Widows
+    {
+        get
+        {
+            var value = Properties.GetString("widows");
+            if (string.IsNullOrEmpty(value))
+                return 2; // Default value per XSL-FO spec
+
+            if (int.TryParse(value, out var result) && result >= 0)
+                return result;
+
+            return 2;
+        }
+    }
+
+    /// <summary>
+    /// Gets the orphans property - minimum number of lines that must be left at the bottom of a page
+    /// before a block is split across pages. Default is 2.
+    /// </summary>
+    public int Orphans
+    {
+        get
+        {
+            var value = Properties.GetString("orphans");
+            if (string.IsNullOrEmpty(value))
+                return 2; // Default value per XSL-FO spec
+
+            if (int.TryParse(value, out var result) && result >= 0)
+                return result;
+
+            return 2;
+        }
+    }
+
+    /// <summary>
     /// Gets the footnotes contained in this block.
     /// Footnotes appear inline but are rendered at the bottom of the page.
     /// </summary>

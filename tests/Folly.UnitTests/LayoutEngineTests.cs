@@ -1308,4 +1308,227 @@ public class LayoutEngineTests
         Assert.True(areaTree.Pages.Count >= 2,
             "break-before should override keep-with-next and create at least 2 pages");
     }
+
+    [Fact]
+    public void Widows_PreventsLonelyLinesAtTopOfPage()
+    {
+        // Test that widows property prevents too few lines at the top of a new page
+        // Use a very small page height to force splitting
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="Small" page-width="200pt" page-height="120pt">
+                  <fo:region-body margin="10pt"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="Small">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:block font-size="11pt" line-height="14pt" widows="3">
+                    Line one text here. Line two text here. Line three text here.
+                    Line four text here. Line five text here. Line six text here.
+                    Line seven text here. Line eight text here. Line nine text here.
+                    Line ten text here. Line eleven text here. Line twelve text here.
+                    Line thirteen text here. Line fourteen text here. Line fifteen here.
+                  </fo:block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+        Assert.NotNull(areaTree);
+
+        // With such a small page and widows=3, the block should either:
+        // 1. Fit entirely on one page (if it's small enough), OR
+        // 2. Split across pages with at least 3 lines on the second page (widows constraint)
+
+        if (areaTree.Pages.Count >= 2)
+        {
+            // If split occurred, check widow constraint
+            var secondPage = areaTree.Pages[1];
+            var lineCount = secondPage.Areas.OfType<BlockArea>()
+                .SelectMany(b => b.Children.OfType<LineArea>())
+                .Count();
+
+            if (lineCount > 0)
+            {
+                Assert.True(lineCount >= 3,
+                    $"Second page should have at least 3 lines (widows constraint), but has {lineCount}");
+            }
+        }
+        // If only one page, that's fine - the block fit without splitting
+    }
+
+    [Fact]
+    public void Orphans_PreventsLonelyLinesAtBottomOfPage()
+    {
+        // Test that orphans property prevents too few lines at the bottom of a page
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="Small" page-width="200pt" page-height="120pt">
+                  <fo:region-body margin="10pt"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="Small">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:block font-size="11pt" line-height="14pt" orphans="3">
+                    Line one text here. Line two text here. Line three text here.
+                    Line four text here. Line five text here. Line six text here.
+                    Line seven text here. Line eight text here. Line nine text here.
+                    Line ten text here. Line eleven text here. Line twelve text here.
+                    Line thirteen text here. Line fourteen text here. Line fifteen here.
+                  </fo:block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+        Assert.NotNull(areaTree);
+
+        // With orphans=3, if the block is split, the first page should have at least 3 lines
+        if (areaTree.Pages.Count >= 2)
+        {
+            var firstPage = areaTree.Pages[0];
+            var lineCount = firstPage.Areas.OfType<BlockArea>()
+                .SelectMany(b => b.Children.OfType<LineArea>())
+                .Count();
+
+            if (lineCount > 0)
+            {
+                Assert.True(lineCount >= 3,
+                    $"First page should have at least 3 lines (orphans constraint), but has {lineCount}");
+            }
+        }
+        // If only one page, that's fine - the block fit without splitting
+    }
+
+    [Fact]
+    public void WidowsAndOrphans_RespectsBothConstraints()
+    {
+        // Test that both widows and orphans constraints are respected simultaneously
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="Small" page-width="200pt" page-height="120pt">
+                  <fo:region-body margin="10pt"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="Small">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:block font-size="11pt" line-height="14pt" widows="2" orphans="2">
+                    Line one text here. Line two text here. Line three text here.
+                    Line four text here. Line five text here. Line six text here.
+                    Line seven text here. Line eight text here. Line nine text here.
+                    Line ten text here. Line eleven text here. Line twelve text here.
+                    Line thirteen text here. Line fourteen text here. Line fifteen here.
+                  </fo:block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+        Assert.NotNull(areaTree);
+
+        // If block is split, check both constraints
+        if (areaTree.Pages.Count >= 2)
+        {
+            var firstPage = areaTree.Pages[0];
+            var firstPageLines = firstPage.Areas.OfType<BlockArea>()
+                .SelectMany(b => b.Children.OfType<LineArea>())
+                .Count();
+
+            var secondPage = areaTree.Pages[1];
+            var secondPageLines = secondPage.Areas.OfType<BlockArea>()
+                .SelectMany(b => b.Children.OfType<LineArea>())
+                .Count();
+
+            if (firstPageLines > 0)
+            {
+                Assert.True(firstPageLines >= 2,
+                    $"First page should have at least 2 lines (orphans), but has {firstPageLines}");
+            }
+
+            if (secondPageLines > 0)
+            {
+                Assert.True(secondPageLines >= 2,
+                    $"Second page should have at least 2 lines (widows), but has {secondPageLines}");
+            }
+        }
+        // If only one page, that's fine - the block fit without splitting
+    }
+
+    [Fact]
+    public void KeepTogether_OverridesWidowOrphanControl()
+    {
+        // Test that keep-together constraint takes precedence over widow/orphan control
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="Small" page-width="200pt" page-height="120pt">
+                  <fo:region-body margin="10pt"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="Small">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:block font-size="11pt" line-height="14pt">
+                    Filler line one. Filler line two. Filler line three.
+                    Filler line four. Filler line five. Filler line six.
+                  </fo:block>
+                  <fo:block font-size="11pt" line-height="14pt" widows="3" orphans="3" keep-together="always">
+                    KEEPTOGETHER L1. KEEPTOGETHER L2. KEEPTOGETHER L3.
+                    KEEPTOGETHER L4. KEEPTOGETHER L5. KEEPTOGETHER L6.
+                    KEEPTOGETHER L7. KEEPTOGETHER L8. KEEPTOGETHER L9.
+                  </fo:block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+        Assert.NotNull(areaTree);
+
+        // Find all blocks containing KEEPTOGETHER marker
+        var keepTogetherBlocks = new List<(int page, BlockArea block)>();
+
+        for (int i = 0; i < areaTree.Pages.Count; i++)
+        {
+            var page = areaTree.Pages[i];
+            foreach (var area in page.Areas.OfType<BlockArea>())
+            {
+                var lines = area.Children.OfType<LineArea>().ToList();
+                if (lines.Count > 0 && lines.Any(l => l.Inlines.Any(inline =>
+                    inline.Text?.Contains("KEEPTOGETHER") == true)))
+                {
+                    keepTogetherBlocks.Add((i, area));
+                }
+            }
+        }
+
+        // The keep-together block should appear on only ONE page (not split)
+        Assert.True(keepTogetherBlocks.Count > 0, "Should find at least one KEEPTOGETHER block");
+
+        // All KEEPTOGETHER blocks should be on the same page
+        var distinctPages = keepTogetherBlocks.Select(b => b.page).Distinct().ToList();
+        Assert.True(distinctPages.Count == 1,
+            $"Keep-together block should be on one page only, but found on {distinctPages.Count} pages");
+    }
 }

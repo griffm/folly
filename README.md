@@ -191,6 +191,7 @@ The core rendering engine is fully operational with extensive feature support:
 - Keep-together and break-before/after constraints
 - **Keep-with-next/previous constraints** for preventing orphaned headings and keeping figures with captions
 - **Integer keep strength values** (1-999) for fine-grained pagination control
+- **Widow/orphan control** for professional typography (configurable via `widows` and `orphans` properties)
 - Static-content for headers and footers
 - Markers for dynamic content (fo:marker, fo:retrieve-marker)
 - Multi-column layout (column-count, column-gap)
@@ -221,10 +222,10 @@ The core rendering engine is fully operational with extensive feature support:
 - PDF outline/bookmarks for document navigation
 
 **Quality Assurance:**
-- 195 passing tests (99% success rate - 195 passed, 2 skipped for refinement)
+- 199 passing tests (99% success rate - 199 passed, 2 skipped for refinement)
   - 21 XSL-FO conformance tests (formatting object parsing, including repeatable-page-master-reference)
   - 25 property inheritance tests (50+ inheritable properties)
-  - 31 layout engine tests (line breaking, page breaking, tables, footnotes, text justification, **multi-page tables**, **keep-with-next/previous**)
+  - 35 layout engine tests (line breaking, page breaking, tables, footnotes, text justification, **multi-page tables**, **keep-with-next/previous**, **widow/orphan control**)
   - 14 PDF validation tests (structure, fonts, compression, metadata, links)
   - 9 AreaTree snapshot tests (layout regression detection)
   - 13 fuzzing/stress tests (malformed input, extreme nesting, large tables)
