@@ -151,8 +151,15 @@ internal sealed class PdfWriter : IDisposable
 
     private int WritePngXObject(byte[] pngData, int width, int height)
     {
-        // Decode PNG and write as uncompressed or FlateDecode image
-        var (rawData, bitsPerComponent, colorSpace) = DecodePng(pngData, width, height);
+        // Decode PNG and write as FlateDecode image with PNG predictors
+        var (compressedData, bitsPerComponent, colorSpace, colorComponents, palette, transparency, alphaData) = DecodePng(pngData, width, height);
+
+        // Create SMask if alpha channel is present
+        int? smaskId = null;
+        if (alphaData != null)
+        {
+            smaskId = WriteSMask(alphaData, width, height, bitsPerComponent);
+        }
 
         var imageId = BeginObject();
         WriteLine("<<");
@@ -160,15 +167,81 @@ internal sealed class PdfWriter : IDisposable
         WriteLine("  /Subtype /Image");
         WriteLine($"  /Width {width}");
         WriteLine($"  /Height {height}");
-        WriteLine($"  /ColorSpace /{colorSpace}");
+
+        // Handle indexed color space with palette
+        if (palette != null)
+        {
+            // PDF Indexed ColorSpace: [/Indexed baseColorSpace hival lookup]
+            // hival is the maximum palette index (paletteSize - 1)
+            int paletteSize = palette.Length / 3; // RGB triplets
+            int hival = paletteSize - 1;
+
+            // Write color space as an array
+            Write("  /ColorSpace [/Indexed /DeviceRGB ");
+            Write(hival.ToString());
+            Write(" <");
+            // Write palette as hex string
+            foreach (byte b in palette)
+            {
+                Write(b.ToString("X2"));
+            }
+            WriteLine(">]");
+        }
+        else
+        {
+            WriteLine($"  /ColorSpace /{colorSpace}");
+        }
+
         WriteLine($"  /BitsPerComponent {bitsPerComponent}");
-        WriteLine($"  /Length {rawData.Length}");
+
+        // Add SMask reference if alpha channel is present
+        if (smaskId.HasValue)
+        {
+            WriteLine($"  /SMask {smaskId.Value} 0 R");
+        }
+
+        // Handle tRNS transparency (simple color masking for RGB/Grayscale)
+        if (transparency != null && palette == null && !smaskId.HasValue)
+        {
+            // For RGB: tRNS contains 6 bytes (R R G G B B as 16-bit values)
+            // For Grayscale: tRNS contains 2 bytes (gray value as 16-bit)
+            if (colorSpace == "DeviceRGB" && transparency.Length == 6)
+            {
+                // RGB transparent color
+                int r = (transparency[0] << 8) | transparency[1];
+                int g = (transparency[2] << 8) | transparency[3];
+                int b = (transparency[4] << 8) | transparency[5];
+                WriteLine($"  /Mask [{r} {r} {g} {g} {b} {b}]");
+            }
+            else if (colorSpace == "DeviceGray" && transparency.Length == 2)
+            {
+                // Grayscale transparent value
+                int gray = (transparency[0] << 8) | transparency[1];
+                WriteLine($"  /Mask [{gray} {gray}]");
+            }
+            // TODO: Handle indexed color with tRNS (requires SMask or palette expansion)
+        }
+
+        WriteLine("  /Filter /FlateDecode");
+
+        // Only use PNG predictors if we haven't already unfiltered (i.e., no alpha channel)
+        if (!smaskId.HasValue)
+        {
+            WriteLine("  /DecodeParms <<");
+            WriteLine("    /Predictor 15");
+            WriteLine($"    /Colors {colorComponents}");
+            WriteLine($"    /BitsPerComponent {bitsPerComponent}");
+            WriteLine($"    /Columns {width}");
+            WriteLine("  >>");
+        }
+
+        WriteLine($"  /Length {compressedData.Length}");
         WriteLine(">>");
         WriteLine("stream");
 
-        // Write raw image data
-        _output.Write(rawData, 0, rawData.Length);
-        _position += rawData.Length;
+        // Write compressed PNG IDAT data
+        _output.Write(compressedData, 0, compressedData.Length);
+        _position += compressedData.Length;
 
         WriteLine("");
         WriteLine("endstream");
@@ -177,19 +250,63 @@ internal sealed class PdfWriter : IDisposable
         return imageId;
     }
 
-    private (byte[] RawData, int BitsPerComponent, string ColorSpace) DecodePng(byte[] pngData, int width, int height)
+    /// <summary>
+    /// Writes an SMask (Soft Mask) XObject for alpha channel data.
+    /// </summary>
+    private int WriteSMask(byte[] alphaData, int width, int height, int bitsPerComponent)
     {
-        // Simplified PNG decoder - extract RGB data
-        // For production use, consider using a PNG library like SixLabors.ImageSharp
+        var smaskId = BeginObject();
+        WriteLine("<<");
+        WriteLine("  /Type /XObject");
+        WriteLine("  /Subtype /Image");
+        WriteLine($"  /Width {width}");
+        WriteLine($"  /Height {height}");
+        WriteLine("  /ColorSpace /DeviceGray"); // Alpha is always grayscale
+        WriteLine($"  /BitsPerComponent {bitsPerComponent}");
+        WriteLine("  /Filter /FlateDecode");
+        WriteLine($"  /Length {alphaData.Length}");
+        WriteLine(">>");
+        WriteLine("stream");
 
-        // For now, we'll do a basic extraction assuming RGB/RGBA PNG
-        // This is a simplified implementation
+        // Write compressed alpha data (already unfiltered)
+        _output.Write(alphaData, 0, alphaData.Length);
+        _position += alphaData.Length;
+
+        WriteLine("");
+        WriteLine("endstream");
+        EndObject();
+
+        return smaskId;
+    }
+
+    private (byte[] CompressedData, int BitsPerComponent, string ColorSpace, int ColorComponents, byte[]? Palette, byte[]? Transparency, byte[]? AlphaData) DecodePng(byte[] pngData, int width, int height)
+    {
+        // Simplified PNG decoder - extract IDAT chunks and parse IHDR for metadata
+        // For production use, consider using a PNG library like SixLabors.ImageSharp
 
         try
         {
-            // Parse PNG chunks to find IDAT (image data)
+            // Validate PNG signature: 89 50 4E 47 0D 0A 1A 0A
+            if (pngData.Length < 8 ||
+                pngData[0] != 0x89 || pngData[1] != 0x50 || pngData[2] != 0x4E || pngData[3] != 0x47 ||
+                pngData[4] != 0x0D || pngData[5] != 0x0A || pngData[6] != 0x1A || pngData[7] != 0x0A)
+            {
+                throw new InvalidDataException("Invalid PNG signature. File is not a valid PNG image.");
+            }
+
+            // Parse PNG chunks to find IHDR, PLTE, tRNS, pHYs, and IDAT
             var idatData = new List<byte>();
+            byte[]? palette = null;
+            byte[]? transparency = null; // tRNS chunk data
+            int pixelsPerUnitX = 0;
+            int pixelsPerUnitY = 0;
+            byte unitSpecifier = 0; // 0 = unknown, 1 = meter
             int offset = 8; // Skip PNG signature
+
+            // Default values (will be overridden by IHDR)
+            int bitDepth = 8;
+            int colorType = 2; // RGB
+            int interlaceMethod = 0; // 0 = no interlace, 1 = Adam7
 
             while (offset < pngData.Length)
             {
@@ -214,13 +331,51 @@ internal sealed class PdfWriter : IDisposable
 
                 string chunkType = Encoding.ASCII.GetString(pngData, offset + 4, 4);
 
-                if (chunkType == "IDAT")
+                if (chunkType == "IHDR" && chunkLength >= 13)
                 {
-                    // Collect IDAT data (compressed)
-                    for (int i = 0; i < chunkLength; i++)
+                    // Parse IHDR: width(4) height(4) bitdepth(1) colortype(1) compression(1) filter(1) interlace(1)
+                    bitDepth = pngData[offset + 8 + 8];
+                    colorType = pngData[offset + 8 + 9];
+                    interlaceMethod = pngData[offset + 8 + 12];
+
+                    // Validate interlace immediately after parsing IHDR
+                    if (interlaceMethod != 0)
                     {
-                        idatData.Add(pngData[offset + 8 + i]);
+                        throw new NotSupportedException($"Interlaced PNG images (Adam7) are not supported. Please convert to non-interlaced format.");
                     }
+                }
+                else if (chunkType == "PLTE")
+                {
+                    // Extract palette data (RGB triplets)
+                    palette = new byte[chunkLength];
+                    Array.Copy(pngData, offset + 8, palette, 0, chunkLength);
+                }
+                else if (chunkType == "tRNS")
+                {
+                    // Extract transparency data
+                    // For indexed: alpha values for palette entries
+                    // For RGB: transparent color (6 bytes: R R G G B B as 16-bit values)
+                    // For grayscale: transparent gray value (2 bytes as 16-bit value)
+                    transparency = new byte[chunkLength];
+                    Array.Copy(pngData, offset + 8, transparency, 0, chunkLength);
+                }
+                else if (chunkType == "pHYs" && chunkLength == 9)
+                {
+                    // Extract physical dimensions
+                    // Format: pixelsPerUnitX(4) pixelsPerUnitY(4) unitSpecifier(1)
+                    pixelsPerUnitX = (pngData[offset + 8] << 24) | (pngData[offset + 9] << 16) |
+                                     (pngData[offset + 10] << 8) | pngData[offset + 11];
+                    pixelsPerUnitY = (pngData[offset + 12] << 24) | (pngData[offset + 13] << 16) |
+                                     (pngData[offset + 14] << 8) | pngData[offset + 15];
+                    unitSpecifier = pngData[offset + 16];
+                }
+                else if (chunkType == "IDAT")
+                {
+                    // Collect IDAT data (compressed with PNG filters) - use AddRange for performance
+                    // AddRange is much faster than byte-by-byte copying
+                    byte[] chunk = new byte[chunkLength];
+                    Array.Copy(pngData, offset + 8, chunk, 0, chunkLength);
+                    idatData.AddRange(chunk);
                 }
                 else if (chunkType == "IEND")
                 {
@@ -238,16 +393,258 @@ internal sealed class PdfWriter : IDisposable
                 offset = (int)nextOffset; // Length(4) + Type(4) + Data(length) + CRC(4)
             }
 
-            // For simplicity, return compressed data with FlateDecode filter
-            // A full implementation would decompress and convert to RGB
-            return (idatData.ToArray(), 8, "DeviceRGB");
+            // Validate PNG format
+            // (interlace check moved earlier - happens immediately after IHDR parsing)
+
+            // Indexed color requires a palette
+            if (colorType == 3 && palette == null)
+            {
+                throw new InvalidDataException("Indexed color PNG is missing required PLTE (palette) chunk.");
+            }
+
+            // Validate bit depth for color type
+            bool validBitDepth = colorType switch
+            {
+                0 => bitDepth == 1 || bitDepth == 2 || bitDepth == 4 || bitDepth == 8 || bitDepth == 16, // Grayscale
+                2 => bitDepth == 8 || bitDepth == 16, // RGB
+                3 => bitDepth == 1 || bitDepth == 2 || bitDepth == 4 || bitDepth == 8, // Indexed
+                4 => bitDepth == 8 || bitDepth == 16, // Grayscale + Alpha
+                6 => bitDepth == 8 || bitDepth == 16, // RGBA
+                _ => false
+            };
+
+            if (!validBitDepth)
+            {
+                throw new InvalidDataException($"Invalid bit depth {bitDepth} for PNG color type {colorType}.");
+            }
+
+            // Note: 16-bit images are fully supported by PDF and passed through without conversion
+            // This preserves maximum quality for high-bit-depth images
+
+            // Map PNG color type to PDF color space and component count
+            string colorSpace;
+            int colorComponents;
+            int totalComponents; // Including alpha
+            bool hasAlpha = (colorType == 4 || colorType == 6);
+
+            switch (colorType)
+            {
+                case 0: // Grayscale
+                    colorSpace = "DeviceGray";
+                    colorComponents = 1;
+                    totalComponents = 1;
+                    break;
+                case 2: // RGB
+                    colorSpace = "DeviceRGB";
+                    colorComponents = 3;
+                    totalComponents = 3;
+                    break;
+                case 3: // Indexed (palette)
+                    // For indexed color, data is palette indices (1 component)
+                    colorSpace = "DeviceRGB"; // Will be overridden by Indexed colorspace
+                    colorComponents = 1;
+                    totalComponents = 1;
+                    break;
+                case 4: // Grayscale + Alpha
+                    colorSpace = "DeviceGray";
+                    colorComponents = 1;
+                    totalComponents = 2;
+                    break;
+                case 6: // RGBA
+                    colorSpace = "DeviceRGB";
+                    colorComponents = 3;
+                    totalComponents = 4;
+                    break;
+                default:
+                    throw new NotSupportedException($"Unsupported PNG color type: {colorType}");
+            }
+
+            // Handle alpha channels by decompressing, separating, and recompressing
+            byte[]? alphaData = null;
+            byte[] compressedColorData;
+
+            if (hasAlpha)
+            {
+                // Decompress and unfilter the PNG data
+                byte[] unfilteredData = DecompressAndUnfilterPng(idatData.ToArray(), width, height, bitDepth, totalComponents);
+
+                // Separate color and alpha channels
+                var (colorData, separatedAlpha) = SeparateColorAndAlpha(unfilteredData, width, height, bitDepth, totalComponents, colorComponents);
+
+                // Recompress both streams
+                compressedColorData = CompressWithDeflate(colorData);
+                alphaData = CompressWithDeflate(separatedAlpha);
+            }
+            else
+            {
+                // No alpha channel, use original compressed data
+                compressedColorData = idatData.ToArray();
+            }
+
+            // Return compressed color data (and alpha data if present)
+            // PDF readers will decompress with FlateDecode and apply PNG predictor filters (if no alpha)
+            // For alpha images, we've already unfiltered and separated, so no predictor params needed
+            return (compressedColorData, bitDepth, colorSpace, colorComponents, palette, transparency, alphaData);
+        }
+        catch (NotSupportedException)
+        {
+            // Re-throw validation exceptions (interlaced images, etc.)
+            throw;
+        }
+        catch (InvalidDataException)
+        {
+            // Re-throw validation exceptions (corrupted files, invalid formats, etc.)
+            throw;
         }
         catch
         {
-            // Fallback: create a placeholder image (1x1 white pixel)
+            // Fallback for unexpected decoding errors: create a placeholder image (1x1 white pixel)
             byte[] fallback = new byte[] { 255, 255, 255 };
-            return (fallback, 8, "DeviceRGB");
+            return (fallback, 8, "DeviceRGB", 3, null, null, null);
         }
+    }
+
+    /// <summary>
+    /// Decompresses PNG IDAT data and reverses PNG filters.
+    /// </summary>
+    private byte[] DecompressAndUnfilterPng(byte[] idatData, int width, int height, int bitsPerComponent, int colorComponents)
+    {
+        // PNG IDAT data is compressed with zlib, which has a 2-byte header and 4-byte Adler-32 checksum trailer
+        // DeflateStream expects raw deflate data, so we skip the zlib wrapper
+        // Zlib header format: CMF (1 byte) + FLG (1 byte)
+        if (idatData.Length < 6)
+        {
+            throw new InvalidDataException("IDAT data too short for zlib format");
+        }
+
+        // Skip 2-byte zlib header and 4-byte trailer (Adler-32)
+        int deflateStart = 2;
+        int deflateLength = idatData.Length - 6;
+
+        // Decompress IDAT data using DeflateStream (skip zlib wrapper)
+        using var inputStream = new MemoryStream(idatData, deflateStart, deflateLength);
+        using var deflateStream = new System.IO.Compression.DeflateStream(inputStream, System.IO.Compression.CompressionMode.Decompress);
+        using var outputStream = new MemoryStream();
+        deflateStream.CopyTo(outputStream);
+        byte[] decompressed = outputStream.ToArray();
+
+        // Calculate scanline size (filter byte + pixel data)
+        int bytesPerPixel = (bitsPerComponent * colorComponents + 7) / 8;
+        int scanlineSize = 1 + ((width * bitsPerComponent * colorComponents + 7) / 8);
+
+        if (decompressed.Length != scanlineSize * height)
+        {
+            throw new InvalidDataException($"Decompressed PNG data size mismatch. Expected {scanlineSize * height}, got {decompressed.Length}");
+        }
+
+        // Reverse PNG filters
+        byte[] unfiltered = new byte[scanlineSize * height];
+        for (int y = 0; y < height; y++)
+        {
+            int scanlineOffset = y * scanlineSize;
+            byte filterType = decompressed[scanlineOffset];
+
+            // Copy filter byte
+            unfiltered[scanlineOffset] = 0; // No filter in output
+
+            // Reverse the filter
+            for (int x = 0; x < scanlineSize - 1; x++)
+            {
+                int currentByte = scanlineOffset + 1 + x;
+                byte raw = decompressed[currentByte];
+                byte left = x >= bytesPerPixel ? unfiltered[currentByte - bytesPerPixel] : (byte)0;
+                byte up = y > 0 ? unfiltered[currentByte - scanlineSize] : (byte)0;
+                byte upLeft = (y > 0 && x >= bytesPerPixel) ? unfiltered[currentByte - scanlineSize - bytesPerPixel] : (byte)0;
+
+                byte reconstructed = filterType switch
+                {
+                    0 => raw, // None
+                    1 => (byte)(raw + left), // Sub
+                    2 => (byte)(raw + up), // Up
+                    3 => (byte)(raw + ((left + up) / 2)), // Average
+                    4 => (byte)(raw + PaethPredictor(left, up, upLeft)), // Paeth
+                    _ => throw new NotSupportedException($"Unknown PNG filter type: {filterType}")
+                };
+
+                unfiltered[currentByte] = reconstructed;
+            }
+        }
+
+        return unfiltered;
+    }
+
+    /// <summary>
+    /// Paeth predictor for PNG filter type 4.
+    /// </summary>
+    private byte PaethPredictor(byte a, byte b, byte c)
+    {
+        int p = a + b - c;
+        int pa = Math.Abs(p - a);
+        int pb = Math.Abs(p - b);
+        int pc = Math.Abs(p - c);
+
+        if (pa <= pb && pa <= pc) return a;
+        if (pb <= pc) return b;
+        return c;
+    }
+
+    /// <summary>
+    /// Separates color and alpha channels from unfiltered PNG data.
+    /// Returns (colorData, alphaData) as raw uncompressed streams with filter bytes.
+    /// </summary>
+    private (byte[] ColorData, byte[] AlphaData) SeparateColorAndAlpha(byte[] unfilteredData, int width, int height, int bitsPerComponent, int totalComponents, int colorComponents)
+    {
+        int scanlineSize = 1 + ((width * bitsPerComponent * totalComponents + 7) / 8);
+        int colorScanlineSize = 1 + ((width * bitsPerComponent * colorComponents + 7) / 8);
+        int alphaScanlineSize = 1 + ((width * bitsPerComponent + 7) / 8); // Alpha is always 1 component
+
+        byte[] colorData = new byte[colorScanlineSize * height];
+        byte[] alphaData = new byte[alphaScanlineSize * height];
+
+        int bytesPerPixel = (bitsPerComponent * totalComponents + 7) / 8;
+        int colorBytesPerPixel = (bitsPerComponent * colorComponents + 7) / 8;
+        int alphaBytesPerPixel = (bitsPerComponent + 7) / 8;
+
+        for (int y = 0; y < height; y++)
+        {
+            // Add filter byte (0 = no filter)
+            colorData[y * colorScanlineSize] = 0;
+            alphaData[y * alphaScanlineSize] = 0;
+
+            for (int x = 0; x < width; x++)
+            {
+                int srcOffset = y * scanlineSize + 1 + x * bytesPerPixel;
+                int colorOffset = y * colorScanlineSize + 1 + x * colorBytesPerPixel;
+                int alphaOffset = y * alphaScanlineSize + 1 + x * alphaBytesPerPixel;
+
+                // Copy color components
+                for (int c = 0; c < colorBytesPerPixel; c++)
+                {
+                    colorData[colorOffset + c] = unfilteredData[srcOffset + c];
+                }
+
+                // Copy alpha component (last component)
+                for (int a = 0; a < alphaBytesPerPixel; a++)
+                {
+                    alphaData[alphaOffset + a] = unfilteredData[srcOffset + colorBytesPerPixel + a];
+                }
+            }
+        }
+
+        return (colorData, alphaData);
+    }
+
+    /// <summary>
+    /// Compresses raw image data using Deflate.
+    /// </summary>
+    private byte[] CompressWithDeflate(byte[] data)
+    {
+        using var outputStream = new MemoryStream();
+        using (var deflateStream = new System.IO.Compression.DeflateStream(outputStream, System.IO.Compression.CompressionLevel.Optimal))
+        {
+            deflateStream.Write(data, 0, data.Length);
+        }
+        return outputStream.ToArray();
     }
 
     /// <summary>

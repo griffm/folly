@@ -25,4 +25,8 @@
     <ProjectReference Include="..\..\src\Folly.Fluent\Folly.Fluent.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="TestData\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
