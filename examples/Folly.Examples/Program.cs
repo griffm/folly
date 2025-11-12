@@ -4,8 +4,24 @@ using Folly.Pdf;
 Console.WriteLine("Folly XSL-FO to PDF Examples");
 Console.WriteLine("=============================\n");
 
-// Create output directory
-var outputDir = Path.Combine(Directory.GetCurrentDirectory(), "output");
+// Find the examples directory (where this project lives)
+// This works whether run from project root or examples directory
+var currentDir = Directory.GetCurrentDirectory();
+var examplesDir = currentDir;
+
+// If we're in the project root, navigate to examples
+if (Directory.Exists(Path.Combine(currentDir, "examples")))
+{
+    examplesDir = Path.Combine(currentDir, "examples");
+}
+// If we're in the Folly.Examples subdirectory, go up one level
+else if (currentDir.EndsWith("Folly.Examples"))
+{
+    examplesDir = Path.GetDirectoryName(currentDir)!;
+}
+
+// Create output directory in the examples folder
+var outputDir = Path.Combine(examplesDir, "output");
 Directory.CreateDirectory(outputDir);
 
 Console.WriteLine($"Output directory: {outputDir}\n");
@@ -92,7 +108,7 @@ GenerateMetadataExample(Path.Combine(outputDir, "20-metadata.pdf"));
 
 // Example 21: Flatland Book
 Console.WriteLine("Generating Example 21: Flatland Book...");
-GenerateFlatlandBook(Path.Combine(outputDir, "21-flatland.pdf"));
+GenerateFlatlandBook(Path.Combine(outputDir, "21-flatland.pdf"), examplesDir);
 
 Console.WriteLine("\n✓ All examples generated successfully!");
 Console.WriteLine($"\nView PDFs in: {outputDir}");
@@ -1825,10 +1841,10 @@ static void GenerateMetadataExample(string outputPath)
     doc.SavePdf(outputPath);
 }
 
-static void GenerateFlatlandBook(string outputPath)
+static void GenerateFlatlandBook(string outputPath, string examplesDir)
 {
-    // Load the Flatland book from the books directory
-    var booksDir = Path.Combine(Directory.GetCurrentDirectory(), "books", "flatland");
+    // Load the Flatland book from the examples/books directory
+    var booksDir = Path.Combine(examplesDir, "books", "flatland");
     var foFilePath = Path.Combine(booksDir, "flatland.fo");
 
     if (!File.Exists(foFilePath))
@@ -1841,11 +1857,10 @@ static void GenerateFlatlandBook(string outputPath)
     // Read the FO file
     var foXml = File.ReadAllText(foFilePath);
 
-    // Create a temporary directory to resolve relative image paths
+    // Change to the flatland directory so relative image paths work
     var originalDir = Directory.GetCurrentDirectory();
     try
     {
-        // Change to the flatland directory so relative image paths work
         Directory.SetCurrentDirectory(booksDir);
 
         using var doc = FoDocument.Load(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml)));

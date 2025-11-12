@@ -22,7 +22,7 @@
       <fo:block font-size="32pt" font-weight="bold" text-align="center" space-before="2.5in" space-after="0.75in" font-family="serif">Flatland  A Romance of Many Dimensions</fo:block>
       <fo:block font-size="14pt" text-align="center" space-after="0.5in" font-family="serif">Edwin A. Abbott (1838-1926. English scholar, theologian, and writer.)</fo:block>
       <fo:block text-align="center" space-after="0.5in">
-        <fo:external-graphic src="images/ill_intro.jpg" width="100%" scaling="uniform"/>
+        <fo:external-graphic src="images/ill_intro.png" width="100%" scaling="uniform"/>
       </fo:block>
       <fo:block font-size="14pt" text-align="center" space-after="0.5in" font-family="serif">With Illustrations by the Author, A SQUARE (Edwin A. Abbott)</fo:block>
       <fo:block font-size="11pt" text-align="center" space-after="0.5in" font-style="italic" font-family="serif">To The Inhabitants of SPACE IN GENERAL And H. C. IN PARTICULAR This Work is Dedicated By a Humble Native of Flatland In the Hope that Even as he was Initiated into the Mysteries Of THREE Dimensions Having been previously conversant With ONLY TWO So the Citizens of that Celestial Region May aspire yet higher and higher To the Secrets of FOUR FIVE OR EVEN SIX Dimensions Thereby contributing To the Enlargement of THE IMAGINATION And the possible Development Of that most rare and excellent Gift of MODESTY Among the Superior Races Of SOLID HUMANITY</fo:block>
@@ -80,7 +80,7 @@ the level of the table; and if your eye were quite on the level of the
 table (and that is how we see him in Flatland) you would see nothing
 but a straight line.</fo:block>
       <fo:block text-align="center" space-after="0.25in">
-        <fo:external-graphic src="images/ill_001.jpg" width="80%" scaling="uniform"/>
+        <fo:external-graphic src="images/ill_001.png" width="80%" scaling="uniform"/>
       </fo:block>
       <fo:block font-size="11pt" text-align="justify" line-height="1.5" space-after="0.25in" font-family="serif">When I was in Spaceland I heard that your sailors have very similar
 experiences while they traverse your seas and discern some distant
@@ -178,7 +178,7 @@ exceptions being fortifications, powder-magazines, barracks, and other
 state buildings, which it is not desirable that the general public
 should approach without circumspection.</fo:block>
       <fo:block text-align="center" space-after="0.25in">
-        <fo:external-graphic src="images/ill_002.jpg" width="80%" scaling="uniform"/>
+        <fo:external-graphic src="images/ill_002.png" width="80%" scaling="uniform"/>
       </fo:block>
       <fo:block font-size="11pt" text-align="justify" line-height="1.5" space-after="0.25in" font-family="serif">At this period, square houses were still everywhere permitted, though
 discouraged by a special tax.  But, about three centuries afterwards,
@@ -712,7 +712,7 @@ ascertain.  They are, we will suppose, a Merchant and a Physician, or
 in other words, an Equilateral Triangle and a Pentagon: how am I to
 distinguish them?</fo:block>
       <fo:block text-align="center" space-after="0.25in">
-        <fo:external-graphic src="images/ill_003.jpg" width="80%" scaling="uniform"/>
+        <fo:external-graphic src="images/ill_003.png" width="80%" scaling="uniform"/>
       </fo:block>
       <fo:block font-size="11pt" text-align="justify" line-height="1.5" space-after="0.25in" font-family="serif">It will be obvious, to every child in Spaceland who has touched the
 threshold of Geometrical Studies, that, if I can bring my eye so that
@@ -757,7 +757,7 @@ whole line (AB) in comparative brightness (shading off hardly at all at
 the ends) and two smaller lines (CA and BD) dim throughout and shading
 away into greater dimness towards the extremities C and D.</fo:block>
       <fo:block text-align="center" space-after="0.25in">
-        <fo:external-graphic src="images/ill_004.jpg" width="80%" scaling="uniform"/>
+        <fo:external-graphic src="images/ill_004.png" width="80%" scaling="uniform"/>
       </fo:block>
       <fo:block font-size="11pt" text-align="justify" line-height="1.5" space-after="0.25in" font-family="serif">But I must not give way to the temptation of enlarging on these topics.
 The meanest mathematician in Spaceland will readily believe me when I
@@ -1140,7 +1140,7 @@ front half (i.e. the half containing eye and mouth) red, and with the
 hinder half green.  Look at her from one side.  Obviously you will see
 a straight line, HALF RED, HALF GREEN.</fo:block>
       <fo:block text-align="center" space-after="0.25in">
-        <fo:external-graphic src="images/ill_005.jpg" width="80%" scaling="uniform"/>
+        <fo:external-graphic src="images/ill_005.png" width="80%" scaling="uniform"/>
       </fo:block>
       <fo:block font-size="11pt" text-align="justify" line-height="1.5" space-after="0.25in" font-family="serif">Now imagine a Priest, whose mouth is at M, and whose front semicircle
 (AMB) is consequently coloured red, while his hinder semicircle is
@@ -1644,7 +1644,7 @@ my question, "Woman, what signifies this concourse, and this strange
 and confused chirping, and this monotonous motion to and fro in one and
 the same Straight Line?"</fo:block>
       <fo:block text-align="center" space-after="0.25in">
-        <fo:external-graphic src="images/ill_006.jpg" width="80%" scaling="uniform"/>
+        <fo:external-graphic src="images/ill_006.png" width="80%" scaling="uniform"/>
       </fo:block>
       <fo:block font-size="11pt" text-align="justify" line-height="1.5" space-after="0.25in" font-family="serif">"I am no Woman," replied the small Line.  "I am the Monarch of the
 world.  But thou, whence intrudest thou into my realm of Lineland?"
@@ -1903,7 +1903,7 @@ as you are pleased to call it; and I can see also the Men and Women on
 the North and South of you, whom I will now enumerate, describing their
 order, their size, and the interval between each."</fo:block>
       <fo:block text-align="center" space-after="0.25in">
-        <fo:external-graphic src="images/ill_007.jpg" width="80%" scaling="uniform"/>
+        <fo:external-graphic src="images/ill_007.png" width="80%" scaling="uniform"/>
       </fo:block>
       <fo:block font-size="11pt" text-align="justify" line-height="1.5" space-after="0.25in" font-family="serif">When I had done this at great length, I cried triumphantly, "Does that
 at last convince you?"  And, with that, I once more entered Lineland,
@@ -2231,7 +2231,7 @@ become smaller.  See now, I will rise; and the effect upon your eye
 will be that my Circle will become smaller and smaller till it dwindles
 to a point and finally vanishes.</fo:block>
       <fo:block text-align="center" space-after="0.25in">
-        <fo:external-graphic src="images/ill_008.jpg" width="80%" scaling="uniform"/>
+        <fo:external-graphic src="images/ill_008.png" width="80%" scaling="uniform"/>
       </fo:block>
       <fo:block font-size="11pt" text-align="justify" line-height="1.5" space-after="0.25in" font-family="serif">There was no "rising" that I could see; but he diminished and finally
 vanished.  I winked once or twice to make sure that I was not dreaming.
@@ -2488,7 +2488,7 @@ this I could now SEE, not merely infer; and as we came nearer and
 nearer, I could discern even the contents of my cabinet, and the two
 chests of gold, and the tablets of which the Sphere had made mention.</fo:block>
       <fo:block text-align="center" space-after="0.25in">
-        <fo:external-graphic src="images/ill_009.jpg" width="80%" scaling="uniform"/>
+        <fo:external-graphic src="images/ill_009.png" width="80%" scaling="uniform"/>
       </fo:block>
       <fo:block font-size="11pt" text-align="justify" line-height="1.5" space-after="0.25in" font-family="serif">Touched by my Wife's distress, I would have sprung downward to reassure
 her, but I found myself incapable of motion.  "Trouble not yourself
@@ -2608,7 +2608,7 @@ of my own.  I absolutely depended on the volition of my Guide, who said
 in gloomy tones, "Heed not thy brother; haply thou shalt have ample
 time hereafter to condole with him.  Follow me."</fo:block>
       <fo:block text-align="center" space-after="0.25in">
-        <fo:external-graphic src="images/ill_010.jpg" width="80%" scaling="uniform"/>
+        <fo:external-graphic src="images/ill_010.png" width="80%" scaling="uniform"/>
       </fo:block>
       <fo:block font-size="11pt" text-align="justify" line-height="1.5" space-after="0.25in" font-family="serif">Once more we ascended into space.  "Hitherto," said the Sphere, "I have
 shewn you naught save Plane Figures and their interiors.  Now I must

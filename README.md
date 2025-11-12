@@ -176,7 +176,9 @@ The core rendering engine is fully operational with extensive feature support:
 **Layout Engine:**
 - Multi-page layout with automatic pagination
 - Greedy line breaking with word wrapping
-- Text alignment (start, center, end)
+- Text alignment (start, center, end, justify)
+- Text justification with inter-word spacing
+- `text-align-last` property for last line alignment
 - Margins, padding, borders, and backgrounds
 - Font metrics and text measurement
 - Block and inline area generation
@@ -214,10 +216,10 @@ The core rendering engine is fully operational with extensive feature support:
 - PDF outline/bookmarks for document navigation
 
 **Quality Assurance:**
-- 119 passing tests (98% success rate - 119 passed, 2 expected failures in edge cases)
+- 125 passing tests (98% success rate - 125 passed, 2 expected failures in edge cases)
   - 21 XSL-FO conformance tests (formatting object parsing, including repeatable-page-master-reference)
   - 25 property inheritance tests (50+ inheritable properties)
-  - 17 layout engine tests (line breaking, page breaking, tables, footnotes, footnote separators)
+  - 23 layout engine tests (line breaking, page breaking, tables, footnotes, text justification)
   - 14 PDF validation tests (structure, fonts, compression, metadata, links)
   - 9 AreaTree snapshot tests (layout regression detection)
   - 13 fuzzing/stress tests (malformed input, extreme nesting, large tables)

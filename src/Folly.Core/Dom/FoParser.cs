@@ -1319,6 +1319,87 @@ internal static class FoParser
             props[name] = attr.Value;
         }
 
+        // Expand shorthand properties
+        ExpandShorthandProperties(props);
+
         return props;
+    }
+
+    /// <summary>
+    /// Expands shorthand properties (margin, padding, border-*) into their individual properties.
+    /// For example, margin="10pt" expands to margin-left="10pt", margin-right="10pt", etc.
+    /// </summary>
+    private static void ExpandShorthandProperties(FoProperties props)
+    {
+        // Expand margin shorthand
+        if (props.HasProperty("margin") && !string.IsNullOrWhiteSpace(props["margin"]))
+        {
+            var value = props["margin"]!;
+            // Only set individual properties if they aren't already explicitly set
+            if (!props.HasProperty("margin-left"))
+                props["margin-left"] = value;
+            if (!props.HasProperty("margin-right"))
+                props["margin-right"] = value;
+            if (!props.HasProperty("margin-top"))
+                props["margin-top"] = value;
+            if (!props.HasProperty("margin-bottom"))
+                props["margin-bottom"] = value;
+        }
+
+        // Expand padding shorthand
+        if (props.HasProperty("padding") && !string.IsNullOrWhiteSpace(props["padding"]))
+        {
+            var value = props["padding"]!;
+            if (!props.HasProperty("padding-left"))
+                props["padding-left"] = value;
+            if (!props.HasProperty("padding-right"))
+                props["padding-right"] = value;
+            if (!props.HasProperty("padding-top"))
+                props["padding-top"] = value;
+            if (!props.HasProperty("padding-bottom"))
+                props["padding-bottom"] = value;
+        }
+
+        // Expand border-width shorthand
+        if (props.HasProperty("border-width") && !string.IsNullOrWhiteSpace(props["border-width"]))
+        {
+            var value = props["border-width"]!;
+            if (!props.HasProperty("border-top-width"))
+                props["border-top-width"] = value;
+            if (!props.HasProperty("border-right-width"))
+                props["border-right-width"] = value;
+            if (!props.HasProperty("border-bottom-width"))
+                props["border-bottom-width"] = value;
+            if (!props.HasProperty("border-left-width"))
+                props["border-left-width"] = value;
+        }
+
+        // Expand border-style shorthand
+        if (props.HasProperty("border-style") && !string.IsNullOrWhiteSpace(props["border-style"]))
+        {
+            var value = props["border-style"]!;
+            if (!props.HasProperty("border-top-style"))
+                props["border-top-style"] = value;
+            if (!props.HasProperty("border-right-style"))
+                props["border-right-style"] = value;
+            if (!props.HasProperty("border-bottom-style"))
+                props["border-bottom-style"] = value;
+            if (!props.HasProperty("border-left-style"))
+                props["border-left-style"] = value;
+        }
+
+        // Expand border-color shorthand
+        if (props.HasProperty("border-color") && !string.IsNullOrWhiteSpace(props["border-color"]))
+        {
+            var value = props["border-color"]!;
+            if (!props.HasProperty("border-top-color"))
+                props["border-top-color"] = value;
+            if (!props.HasProperty("border-right-color"))
+                props["border-right-color"] = value;
+            if (!props.HasProperty("border-bottom-color"))
+                props["border-bottom-color"] = value;
+            if (!props.HasProperty("border-left-color"))
+                props["border-left-color"] = value;
+        }
     }
 }

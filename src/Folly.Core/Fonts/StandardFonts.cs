@@ -40,6 +40,23 @@ internal static class StandardFonts
 {
     private static readonly Dictionary<string, StandardFont> _fonts = new();
 
+    // Unicode to Adobe Standard Encoding mappings for common special characters
+    private static readonly Dictionary<char, int> UnicodeToAdobeEncoding = new()
+    {
+        { '\u2014', 208 },  // Em dash (—) → emdash
+        { '\u2013', 177 },  // En dash (–) → endash
+        { '\u2018', 193 },  // Left single quotation mark (') → quoteleft
+        { '\u2019', 194 },  // Right single quotation mark (') → quoteright
+        { '\u201C', 195 },  // Left double quotation mark (") → quotedblleft
+        { '\u201D', 196 },  // Right double quotation mark (") → quotedblright
+        { '\u2022', 183 },  // Bullet (•) → bullet
+        { '\u2026', 188 },  // Horizontal ellipsis (…) → ellipsis
+        { '\u2020', 178 },  // Dagger (†) → dagger
+        { '\u2021', 179 },  // Double dagger (‡) → daggerdbl
+        { '\u2030', 189 },  // Per mille sign (‰) → perthousand
+        { '\u0192', 166 },  // Latin small letter f with hook (ƒ) → florin
+    };
+
     static StandardFonts()
     {
         // Load all fonts from generated code (no runtime AFM parsing!)
@@ -49,12 +66,21 @@ internal static class StandardFonts
         {
             var font = new StandardFont(metrics.Name, metrics.Ascender, metrics.Descender, metrics.DefaultWidth);
 
-            // Load character widths
+            // Load character widths for Adobe Standard Encoding (0-255)
             foreach (var (charCode, width) in metrics.CharWidths)
             {
                 if (charCode >= 0 && charCode <= 255)
                 {
                     font.SetCharWidth((char)charCode, width);
+                }
+            }
+
+            // Map common Unicode characters to their Adobe Standard Encoding equivalents
+            foreach (var (unicodeChar, adobeCode) in UnicodeToAdobeEncoding)
+            {
+                if (metrics.CharWidths.TryGetValue(adobeCode, out var width))
+                {
+                    font.SetCharWidth(unicodeChar, width);
                 }
             }
 
