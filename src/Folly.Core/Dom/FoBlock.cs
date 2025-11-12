@@ -300,6 +300,12 @@ public sealed class FoBlock : FoElement
     }
 
     /// <summary>
+    /// Gets the wrap-option property - controls line wrapping behavior.
+    /// Values: "wrap" (default), "no-wrap"
+    /// </summary>
+    public string WrapOption => GetComputedProperty("wrap-option", "wrap") ?? "wrap";
+
+    /// <summary>
     /// Gets the footnotes contained in this block.
     /// Footnotes appear inline but are rendered at the bottom of the page.
     /// </summary>

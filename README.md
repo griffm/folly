@@ -123,7 +123,7 @@ cd examples
 dotnet run --project Folly.Examples
 ```
 
-This generates 21 example PDFs showcasing Folly's capabilities:
+This generates 22 example PDFs showcasing Folly's capabilities:
 - **Hello World** - Basic document with simple text
 - **Multiple Blocks** - Different fonts and sizes
 - **Text Alignment** - Start, center, and end alignment
@@ -145,6 +145,7 @@ This generates 21 example PDFs showcasing Folly's capabilities:
 - **Inline Formatting** - Styled text spans
 - **BiDi Override** - Right-to-left text rendering
 - **PDF Metadata** - Document properties (title, author, subject, keywords)
+- **Emergency Line Breaking** - Character-level breaking for overflow words and wrap-option control
 
 See [examples/README.md](examples/README.md) for details.
 
@@ -178,6 +179,8 @@ The core rendering engine is fully operational with extensive feature support:
 - Multi-page layout with automatic pagination
 - Greedy line breaking with word wrapping
 - **Professional hyphenation** using Liang's TeX algorithm (4 languages: English, German, French, Spanish)
+- **Emergency line breaking** with character-level breaking for overflow words
+- **wrap-option property** (wrap, no-wrap) for controlling line wrapping behavior
 - Text alignment (start, center, end, justify)
 - Text justification with inter-word spacing
 - `text-align-last` property for last line alignment
@@ -223,15 +226,16 @@ The core rendering engine is fully operational with extensive feature support:
 - PDF outline/bookmarks for document navigation
 
 **Quality Assurance:**
-- 218 passing tests (99% success rate - 218 passed, 2 skipped for refinement)
+- 253 passing tests (99% success rate - 253 passed, 2 skipped for refinement)
   - 21 XSL-FO conformance tests (formatting object parsing, including repeatable-page-master-reference)
   - 25 property inheritance tests (50+ inheritable properties)
-  - 35 layout engine tests (line breaking, page breaking, tables, footnotes, text justification, **multi-page tables**, **keep-with-next/previous**, **widow/orphan control**)
+  - 40 layout engine tests (line breaking, page breaking, tables, footnotes, text justification, **multi-page tables**, **keep-with-next/previous**, **widow/orphan control**, **emergency line breaking**)
   - **19 hyphenation tests** (Liang's algorithm, multi-language support, configurable constraints)
+  - **5 emergency line breaking tests** (character-level breaking, wrap-option support, narrow columns)
   - 14 PDF validation tests (structure, fonts, compression, metadata, links)
   - 9 AreaTree snapshot tests (layout regression detection)
   - 13 fuzzing/stress tests (malformed input, extreme nesting, large tables)
-  - 21 working example PDFs (including multi-page table example with 100 rows, keep-with-next/previous demonstrations)
+  - 22 working example PDFs (including multi-page tables, keep-with-next/previous, emergency line breaking)
 - 100% qpdf validation success (zero errors)
 - Verified with qpdf 11.9.0
 

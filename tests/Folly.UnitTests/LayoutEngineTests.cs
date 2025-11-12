@@ -1531,4 +1531,191 @@ public class LayoutEngineTests
         Assert.True(distinctPages.Count == 1,
             $"Keep-together block should be on one page only, but found on {distinctPages.Count} pages");
     }
+
+    [Fact]
+    public void EmergencyBreaking_VeryLongWord_BreaksAtCharacterLevel()
+    {
+        // Test that a word too long to fit on a line is broken character-by-character
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="narrow" page-width="60pt" page-height="300pt">
+                  <fo:region-body margin="5pt"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="narrow">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:block font-size="12pt">
+                    ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789
+                  </fo:block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+        Assert.NotNull(areaTree);
+        Assert.NotEmpty(areaTree.Pages);
+
+        // The long word should be broken into multiple lines
+        var page = areaTree.Pages[0];
+        var blockArea = page.Areas.FirstOrDefault(a => a is BlockArea) as BlockArea;
+        Assert.NotNull(blockArea);
+
+        // Should have multiple line areas due to character-level breaking
+        Assert.True(blockArea.Children.Count > 1,
+            $"Expected multiple lines from emergency breaking, but got {blockArea.Children.Count}");
+    }
+
+    [Fact]
+    public void WrapOption_NoWrap_PreventLineBreaking()
+    {
+        // Test that wrap-option="no-wrap" prevents line breaking
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="narrow" page-width="100pt" page-height="300pt">
+                  <fo:region-body margin="10pt"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="narrow">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:block font-size="12pt" wrap-option="no-wrap">
+                    This is a very long line that would normally wrap but should not wrap with no-wrap option.
+                  </fo:block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+        Assert.NotNull(areaTree);
+        Assert.NotEmpty(areaTree.Pages);
+
+        // The text should remain on a single line (no wrapping)
+        var page = areaTree.Pages[0];
+        var blockArea = page.Areas.FirstOrDefault(a => a is BlockArea) as BlockArea;
+        Assert.NotNull(blockArea);
+
+        // Should have exactly one line area (no wrapping)
+        Assert.Single(blockArea.Children);
+    }
+
+    [Fact]
+    public void WrapOption_Wrap_AllowsNormalLineBreaking()
+    {
+        // Test that wrap-option="wrap" allows normal line breaking (default behavior)
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="narrow" page-width="100pt" page-height="300pt">
+                  <fo:region-body margin="10pt"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="narrow">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:block font-size="12pt" wrap-option="wrap">
+                    This is a long line that should wrap normally across multiple lines.
+                  </fo:block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+        Assert.NotNull(areaTree);
+        Assert.NotEmpty(areaTree.Pages);
+
+        // The text should wrap to multiple lines
+        var page = areaTree.Pages[0];
+        var blockArea = page.Areas.FirstOrDefault(a => a is BlockArea) as BlockArea;
+        Assert.NotNull(blockArea);
+
+        // Should have multiple line areas (wrapping occurred)
+        Assert.True(blockArea.Children.Count > 1,
+            $"Expected multiple lines from wrapping, but got {blockArea.Children.Count}");
+    }
+
+    [Fact]
+    public void EmergencyBreaking_NarrowColumn_HandlesMultipleOverflows()
+    {
+        // Test that emergency breaking works with multiple overflow words in very narrow columns
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="very-narrow" page-width="60pt" page-height="500pt">
+                  <fo:region-body margin="5pt"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="very-narrow">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:block font-size="10pt">
+                    OVERFLOWING ANOTHERLONG YETANOTHER
+                  </fo:block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        // Should not crash even with multiple overflow words
+        var areaTree = doc.BuildAreaTree();
+        Assert.NotNull(areaTree);
+        Assert.NotEmpty(areaTree.Pages);
+
+        var page = areaTree.Pages[0];
+        var blockArea = page.Areas.FirstOrDefault(a => a is BlockArea) as BlockArea;
+        Assert.NotNull(blockArea);
+
+        // Should have multiple lines from emergency breaking
+        Assert.True(blockArea.Children.Count > 3,
+            $"Expected many lines from emergency breaking multiple words, but got {blockArea.Children.Count}");
+    }
+
+    [Fact]
+    public void EmergencyBreaking_ExtremelyNarrowColumn_DoesNotCrash()
+    {
+        // Test extreme case: column so narrow even a single character might not fit
+        // Should not crash but still produce output
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="extreme" page-width="20pt" page-height="300pt">
+                  <fo:region-body margin="2pt"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="extreme">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:block font-size="12pt">
+                    ABCD
+                  </fo:block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        // Should not crash even with extremely narrow column
+        var areaTree = doc.BuildAreaTree();
+        Assert.NotNull(areaTree);
+        Assert.NotEmpty(areaTree.Pages);
+    }
 }
