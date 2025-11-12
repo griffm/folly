@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>Folly.Fonts</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Description>Folly Fonts - Pure .NET TrueType/OpenType font parser with zero runtime dependencies</Description>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
