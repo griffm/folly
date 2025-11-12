@@ -122,6 +122,10 @@ GenerateEmergencyLineBreaking(Path.Combine(outputDir, "22-emergency-line-breakin
 Console.WriteLine("Generating Example 23: Multi-Page Lists...");
 GenerateMultiPageListExample(Path.Combine(outputDir, "23-multi-page-lists.pdf"));
 
+// Example 24: TrueType Fonts
+Console.WriteLine("Generating Example 24: TrueType Fonts...");
+GenerateTrueTypeFontsExample(Path.Combine(outputDir, "24-truetype-fonts.pdf"), examplesDir);
+
 Console.WriteLine("\n✓ All examples generated successfully!");
 Console.WriteLine($"\nView PDFs in: {outputDir}");
 Console.WriteLine("\nValidate with qpdf:");
@@ -2263,4 +2267,123 @@ static void GenerateMultiPageListExample(string outputPath)
 
     using var doc = FoDocument.Load(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml)));
     doc.SavePdf(outputPath);
+}
+
+static void GenerateTrueTypeFontsExample(string outputPath, string examplesDir)
+{
+    // Try to find the test fonts
+    // Look in the tests directory relative to examples directory
+    var projectRoot = Path.GetFullPath(Path.Combine(examplesDir, ".."));
+    var testFontsDir = Path.Combine(projectRoot, "tests", "Folly.FontTests", "TestFonts");
+
+    // Check if fonts exist
+    var robotoPath = Path.Combine(testFontsDir, "Roboto-Regular.ttf");
+    var liberationPath = Path.Combine(testFontsDir, "LiberationSans-Regular.ttf");
+
+    if (!File.Exists(robotoPath) || !File.Exists(liberationPath))
+    {
+        Console.WriteLine($"  ⚠ Skipping TrueType example - test fonts not found at: {testFontsDir}");
+        return;
+    }
+
+    var foXml = """
+        <?xml version="1.0"?>
+        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+          <fo:layout-master-set>
+            <fo:simple-page-master master-name="A4" page-width="595pt" page-height="842pt">
+              <fo:region-body margin="72pt"/>
+            </fo:simple-page-master>
+          </fo:layout-master-set>
+          <fo:page-sequence master-reference="A4">
+            <fo:flow flow-name="xsl-region-body">
+              <fo:block font-family="Roboto" font-size="24pt" text-align="center" margin-bottom="24pt" color="#2196F3">
+                TrueType Font Embedding Demo
+              </fo:block>
+
+              <fo:block font-family="LiberationSans" font-size="14pt" margin-bottom="12pt">
+                This document demonstrates embedded TrueType fonts with font subsetting for optimal file size.
+              </fo:block>
+
+              <fo:block font-family="Roboto" font-size="18pt" margin-top="24pt" margin-bottom="12pt" color="#1976D2">
+                Roboto Font Sample
+              </fo:block>
+
+              <fo:block font-family="Roboto" font-size="12pt" margin-bottom="12pt">
+                The Roboto font family is a sans-serif typeface developed by Google as the system font for Android.
+                It features friendly and open curves, providing a comfortable reading experience.
+              </fo:block>
+
+              <fo:block font-family="Roboto" font-size="10pt" margin-bottom="12pt" color="#666666">
+                ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789
+              </fo:block>
+
+              <fo:block font-family="Roboto" font-size="12pt" margin-bottom="12pt">
+                "The quick brown fox jumps over the lazy dog."
+              </fo:block>
+
+              <fo:block font-family="LiberationSans" font-size="18pt" margin-top="24pt" margin-bottom="12pt" color="#1976D2">
+                Liberation Sans Font Sample
+              </fo:block>
+
+              <fo:block font-family="LiberationSans" font-size="12pt" margin-bottom="12pt">
+                Liberation Sans is a font family which aims at metric compatibility with Arial.
+                It is designed for on-screen display and document formatting.
+              </fo:block>
+
+              <fo:block font-family="LiberationSans" font-size="10pt" margin-bottom="12pt" color="#666666">
+                ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789
+              </fo:block>
+
+              <fo:block font-family="LiberationSans" font-size="12pt" margin-bottom="12pt">
+                "Pack my box with five dozen liquor jugs."
+              </fo:block>
+
+              <fo:block font-family="Roboto" font-size="16pt" margin-top="24pt" margin-bottom="12pt" color="#1976D2">
+                Font Subsetting Benefits
+              </fo:block>
+
+              <fo:block font-family="LiberationSans" font-size="12pt" margin-bottom="6pt">
+                • Only characters used in the document are embedded
+              </fo:block>
+              <fo:block font-family="LiberationSans" font-size="12pt" margin-bottom="6pt">
+                • Significantly reduces PDF file size
+              </fo:block>
+              <fo:block font-family="LiberationSans" font-size="12pt" margin-bottom="6pt">
+                • Maintains font quality and metrics
+              </fo:block>
+              <fo:block font-family="LiberationSans" font-size="12pt" margin-bottom="6pt">
+                • Supports text extraction via ToUnicode CMap
+              </fo:block>
+
+              <fo:block font-family="Roboto" font-size="12pt" margin-top="24pt" padding="12pt" background-color="#E3F2FD" border="1pt solid #2196F3">
+                This PDF was generated with TrueType fonts embedded and subsetted using Folly's font infrastructure.
+                All characters are selectable and searchable thanks to the ToUnicode CMap.
+              </fo:block>
+            </fo:flow>
+          </fo:page-sequence>
+        </fo:root>
+        """;
+
+    // Render to PDF with TrueType fonts
+    using var doc = FoDocument.Load(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml)));
+
+    // Configure PDF options with TrueType fonts
+    var options = new PdfOptions
+    {
+        SubsetFonts = true,
+        CompressStreams = true,
+        Metadata = new PdfMetadata
+        {
+            Title = "TrueType Font Embedding Demo",
+            Author = "Folly PDF Engine",
+            Subject = "Demonstration of TrueType font embedding with subsetting",
+            Keywords = "TrueType, fonts, PDF, embedding, subsetting"
+        }
+    };
+
+    // Map font families to TrueType font files
+    options.TrueTypeFonts["Roboto"] = robotoPath;
+    options.TrueTypeFonts["LiberationSans"] = liberationPath;
+
+    doc.SavePdf(outputPath, options);
 }
