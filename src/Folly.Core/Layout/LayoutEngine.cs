@@ -1694,6 +1694,7 @@ internal sealed class LayoutEngine
     /// - Header repetition on new pages (controlled by table-omit-header-at-break)
     /// - Footer placement (controlled by table-omit-footer-at-break)
     /// - Keep-together constraints on rows
+    /// - Row spanning with grid tracking
     /// </summary>
     private void LayoutTableWithPageBreaking(
         Dom.FoTable foTable,
@@ -1718,12 +1719,27 @@ internal sealed class LayoutEngine
         var columnWidths = CalculateColumnWidths(foTable, tableWidth);
         var calculatedTableWidth = columnWidths.Sum() + (foTable.BorderSpacing * (columnWidths.Count + 1));
 
+        // Pre-calculate row heights for all sections (for row spanning support)
+        var allHeaderRows = foTable.Header?.Rows.ToList() ?? new List<Dom.FoTableRow>();
+        var allBodyRows = foTable.Body?.Rows.ToList() ?? new List<Dom.FoTableRow>();
+        var allFooterRows = foTable.Footer?.Rows.ToList() ?? new List<Dom.FoTableRow>();
+
+        var headerRowHeights = allHeaderRows.Count > 0 ? CalculateTableRowHeights(allHeaderRows, columnWidths, foTable.BorderSpacing) : new List<double>();
+        var bodyRowHeights = allBodyRows.Count > 0 ? CalculateTableRowHeights(allBodyRows, columnWidths, foTable.BorderSpacing) : new List<double>();
+        var footerRowHeights = allFooterRows.Count > 0 ? CalculateTableRowHeights(allFooterRows, columnWidths, foTable.BorderSpacing) : new List<double>();
+
+        // Create grid for body rows (continuous across pages)
+        var bodyGrid = new TableCellGrid();
+
         // Render header on first page
-        if (foTable.Header != null)
+        if (foTable.Header != null && allHeaderRows.Count > 0)
         {
-            foreach (var foRow in foTable.Header.Rows)
+            // Headers get their own grid (independent from body)
+            var headerGrid = new TableCellGrid();
+            for (int headerIdx = 0; headerIdx < allHeaderRows.Count; headerIdx++)
             {
-                var rowArea = LayoutTableRow(foRow, 0, 0, columnWidths, foTable.BorderSpacing);
+                var foRow = allHeaderRows[headerIdx];
+                var rowArea = LayoutTableRowWithSpanning(foRow, 0, 0, columnWidths, foTable.BorderSpacing, headerGrid, headerIdx, headerRowHeights);
                 if (rowArea != null)
                 {
                     rowArea.X = tableX;
@@ -1750,10 +1766,12 @@ internal sealed class LayoutEngine
         // Layout body rows with page breaking
         if (foTable.Body != null)
         {
-            foreach (var foRow in foTable.Body.Rows)
+            for (int bodyRowIdx = 0; bodyRowIdx < allBodyRows.Count; bodyRowIdx++)
             {
+                var foRow = allBodyRows[bodyRowIdx];
+
                 // Calculate row height first to check if it fits
-                var rowArea = LayoutTableRow(foRow, 0, 0, columnWidths, foTable.BorderSpacing);
+                var rowArea = LayoutTableRowWithSpanning(foRow, 0, 0, columnWidths, foTable.BorderSpacing, bodyGrid, bodyRowIdx, bodyRowHeights);
                 if (rowArea == null)
                     continue;
 
@@ -1805,11 +1823,14 @@ internal sealed class LayoutEngine
                         currentColumn = 0;
 
                         // Render header on new page (if not omitted)
-                        if (foTable.Header != null && !foTable.TableOmitHeaderAtBreak)
+                        if (!foTable.TableOmitHeaderAtBreak && foTable.Header != null && allHeaderRows.Count > 0)
                         {
-                            foreach (var headerRow in foTable.Header.Rows)
+                            // Headers get their own grid (independent from body)
+                            var headerGrid = new TableCellGrid();
+                            for (int headerIdx = 0; headerIdx < allHeaderRows.Count; headerIdx++)
                             {
-                                var headerRowArea = LayoutTableRow(headerRow, 0, 0, columnWidths, foTable.BorderSpacing);
+                                var headerRow = allHeaderRows[headerIdx];
+                                var headerRowArea = LayoutTableRowWithSpanning(headerRow, 0, 0, columnWidths, foTable.BorderSpacing, headerGrid, headerIdx, headerRowHeights);
                                 if (headerRowArea != null)
                                 {
                                     headerRowArea.X = tableX;
@@ -1833,8 +1854,8 @@ internal sealed class LayoutEngine
                             }
                         }
 
-                        // Re-layout row for new page
-                        rowArea = LayoutTableRow(foRow, 0, 0, columnWidths, foTable.BorderSpacing);
+                        // Re-layout row for new page (grid state is maintained across pages)
+                        rowArea = LayoutTableRowWithSpanning(foRow, 0, 0, columnWidths, foTable.BorderSpacing, bodyGrid, bodyRowIdx, bodyRowHeights);
                         if (rowArea == null)
                             continue;
                     }
@@ -1864,11 +1885,15 @@ internal sealed class LayoutEngine
         }
 
         // Layout footer rows (if not omitted)
-        if (foTable.Footer != null && !foTable.TableOmitFooterAtBreak)
+        if (foTable.Footer != null && !foTable.TableOmitFooterAtBreak && allFooterRows.Count > 0)
         {
-            foreach (var foRow in foTable.Footer.Rows)
+            // Footer gets its own grid (independent from body)
+            var footerGrid = new TableCellGrid();
+
+            for (int footerIdx = 0; footerIdx < allFooterRows.Count; footerIdx++)
             {
-                var rowArea = LayoutTableRow(foRow, 0, 0, columnWidths, foTable.BorderSpacing);
+                var foRow = allFooterRows[footerIdx];
+                var rowArea = LayoutTableRowWithSpanning(foRow, 0, 0, columnWidths, foTable.BorderSpacing, footerGrid, footerIdx, footerRowHeights);
                 if (rowArea == null)
                     continue;
 
@@ -1909,8 +1934,8 @@ internal sealed class LayoutEngine
                     currentY = bodyMarginTop;
                     currentColumn = 0;
 
-                    // Re-layout footer row for new page
-                    rowArea = LayoutTableRow(foRow, 0, 0, columnWidths, foTable.BorderSpacing);
+                    // Re-layout footer row for new page (grid state maintained)
+                    rowArea = LayoutTableRowWithSpanning(foRow, 0, 0, columnWidths, foTable.BorderSpacing, footerGrid, footerIdx, footerRowHeights);
                     if (rowArea == null)
                         continue;
                 }
