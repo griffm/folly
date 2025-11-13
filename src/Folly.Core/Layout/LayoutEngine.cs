@@ -1276,14 +1276,18 @@ internal sealed class LayoutEngine
         }
 
         // Apply emergency breaking if any lines are still too wide
+        // Note: We re-break using the greedy algorithm rather than breaking
+        // the entire line character-by-character, which preserves word boundaries
         var processedLines = new List<string>();
         foreach (var line in lines)
         {
             var lineWidth = fontMetrics.MeasureWidth(line);
             if (lineWidth > availableWidth)
             {
-                var brokenLines = BreakWordByCharacter(line, availableWidth, fontMetrics);
-                processedLines.AddRange(brokenLines);
+                // Line is too wide - re-break using greedy algorithm
+                // This handles emergency breaking at the word level
+                var rebrokenLines = BreakLinesGreedy(line, availableWidth, fontMetrics, foBlock);
+                processedLines.AddRange(rebrokenLines);
             }
             else
             {
