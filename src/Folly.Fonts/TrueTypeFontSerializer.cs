@@ -334,13 +334,11 @@ public class TrueTypeFontSerializer
             {
                 offsets.Add(currentOffset);
 
-                // Calculate glyph data size
+                // Calculate actual glyph data size from RawGlyphData
                 if (i < font.Glyphs.Length && font.Glyphs[i] != null)
                 {
                     var glyphData = font.Glyphs[i];
-                    // Simple glyph: 10 bytes header + contour data
-                    // For now, use a placeholder size - actual glyph serialization would determine this
-                    uint glyphSize = 10; // Minimum header size
+                    uint glyphSize = (uint)glyphData.GetSerializedSize();
                     currentOffset += glyphSize;
                 }
             }
@@ -380,29 +378,23 @@ public class TrueTypeFontSerializer
     private static TableEntry CreateGlyfTable(FontFile font)
     {
         using var ms = new MemoryStream();
-        using var writer = new BigEndianBinaryWriter(ms, leaveOpen: true);
 
         // glyf table contains glyph outline data
-        // For a proper implementation, we would serialize each glyph's outline
-        // For now, create placeholder empty glyphs
+        // We write the raw glyph data bytes captured during parsing
+        // This preserves all outline data (contours, points, flags, coordinates, instructions, hints)
 
         if (font.Glyphs != null)
         {
             for (int i = 0; i < font.GlyphCount && i < font.Glyphs.Length; i++)
             {
                 var glyph = font.Glyphs[i];
-                if (glyph != null)
+                if (glyph != null && glyph.RawGlyphData != null && glyph.RawGlyphData.Length > 0)
                 {
-                    // Write simple glyph header
-                    writer.WriteInt16(glyph.NumberOfContours);
-                    writer.WriteInt16(glyph.XMin);
-                    writer.WriteInt16(glyph.YMin);
-                    writer.WriteInt16(glyph.XMax);
-                    writer.WriteInt16(glyph.YMax);
-
-                    // TODO: Write actual glyph outline data (contours, points, instructions)
-                    // For now, this is a minimal implementation
+                    // Write raw glyph data verbatim
+                    // This preserves the exact glyph outline from the original font
+                    ms.Write(glyph.RawGlyphData, 0, glyph.RawGlyphData.Length);
                 }
+                // Empty glyphs (like space) have no data to write
             }
         }
 

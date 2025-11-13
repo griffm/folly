@@ -56,4 +56,29 @@ public class GlyphData
     /// Height of the glyph bounding box.
     /// </summary>
     public int Height => YMax - YMin;
+
+    /// <summary>
+    /// Raw glyph data bytes from the original font file.
+    /// This includes the complete glyph data (header + outline + instructions).
+    /// Used for efficient font subsetting - we copy glyph data verbatim
+    /// instead of parsing and re-serializing complex glyph structures.
+    /// Null if glyph data hasn't been loaded yet.
+    /// </summary>
+    public byte[]? RawGlyphData { get; set; }
+
+    /// <summary>
+    /// Calculates the serialized size of this glyph in bytes.
+    /// Used for loca table offset calculations during font serialization.
+    /// </summary>
+    /// <returns>Size in bytes, or 0 for empty glyphs</returns>
+    public int GetSerializedSize()
+    {
+        if (RawGlyphData != null)
+        {
+            return RawGlyphData.Length;
+        }
+
+        // Empty glyph
+        return 0;
+    }
 }

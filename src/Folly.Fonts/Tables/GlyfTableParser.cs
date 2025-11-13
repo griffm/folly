@@ -36,8 +36,9 @@ public static class GlyfTableParser
     }
 
     /// <summary>
-    /// Parses the header of a single glyph.
-    /// Returns null if the glyph has no outline data (e.g., space character).
+    /// Parses the header of a single glyph and captures raw glyph data.
+    /// The raw data is used for font subsetting - we copy glyphs verbatim
+    /// instead of parsing and re-serializing complex outlines.
     /// </summary>
     private static GlyphData ParseGlyphHeader(Stream stream, TableRecord table, FontFile font, ushort glyphIndex)
     {
@@ -52,7 +53,8 @@ public static class GlyfTableParser
                 XMin = 0,
                 YMin = 0,
                 XMax = 0,
-                YMax = 0
+                YMax = 0,
+                RawGlyphData = Array.Empty<byte>()
             };
         }
 
@@ -72,9 +74,18 @@ public static class GlyfTableParser
             YMax = reader.ReadInt16()
         };
 
-        // TODO: Parse full outline data (simple glyph or composite glyph)
-        // For now, we only parse the header which gives us the bounding box
-        // This is sufficient for many use cases (layout, metrics, etc.)
+        // Capture complete raw glyph data for subsetting/serialization
+        // This preserves all outline data (contours, points, flags, coordinates, instructions, hints)
+        // without needing to parse and re-serialize complex glyph structures
+        if (length > 0)
+        {
+            reader.Seek(table.Offset + offset); // Rewind to start of glyph data
+            glyph.RawGlyphData = reader.ReadBytes((int)length);
+        }
+        else
+        {
+            glyph.RawGlyphData = Array.Empty<byte>();
+        }
 
         return glyph;
     }
