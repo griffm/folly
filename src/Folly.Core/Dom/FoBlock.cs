@@ -306,6 +306,22 @@ public sealed class FoBlock : FoElement
     public string WrapOption => GetComputedProperty("wrap-option", "wrap") ?? "wrap";
 
     /// <summary>
+    /// Gets the hyphenate property - controls whether hyphenation is enabled for this block.
+    /// Values: "true" (default), "false"
+    /// This property allows per-paragraph control of hyphenation. When set to "false",
+    /// hyphenation is disabled for this block even if globally enabled via LayoutOptions.
+    /// When set to "true" (or not specified), hyphenation is enabled if globally enabled.
+    /// </summary>
+    public bool Hyphenate
+    {
+        get
+        {
+            var value = GetComputedProperty("hyphenate", "true");
+            return value?.ToLowerInvariant() != "false";
+        }
+    }
+
+    /// <summary>
     /// Gets the footnotes contained in this block.
     /// Footnotes appear inline but are rendered at the bottom of the page.
     /// </summary>
