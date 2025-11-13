@@ -849,48 +849,70 @@ internal sealed class PdfWriter : IDisposable
         // Get used characters for this font
         var usedChars = characterUsage.TryGetValue(fontName, out var chars) ? chars : new HashSet<char>();
 
+        // Determine whether to subset or embed full font
+        byte[] fontData;
+        Fonts.Models.FontFile fontToEmbed;
+
         if (subsetFonts && usedChars.Count > 0)
         {
-            // Create subset
-            var subsetData = Fonts.FontSubsetter.CreateSubset(font, usedChars);
+            // Create and parse subset
+            fontData = Fonts.FontSubsetter.CreateSubset(font, usedChars);
+            using var ms = new MemoryStream(fontData);
+            fontToEmbed = Fonts.FontParser.Parse(ms);
+        }
+        else
+        {
+            // TODO: For very large fonts (e.g., CJK fonts >15MB), consider streaming instead
+            // of loading entire file. Requires refactoring to support two-pass writing
+            // (calculate length first, then stream data) or buffering approach.
+            fontData = File.ReadAllBytes(fontPath);
+            fontToEmbed = font;
+        }
 
-            // Re-parse the subset to get metrics
-            using var ms = new MemoryStream(subsetData);
-            var subsetFont = Fonts.FontParser.Parse(ms);
+        // Build character to glyph index mapping
+        var charToGlyph = BuildCharacterToGlyphMapping(fontToEmbed, usedChars);
 
-            // Build character to glyph index mapping
-            var charToGlyph = new Dictionary<char, ushort>();
+        // Store character to glyph ID mapping for content stream generation
+        _characterToGlyphId[fontName] = charToGlyph;
+
+        // Embed the font
+        return embedder.EmbedTrueTypeFont(
+            fontToEmbed.PostScriptName,
+            fontData,
+            charToGlyph,
+            fontToEmbed.UnitsPerEm,
+            fontToEmbed.Ascender,
+            fontToEmbed.Descender,
+            fontToEmbed.XMin,
+            fontToEmbed.YMin,
+            fontToEmbed.XMax,
+            fontToEmbed.YMax,
+            fontToEmbed.GlyphAdvanceWidths);
+    }
+
+    /// <summary>
+    /// Builds a character to glyph ID mapping for a font.
+    /// </summary>
+    private static Dictionary<char, ushort> BuildCharacterToGlyphMapping(
+        Fonts.Models.FontFile font,
+        HashSet<char> usedChars)
+    {
+        var charToGlyph = new Dictionary<char, ushort>();
+
+        // If we have specific characters to map (subset), use only those
+        if (usedChars.Count > 0)
+        {
             foreach (var ch in usedChars)
             {
-                if (subsetFont.CharacterToGlyphIndex.TryGetValue((int)ch, out var glyphIndex))
+                if (font.CharacterToGlyphIndex.TryGetValue(ch, out var glyphIndex))
                 {
                     charToGlyph[ch] = glyphIndex;
                 }
             }
-
-            // Store character to glyph ID mapping for content stream generation
-            _characterToGlyphId[fontName] = charToGlyph;
-
-            // Embed the subset
-            return embedder.EmbedTrueTypeFont(
-                subsetFont.PostScriptName,
-                subsetData,
-                charToGlyph,
-                subsetFont.UnitsPerEm,
-                subsetFont.Ascender,
-                subsetFont.Descender,
-                subsetFont.XMin,
-                subsetFont.YMin,
-                subsetFont.XMax,
-                subsetFont.YMax,
-                subsetFont.GlyphAdvanceWidths);
         }
         else
         {
-            // Embed full font (no subsetting)
-            var fontData = File.ReadAllBytes(fontPath);
-
-            var charToGlyph = new Dictionary<char, ushort>();
+            // Otherwise, map all characters in the font (full embedding)
             foreach (var kvp in font.CharacterToGlyphIndex)
             {
                 if (kvp.Key <= char.MaxValue)
@@ -898,23 +920,9 @@ internal sealed class PdfWriter : IDisposable
                     charToGlyph[(char)kvp.Key] = kvp.Value;
                 }
             }
-
-            // Store character to glyph ID mapping for content stream generation
-            _characterToGlyphId[fontName] = charToGlyph;
-
-            return embedder.EmbedTrueTypeFont(
-                font.PostScriptName,
-                fontData,
-                charToGlyph,
-                font.UnitsPerEm,
-                font.Ascender,
-                font.Descender,
-                font.XMin,
-                font.YMin,
-                font.XMax,
-                font.YMax,
-                font.GlyphAdvanceWidths);
         }
+
+        return charToGlyph;
     }
 
     /// <summary>
