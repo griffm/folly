@@ -16,17 +16,30 @@ internal sealed class PdfWriter : IDisposable
     private int? _infoObjectId;
 
     // Character remapping for font subsetting (maps characters to byte codes 0-255)
+    // NOTE: This is legacy code for Type1 fonts. For TrueType fonts, we use glyph ID mapping instead.
     private readonly Dictionary<string, Dictionary<char, byte>> _characterRemapping = new();
+
+    // Character to glyph ID mapping for TrueType fonts with Type 0/Identity-H encoding
+    // Maps character to glyph ID (used for 2-byte character codes in PDF content streams)
+    private readonly Dictionary<string, Dictionary<char, ushort>> _characterToGlyphId = new();
 
     // Security: Maximum allowed PNG chunk size (10MB) to prevent integer overflow attacks
     private const int MAX_PNG_CHUNK_SIZE = 10 * 1024 * 1024;
 
     /// <summary>
-    /// Gets the character remapping for a specific font.
+    /// Gets the character remapping for a specific font (Type1 fonts only).
     /// </summary>
     public Dictionary<char, byte>? GetCharacterRemapping(string fontName)
     {
         return _characterRemapping.TryGetValue(fontName, out var mapping) ? mapping : null;
+    }
+
+    /// <summary>
+    /// Gets the character to glyph ID mapping for a specific font (TrueType fonts with Identity-H).
+    /// </summary>
+    public Dictionary<char, ushort>? GetCharacterToGlyphId(string fontName)
+    {
+        return _characterToGlyphId.TryGetValue(fontName, out var mapping) ? mapping : null;
     }
 
     public PdfWriter(Stream output)
@@ -855,6 +868,9 @@ internal sealed class PdfWriter : IDisposable
                 }
             }
 
+            // Store character to glyph ID mapping for content stream generation
+            _characterToGlyphId[fontName] = charToGlyph;
+
             // Embed the subset
             return embedder.EmbedTrueTypeFont(
                 subsetFont.PostScriptName,
@@ -866,7 +882,8 @@ internal sealed class PdfWriter : IDisposable
                 subsetFont.XMin,
                 subsetFont.YMin,
                 subsetFont.XMax,
-                subsetFont.YMax);
+                subsetFont.YMax,
+                subsetFont.GlyphAdvanceWidths);
         }
         else
         {
@@ -882,6 +899,9 @@ internal sealed class PdfWriter : IDisposable
                 }
             }
 
+            // Store character to glyph ID mapping for content stream generation
+            _characterToGlyphId[fontName] = charToGlyph;
+
             return embedder.EmbedTrueTypeFont(
                 font.PostScriptName,
                 fontData,
@@ -892,7 +912,8 @@ internal sealed class PdfWriter : IDisposable
                 font.XMin,
                 font.YMin,
                 font.XMax,
-                font.YMax);
+                font.YMax,
+                font.GlyphAdvanceWidths);
         }
     }
 

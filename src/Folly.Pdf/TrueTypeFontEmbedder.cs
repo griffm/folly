@@ -21,7 +21,8 @@ internal class TrueTypeFontEmbedder
     }
 
     /// <summary>
-    /// Embeds a TrueType font subset in the PDF.
+    /// Embeds a TrueType font subset in the PDF using Type 0 composite font with Identity-H encoding.
+    /// This supports full Unicode (not limited to 0-255) by using glyph IDs as character codes.
     /// Returns the font dictionary object ID.
     /// </summary>
     public int EmbedTrueTypeFont(
@@ -34,7 +35,8 @@ internal class TrueTypeFontEmbedder
         short xMin,
         short yMin,
         short xMax,
-        short yMax)
+        short yMax,
+        ushort[]? glyphAdvanceWidths = null)
     {
         // Step 1: Write the font stream (compressed TrueType data)
         int fontStreamId = WriteFontStream(fontData);
@@ -51,15 +53,22 @@ internal class TrueTypeFontEmbedder
             xMax,
             yMax);
 
-        // Step 3: Write the ToUnicode CMap
-        int toUnicodeId = WriteToUnicodeCMap(characterToGlyphIndex);
-
-        // Step 4: Write the font dictionary (TrueType simple font)
-        int fontDictId = WriteTrueTypeFontDictionary(
+        // Step 3: Write the CIDFont Type 2 dictionary (descendant font)
+        int cidFontId = WriteCIDFontType2Dictionary(
             fontName,
             fontDescriptorId,
-            toUnicodeId,
-            characterToGlyphIndex);
+            characterToGlyphIndex,
+            glyphAdvanceWidths,
+            unitsPerEm);
+
+        // Step 4: Write the ToUnicode CMap (multi-byte character codes)
+        int toUnicodeId = WriteToUnicodeCMap(characterToGlyphIndex);
+
+        // Step 5: Write the Type 0 composite font dictionary
+        int fontDictId = WriteType0FontDictionary(
+            fontName,
+            cidFontId,
+            toUnicodeId);
 
         return fontDictId;
     }
@@ -134,7 +143,8 @@ internal class TrueTypeFontEmbedder
 
     /// <summary>
     /// Writes a ToUnicode CMap for text extraction.
-    /// Maps character codes (0-255) to Unicode values.
+    /// Maps character codes (glyph IDs, 2 bytes) to Unicode values.
+    /// Uses Identity-H encoding (multi-byte) to support full Unicode range.
     /// </summary>
     private int WriteToUnicodeCMap(Dictionary<char, ushort> characterToGlyphIndex)
     {
@@ -151,10 +161,11 @@ internal class TrueTypeFontEmbedder
         sb.AppendLine("/CMapName /Adobe-Identity-UCS def");
         sb.AppendLine("/CMapType 2 def");
         sb.AppendLine("1 begincodespacerange");
-        sb.AppendLine("<00> <FF>");
+        sb.AppendLine("<0000> <FFFF>");  // 2-byte character codes
         sb.AppendLine("endcodespacerange");
 
         // Build character code to Unicode mappings
+        // Character code = glyph ID (2 bytes)
         var sortedChars = characterToGlyphIndex.Keys.OrderBy(c => (int)c).ToList();
 
         if (sortedChars.Count > 0)
@@ -163,13 +174,14 @@ internal class TrueTypeFontEmbedder
 
             foreach (var ch in sortedChars)
             {
-                // Character code (0-255)
-                byte charCode = (byte)((int)ch % 256);
+                // Character code = glyph ID (2 bytes, no modulo-256!)
+                ushort glyphId = characterToGlyphIndex[ch];
 
                 // Unicode value
                 int unicode = (int)ch;
 
-                sb.AppendLine($"<{charCode:X2}> <{unicode:X4}>");
+                // Write as 2-byte hex codes
+                sb.AppendLine($"<{glyphId:X4}> <{unicode:X4}>");
             }
 
             sb.AppendLine("endbfchar");
@@ -200,46 +212,22 @@ internal class TrueTypeFontEmbedder
     }
 
     /// <summary>
-    /// Writes a TrueType font dictionary (simple font with standard encoding).
+    /// Writes a Type 0 composite font dictionary with Identity-H encoding.
+    /// This is the top-level font dictionary that references the CIDFont.
     /// </summary>
-    private int WriteTrueTypeFontDictionary(
+    private int WriteType0FontDictionary(
         string fontName,
-        int fontDescriptorId,
-        int toUnicodeId,
-        Dictionary<char, ushort> characterToGlyphIndex)
+        int cidFontId,
+        int toUnicodeId)
     {
         var fontDictId = _writer.BeginObject();
         _writer.WriteLine("<<");
         _writer.WriteLine("  /Type /Font");
-        _writer.WriteLine("  /Subtype /TrueType");
+        _writer.WriteLine("  /Subtype /Type0");
         _writer.WriteLine($"  /BaseFont /{fontName}");
-        _writer.WriteLine("  /Encoding /WinAnsiEncoding"); // Standard encoding
-        _writer.WriteLine($"  /FontDescriptor {fontDescriptorId} 0 R");
+        _writer.WriteLine("  /Encoding /Identity-H"); // Horizontal identity mapping (2-byte codes)
+        _writer.WriteLine($"  /DescendantFonts [{cidFontId} 0 R]");
         _writer.WriteLine($"  /ToUnicode {toUnicodeId} 0 R");
-
-        // Write FirstChar and LastChar
-        if (characterToGlyphIndex.Count > 0)
-        {
-            int firstChar = characterToGlyphIndex.Keys.Min(c => (int)c);
-            int lastChar = characterToGlyphIndex.Keys.Max(c => (int)c);
-
-            // Clamp to 0-255 for simple TrueType font
-            firstChar = Math.Max(0, Math.Min(255, firstChar));
-            lastChar = Math.Max(0, Math.Min(255, lastChar));
-
-            _writer.WriteLine($"  /FirstChar {firstChar}");
-            _writer.WriteLine($"  /LastChar {lastChar}");
-
-            // Write Widths array (placeholder - would need actual glyph widths)
-            _writer.Write("  /Widths [");
-            for (int i = firstChar; i <= lastChar; i++)
-            {
-                // TODO: Get actual widths from font metrics
-                _writer.Write("500 "); // Placeholder width
-            }
-            _writer.WriteLine("]");
-        }
-
         _writer.WriteLine(">>");
         _writer.EndObject();
 
@@ -247,8 +235,105 @@ internal class TrueTypeFontEmbedder
     }
 
     /// <summary>
+    /// Writes a CIDFont Type 2 dictionary (for TrueType-based CID fonts).
+    /// This is the descendant font that contains the actual font data.
+    /// </summary>
+    private int WriteCIDFontType2Dictionary(
+        string fontName,
+        int fontDescriptorId,
+        Dictionary<char, ushort> characterToGlyphIndex,
+        ushort[]? glyphAdvanceWidths,
+        int unitsPerEm)
+    {
+        var cidFontId = _writer.BeginObject();
+        _writer.WriteLine("<<");
+        _writer.WriteLine("  /Type /Font");
+        _writer.WriteLine("  /Subtype /CIDFontType2");
+        _writer.WriteLine($"  /BaseFont /{fontName}");
+
+        // CIDSystemInfo identifies the character collection
+        _writer.WriteLine("  /CIDSystemInfo <<");
+        _writer.WriteLine("    /Registry (Adobe)");
+        _writer.WriteLine("    /Ordering (Identity)");
+        _writer.WriteLine("    /Supplement 0");
+        _writer.WriteLine("  >>");
+
+        _writer.WriteLine($"  /FontDescriptor {fontDescriptorId} 0 R");
+
+        // Use Identity mapping (glyph ID = CID)
+        _writer.WriteLine("  /CIDToGIDMap /Identity");
+
+        // Write width array (W) for CID fonts
+        WriteCIDWidthArray(characterToGlyphIndex, glyphAdvanceWidths, unitsPerEm);
+
+        // Default width (fallback if character not in W array)
+        _writer.WriteLine("  /DW 1000"); // Default width in font units
+
+        _writer.WriteLine(">>");
+        _writer.EndObject();
+
+        return cidFontId;
+    }
+
+    /// <summary>
+    /// Writes the W (width) array for a CIDFont.
+    /// Format: /W [c1 [w1 w2 ... wn] c2 [w1 w2 ... wm] ...]
+    /// Where c is the starting CID and following array contains consecutive widths.
+    /// </summary>
+    private void WriteCIDWidthArray(
+        Dictionary<char, ushort> characterToGlyphIndex,
+        ushort[]? glyphAdvanceWidths,
+        int unitsPerEm)
+    {
+        if (characterToGlyphIndex.Count == 0)
+        {
+            _writer.WriteLine("  /W []");
+            return;
+        }
+
+        // Build a sorted list of (glyphId, width) pairs
+        var glyphWidths = new List<(ushort glyphId, int width)>();
+
+        foreach (var kvp in characterToGlyphIndex)
+        {
+            ushort glyphId = kvp.Value;
+
+            // Get actual width if available, otherwise use default
+            int width = 1000; // Default width in font units
+            if (glyphAdvanceWidths != null && glyphId < glyphAdvanceWidths.Length)
+            {
+                width = glyphAdvanceWidths[glyphId];
+            }
+
+            glyphWidths.Add((glyphId, width));
+        }
+
+        // Sort by glyph ID
+        glyphWidths.Sort((a, b) => a.glyphId.CompareTo(b.glyphId));
+
+        // Write W array
+        // For simplicity, we'll write individual entries: /W [gid [width] gid [width] ...]
+        // A more compact format would group consecutive glyphs, but this is clearer
+        _writer.Write("  /W [");
+
+        for (int i = 0; i < glyphWidths.Count; i++)
+        {
+            var (glyphId, width) = glyphWidths[i];
+            _writer.Write($"{glyphId} [{width}]");
+
+            if (i < glyphWidths.Count - 1)
+            {
+                _writer.Write(" ");
+            }
+        }
+
+        _writer.WriteLine("]");
+    }
+
+    /// <summary>
     /// Generates a ToUnicode CMap as a string.
     /// This is a helper for testing and debugging.
+    /// Uses 2-byte glyph IDs as character codes (no modulo-256).
     /// </summary>
     public static string GenerateToUnicodeCMapString(Dictionary<char, ushort> characterToGlyphIndex)
     {
@@ -265,7 +350,7 @@ internal class TrueTypeFontEmbedder
         sb.AppendLine("/CMapName /Adobe-Identity-UCS def");
         sb.AppendLine("/CMapType 2 def");
         sb.AppendLine("1 begincodespacerange");
-        sb.AppendLine("<00> <FF>");
+        sb.AppendLine("<0000> <FFFF>");  // 2-byte character codes
         sb.AppendLine("endcodespacerange");
 
         var sortedChars = characterToGlyphIndex.Keys.OrderBy(c => (int)c).ToList();
@@ -276,9 +361,10 @@ internal class TrueTypeFontEmbedder
 
             foreach (var ch in sortedChars)
             {
-                byte charCode = (byte)((int)ch % 256);
+                // Character code = glyph ID (2 bytes)
+                ushort glyphId = characterToGlyphIndex[ch];
                 int unicode = (int)ch;
-                sb.AppendLine($"<{charCode:X2}> <{unicode:X4}>");
+                sb.AppendLine($"<{glyphId:X4}> <{unicode:X4}>");
             }
 
             sb.AppendLine("endbfchar");

@@ -45,11 +45,11 @@ public class TrueTypeFontEmbedderTests
         string cmap = TrueTypeFontEmbedder.GenerateToUnicodeCMapString(charToGlyph);
 
         // Assert
-        // Check for character code to Unicode mappings
-        // 'A' = char code 0x41, Unicode 0x0041
-        Assert.Contains("<41> <0041>", cmap);
-        // 'Z' = char code 0x5A, Unicode 0x005A
-        Assert.Contains("<5A> <005A>", cmap);
+        // Check for glyph ID to Unicode mappings (using Identity-H encoding)
+        // 'A' = glyph ID 1, Unicode 0x0041
+        Assert.Contains("<0001> <0041>", cmap);
+        // 'Z' = glyph ID 2, Unicode 0x005A
+        Assert.Contains("<0002> <005A>", cmap);
     }
 
     [Fact]
@@ -84,11 +84,11 @@ public class TrueTypeFontEmbedderTests
         // Act
         string cmap = TrueTypeFontEmbedder.GenerateToUnicodeCMapString(charToGlyph);
 
-        // Assert
-        Assert.Contains("<20> <0020>", cmap); // Space
-        Assert.Contains("<21> <0021>", cmap); // !
-        Assert.Contains("<40> <0040>", cmap); // @
-        Assert.Contains("<23> <0023>", cmap); // #
+        // Assert (using glyph IDs, not character codes)
+        Assert.Contains("<0001> <0020>", cmap); // Space: glyph ID 1, Unicode 0x0020
+        Assert.Contains("<0002> <0021>", cmap); // !: glyph ID 2, Unicode 0x0021
+        Assert.Contains("<0003> <0040>", cmap); // @: glyph ID 3, Unicode 0x0040
+        Assert.Contains("<0004> <0023>", cmap); // #: glyph ID 4, Unicode 0x0023
     }
 
     [Fact]
@@ -128,12 +128,12 @@ public class TrueTypeFontEmbedderTests
         string cmap = TrueTypeFontEmbedder.GenerateToUnicodeCMapString(charToGlyph);
 
         // Assert
-        // Find positions of each mapping
-        int posA = cmap.IndexOf("<41> <0041>");  // A
-        int posM = cmap.IndexOf("<4D> <004D>");  // M
-        int posZ = cmap.IndexOf("<5A> <005A>");  // Z
+        // Find positions of each mapping (using glyph IDs: Z=1, A=2, M=3)
+        int posA = cmap.IndexOf("<0002> <0041>");  // A: glyph ID 2
+        int posM = cmap.IndexOf("<0003> <004D>");  // M: glyph ID 3
+        int posZ = cmap.IndexOf("<0001> <005A>");  // Z: glyph ID 1
 
-        // They should appear in sorted order: A, M, Z
+        // They should appear in sorted order by Unicode: A, M, Z
         Assert.True(posA >= 0, "A mapping should be present");
         Assert.True(posM >= 0, "M mapping should be present");
         Assert.True(posZ >= 0, "Z mapping should be present");
@@ -157,12 +157,12 @@ public class TrueTypeFontEmbedderTests
         // Act
         string cmap = TrueTypeFontEmbedder.GenerateToUnicodeCMapString(charToGlyph);
 
-        // Assert
-        Assert.Contains("<30> <0030>", cmap); // 0
-        Assert.Contains("<35> <0035>", cmap); // 5
-        Assert.Contains("<39> <0039>", cmap); // 9
-        Assert.Contains("<61> <0061>", cmap); // a
-        Assert.Contains("<7A> <007A>", cmap); // z
+        // Assert (using glyph IDs, not character codes)
+        Assert.Contains("<0001> <0030>", cmap); // 0: glyph ID 1, Unicode 0x0030
+        Assert.Contains("<0002> <0035>", cmap); // 5: glyph ID 2, Unicode 0x0035
+        Assert.Contains("<0003> <0039>", cmap); // 9: glyph ID 3, Unicode 0x0039
+        Assert.Contains("<0004> <0061>", cmap); // a: glyph ID 4, Unicode 0x0061
+        Assert.Contains("<0005> <007A>", cmap); // z: glyph ID 5, Unicode 0x007A
     }
 
     [Fact]
@@ -206,7 +206,7 @@ public class TrueTypeFontEmbedderTests
         Assert.Contains(lines, l => l.Contains("begincmap"));
         Assert.Contains(lines, l => l.Contains("/CIDSystemInfo"));
         Assert.Contains(lines, l => l.Contains("begincodespacerange"));
-        Assert.Contains(lines, l => l.Contains("<00> <FF>"));
+        Assert.Contains(lines, l => l.Contains("<0000> <FFFF>"));  // 2-byte character codes (Identity-H)
         Assert.Contains(lines, l => l.Contains("endcodespacerange"));
         Assert.Contains(lines, l => l.Contains("beginbfchar"));
         Assert.Contains(lines, l => l.Contains("endbfchar"));
@@ -232,8 +232,8 @@ public class TrueTypeFontEmbedderTests
         // Assert
         Assert.Contains("26 beginbfchar", cmap);  // 26 letters
 
-        // Verify first and last letters
-        Assert.Contains("<41> <0041>", cmap);  // A
-        Assert.Contains("<5A> <005A>", cmap);  // Z
+        // Verify first and last letters (now using glyph IDs, not Unicode codepoints)
+        Assert.Contains("<0001> <0041>", cmap);  // A: glyph ID 1, Unicode 0x0041
+        Assert.Contains("<001A> <005A>", cmap);  // Z: glyph ID 26, Unicode 0x005A
     }
 }
