@@ -72,9 +72,17 @@ public sealed class FoTableColumn : FoElement
     public override string Name => "table-column";
 
     /// <summary>
-    /// Gets the column width.
+    /// Gets the column width as a string (may be fixed length, proportional-column-width(), or "auto").
     /// </summary>
-    public double ColumnWidth => LengthParser.Parse(Properties.GetString("column-width", "auto"));
+    public string ColumnWidthString => Properties.GetString("column-width", "auto");
+
+    /// <summary>
+    /// Gets the column width as a parsed length value (for fixed widths only).
+    /// Returns 0 for proportional-column-width() or "auto".
+    /// </summary>
+    public double ColumnWidth => ColumnWidthString.StartsWith("proportional-column-width(") || ColumnWidthString == "auto"
+        ? 0
+        : LengthParser.Parse(ColumnWidthString);
 
     /// <summary>
     /// Gets the column number.

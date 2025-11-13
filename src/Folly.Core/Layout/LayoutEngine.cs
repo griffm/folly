@@ -2124,36 +2124,65 @@ internal sealed class LayoutEngine
         // If table has column specifications, use them
         if (foTable.Columns.Count > 0)
         {
+            // Expand repeated columns and categorize them
+            var expandedColumns = new List<(string widthSpec, double fixedWidth, double proportionalValue)>();
+
             foreach (var column in foTable.Columns)
             {
                 var repeat = column.NumberColumnsRepeated;
+                var widthSpec = column.ColumnWidthString;
+
                 for (int i = 0; i < repeat; i++)
                 {
-                    // Handle column width (simplified - support pt values)
-                    var width = column.ColumnWidth;
-                    if (width > 0)
+                    double fixedWidth = 0;
+                    double proportionalValue = 0;
+
+                    if (widthSpec.StartsWith("proportional-column-width("))
                     {
-                        columnWidths.Add(width);
+                        // Parse proportional-column-width(N)
+                        proportionalValue = ParseProportionalColumnWidth(widthSpec);
                     }
-                    else
+                    else if (widthSpec != "auto")
                     {
-                        // Auto width - will be calculated later
-                        columnWidths.Add(0);
+                        // Fixed width
+                        fixedWidth = column.ColumnWidth;
                     }
+                    // else: auto width (both values remain 0)
+
+                    expandedColumns.Add((widthSpec, fixedWidth, proportionalValue));
                 }
             }
 
-            // If any columns are auto (0), distribute remaining width
-            var specifiedWidth = columnWidths.Where(w => w > 0).Sum();
-            var autoCount = columnWidths.Count(w => w == 0);
-            if (autoCount > 0)
+            // Calculate widths
+            var totalFixedWidth = expandedColumns.Sum(c => c.fixedWidth);
+            var totalProportional = expandedColumns.Sum(c => c.proportionalValue);
+            var autoCount = expandedColumns.Count(c => c.fixedWidth == 0 && c.proportionalValue == 0);
+
+            var remainingWidth = availableWidth - totalFixedWidth - (foTable.BorderSpacing * (expandedColumns.Count + 1));
+
+            // Distribute remaining width
+            foreach (var (widthSpec, fixedWidth, proportionalValue) in expandedColumns)
             {
-                var remainingWidth = availableWidth - specifiedWidth - (foTable.BorderSpacing * (columnWidths.Count + 1));
-                var autoWidth = Math.Max(50, remainingWidth / autoCount); // Minimum 50pt per column
-                for (int i = 0; i < columnWidths.Count; i++)
+                if (fixedWidth > 0)
                 {
-                    if (columnWidths[i] == 0)
-                        columnWidths[i] = autoWidth;
+                    // Fixed width column
+                    columnWidths.Add(fixedWidth);
+                }
+                else if (proportionalValue > 0)
+                {
+                    // Proportional column - get its share of the remaining width
+                    var proportionalWidth = totalProportional > 0
+                        ? remainingWidth * (proportionalValue / totalProportional)
+                        : 0;
+                    columnWidths.Add(Math.Max(50, proportionalWidth)); // Minimum 50pt
+                }
+                else
+                {
+                    // Auto width column - distribute equally among all auto columns
+                    var autoWidth = autoCount > 0
+                        ? remainingWidth / autoCount
+                        : 0;
+                    columnWidths.Add(Math.Max(50, autoWidth)); // Minimum 50pt
                 }
             }
         }
@@ -2171,6 +2200,23 @@ internal sealed class LayoutEngine
         }
 
         return columnWidths;
+    }
+
+    /// <summary>
+    /// Parses a proportional-column-width() function and returns the numeric value.
+    /// Example: "proportional-column-width(2)" returns 2.0
+    /// </summary>
+    private double ParseProportionalColumnWidth(string widthSpec)
+    {
+        if (!widthSpec.StartsWith("proportional-column-width(") || !widthSpec.EndsWith(")"))
+            return 1.0; // Default to 1 if malformed
+
+        var valueStr = widthSpec.Substring("proportional-column-width(".Length, widthSpec.Length - "proportional-column-width(".Length - 1).Trim();
+
+        if (double.TryParse(valueStr, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var value))
+            return Math.Max(0, value); // Ensure non-negative
+
+        return 1.0; // Default to 1 if parsing fails
     }
 
     private TableRowArea? LayoutTableRow(Dom.FoTableRow foRow, double x, double y, List<double> columnWidths, double borderSpacing)
