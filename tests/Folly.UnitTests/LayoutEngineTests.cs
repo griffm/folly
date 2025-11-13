@@ -2158,5 +2158,257 @@ public class LayoutEngineTests
         Assert.NotEmpty(areaTree.Pages);
     }
 
+    [Fact]
+    public void TableRowSpanning_CellOccupiesMultipleRows()
+    {
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="210mm" page-height="297mm">
+                  <fo:region-body margin="1in"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:table border="1pt solid black">
+                    <fo:table-column column-width="100pt"/>
+                    <fo:table-column column-width="100pt"/>
+                    <fo:table-column column-width="100pt"/>
+                    <fo:table-body>
+                      <fo:table-row>
+                        <fo:table-cell number-rows-spanned="3" background-color="lightblue">
+                          <fo:block>Spans 3 rows</fo:block>
+                        </fo:table-cell>
+                        <fo:table-cell><fo:block>Row 1, Col 2</fo:block></fo:table-cell>
+                        <fo:table-cell><fo:block>Row 1, Col 3</fo:block></fo:table-cell>
+                      </fo:table-row>
+                      <fo:table-row>
+                        <fo:table-cell><fo:block>Row 2, Col 2</fo:block></fo:table-cell>
+                        <fo:table-cell><fo:block>Row 2, Col 3</fo:block></fo:table-cell>
+                      </fo:table-row>
+                      <fo:table-row>
+                        <fo:table-cell><fo:block>Row 3, Col 2</fo:block></fo:table-cell>
+                        <fo:table-cell><fo:block>Row 3, Col 3</fo:block></fo:table-cell>
+                      </fo:table-row>
+                    </fo:table-body>
+                  </fo:table>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+        Assert.NotNull(areaTree);
+        Assert.Single(areaTree.Pages);
+
+        var page = areaTree.Pages[0];
+        var tables = page.Areas.OfType<TableArea>().ToList();
+        Assert.NotEmpty(tables);
+
+        var table = tables[0];
+        Assert.Equal(3, table.Rows.Count);
+
+        // First row should have 3 cells
+        Assert.Equal(3, table.Rows[0].Cells.Count);
+
+        // Second and third rows should have 2 cells each (first column occupied by spanning cell)
+        Assert.Equal(2, table.Rows[1].Cells.Count);
+        Assert.Equal(2, table.Rows[2].Cells.Count);
+    }
+
+    [Fact]
+    public void TableRowSpanning_MultipleSpanningCells()
+    {
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="210mm" page-height="297mm">
+                  <fo:region-body margin="1in"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:table border="1pt solid black">
+                    <fo:table-column column-width="100pt"/>
+                    <fo:table-column column-width="100pt"/>
+                    <fo:table-column column-width="100pt"/>
+                    <fo:table-column column-width="100pt"/>
+                    <fo:table-body>
+                      <fo:table-row>
+                        <fo:table-cell number-rows-spanned="2"><fo:block>A (2 rows)</fo:block></fo:table-cell>
+                        <fo:table-cell><fo:block>B</fo:block></fo:table-cell>
+                        <fo:table-cell number-rows-spanned="2"><fo:block>C (2 rows)</fo:block></fo:table-cell>
+                        <fo:table-cell><fo:block>D</fo:block></fo:table-cell>
+                      </fo:table-row>
+                      <fo:table-row>
+                        <fo:table-cell><fo:block>E</fo:block></fo:table-cell>
+                        <fo:table-cell><fo:block>F</fo:block></fo:table-cell>
+                      </fo:table-row>
+                    </fo:table-body>
+                  </fo:table>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+        Assert.NotNull(areaTree);
+        Assert.Single(areaTree.Pages);
+
+        var page = areaTree.Pages[0];
+        var tables = page.Areas.OfType<TableArea>().ToList();
+        Assert.NotEmpty(tables);
+
+        var table = tables[0];
+        Assert.Equal(2, table.Rows.Count);
+
+        // First row: 4 cells (A, B, C, D)
+        Assert.Equal(4, table.Rows[0].Cells.Count);
+
+        // Second row: 2 cells (E, F) - columns 0 and 2 occupied by spanning cells
+        Assert.Equal(2, table.Rows[1].Cells.Count);
+    }
+
+    [Fact]
+    public void TableRowSpanning_CombinedWithColumnSpanning()
+    {
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="210mm" page-height="297mm">
+                  <fo:region-body margin="1in"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:table border="1pt solid black">
+                    <fo:table-column column-width="100pt"/>
+                    <fo:table-column column-width="100pt"/>
+                    <fo:table-column column-width="100pt"/>
+                    <fo:table-body>
+                      <fo:table-row>
+                        <fo:table-cell number-rows-spanned="2" number-columns-spanned="2">
+                          <fo:block>Spans 2x2</fo:block>
+                        </fo:table-cell>
+                        <fo:table-cell><fo:block>A</fo:block></fo:table-cell>
+                      </fo:table-row>
+                      <fo:table-row>
+                        <fo:table-cell><fo:block>B</fo:block></fo:table-cell>
+                      </fo:table-row>
+                      <fo:table-row>
+                        <fo:table-cell><fo:block>C</fo:block></fo:table-cell>
+                        <fo:table-cell><fo:block>D</fo:block></fo:table-cell>
+                        <fo:table-cell><fo:block>E</fo:block></fo:table-cell>
+                      </fo:table-row>
+                    </fo:table-body>
+                  </fo:table>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+        Assert.NotNull(areaTree);
+        Assert.Single(areaTree.Pages);
+
+        var page = areaTree.Pages[0];
+        var tables = page.Areas.OfType<TableArea>().ToList();
+        Assert.NotEmpty(tables);
+
+        var table = tables[0];
+        Assert.Equal(3, table.Rows.Count);
+
+        // First row: 2 cells (spanning 2x2 cell + A)
+        Assert.Equal(2, table.Rows[0].Cells.Count);
+        Assert.Equal(2, table.Rows[0].Cells[0].NumberRowsSpanned);
+        Assert.Equal(2, table.Rows[0].Cells[0].NumberColumnsSpanned);
+
+        // Second row: 1 cell (B) - first two columns occupied
+        Assert.Single(table.Rows[1].Cells);
+
+        // Third row: 3 cells (C, D, E) - no spanning
+        Assert.Equal(3, table.Rows[2].Cells.Count);
+    }
+
+    [Fact]
+    public void TableRowSpanning_ComplexLayout()
+    {
+        // Test a complex table with multiple overlapping spanning scenarios
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="210mm" page-height="297mm">
+                  <fo:region-body margin="1in"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:table border="1pt solid black">
+                    <fo:table-column column-width="80pt"/>
+                    <fo:table-column column-width="80pt"/>
+                    <fo:table-column column-width="80pt"/>
+                    <fo:table-column column-width="80pt"/>
+                    <fo:table-body>
+                      <fo:table-row>
+                        <fo:table-cell number-rows-spanned="3"><fo:block>R1C1</fo:block></fo:table-cell>
+                        <fo:table-cell><fo:block>R1C2</fo:block></fo:table-cell>
+                        <fo:table-cell number-rows-spanned="2"><fo:block>R1C3</fo:block></fo:table-cell>
+                        <fo:table-cell><fo:block>R1C4</fo:block></fo:table-cell>
+                      </fo:table-row>
+                      <fo:table-row>
+                        <fo:table-cell number-rows-spanned="2"><fo:block>R2C2</fo:block></fo:table-cell>
+                        <fo:table-cell><fo:block>R2C4</fo:block></fo:table-cell>
+                      </fo:table-row>
+                      <fo:table-row>
+                        <fo:table-cell><fo:block>R3C3</fo:block></fo:table-cell>
+                        <fo:table-cell><fo:block>R3C4</fo:block></fo:table-cell>
+                      </fo:table-row>
+                      <fo:table-row>
+                        <fo:table-cell><fo:block>R4C1</fo:block></fo:table-cell>
+                        <fo:table-cell><fo:block>R4C2</fo:block></fo:table-cell>
+                        <fo:table-cell><fo:block>R4C3</fo:block></fo:table-cell>
+                        <fo:table-cell><fo:block>R4C4</fo:block></fo:table-cell>
+                      </fo:table-row>
+                    </fo:table-body>
+                  </fo:table>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+        Assert.NotNull(areaTree);
+        Assert.Single(areaTree.Pages);
+
+        var page = areaTree.Pages[0];
+        var tables = page.Areas.OfType<TableArea>().ToList();
+        Assert.NotEmpty(tables);
+
+        var table = tables[0];
+        Assert.Equal(4, table.Rows.Count);
+
+        // Verify the grid tracking worked correctly
+        Assert.Equal(4, table.Rows[0].Cells.Count); // R1: 4 cells
+        Assert.Equal(2, table.Rows[1].Cells.Count); // R2: 2 cells (C1 and C3 occupied)
+        Assert.Equal(2, table.Rows[2].Cells.Count); // R3: 2 cells (C1 and C2 occupied)
+        Assert.Equal(4, table.Rows[3].Cells.Count); // R4: 4 cells (no spanning)
+    }
+
     #endregion
 }

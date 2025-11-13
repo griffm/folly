@@ -1610,19 +1610,35 @@ internal sealed class LayoutEngine
         // Calculate total table width
         tableArea.Width = columnWidths.Sum() + (foTable.BorderSpacing * (columnWidths.Count + 1));
 
+        // Two-pass layout for row spanning support:
+        // Pass 1: Calculate row heights (without row spanning)
+        var allRows = new List<Dom.FoTableRow>();
+        if (foTable.Header != null)
+            allRows.AddRange(foTable.Header.Rows);
+        if (foTable.Body != null)
+            allRows.AddRange(foTable.Body.Rows);
+        if (foTable.Footer != null)
+            allRows.AddRange(foTable.Footer.Rows);
+
+        var rowHeights = CalculateTableRowHeights(allRows, columnWidths, foTable.BorderSpacing);
+
+        // Pass 2: Layout rows with row spanning support
+        var grid = new TableCellGrid();
         var currentY = 0.0;
+        int rowIndex = 0;
 
         // Layout header rows
         if (foTable.Header != null)
         {
             foreach (var foRow in foTable.Header.Rows)
             {
-                var rowArea = LayoutTableRow(foRow, 0, currentY, columnWidths, foTable.BorderSpacing);
+                var rowArea = LayoutTableRowWithSpanning(foRow, 0, currentY, columnWidths, foTable.BorderSpacing, grid, rowIndex, rowHeights);
                 if (rowArea != null)
                 {
                     tableArea.AddRow(rowArea);
                     currentY += rowArea.Height;
                 }
+                rowIndex++;
             }
         }
 
@@ -1631,12 +1647,13 @@ internal sealed class LayoutEngine
         {
             foreach (var foRow in foTable.Body.Rows)
             {
-                var rowArea = LayoutTableRow(foRow, 0, currentY, columnWidths, foTable.BorderSpacing);
+                var rowArea = LayoutTableRowWithSpanning(foRow, 0, currentY, columnWidths, foTable.BorderSpacing, grid, rowIndex, rowHeights);
                 if (rowArea != null)
                 {
                     tableArea.AddRow(rowArea);
                     currentY += rowArea.Height;
                 }
+                rowIndex++;
             }
         }
 
@@ -1645,18 +1662,73 @@ internal sealed class LayoutEngine
         {
             foreach (var foRow in foTable.Footer.Rows)
             {
-                var rowArea = LayoutTableRow(foRow, 0, currentY, columnWidths, foTable.BorderSpacing);
+                var rowArea = LayoutTableRowWithSpanning(foRow, 0, currentY, columnWidths, foTable.BorderSpacing, grid, rowIndex, rowHeights);
                 if (rowArea != null)
                 {
                     tableArea.AddRow(rowArea);
                     currentY += rowArea.Height;
                 }
+                rowIndex++;
             }
         }
 
         tableArea.Height = currentY;
 
         return tableArea;
+    }
+
+    /// <summary>
+    /// Calculates the heights of all rows in a table (without row spanning).
+    /// This is used for the first pass of two-pass layout.
+    /// </summary>
+    private List<double> CalculateTableRowHeights(List<Dom.FoTableRow> rows, List<double> columnWidths, double borderSpacing)
+    {
+        var rowHeights = new List<double>();
+        var tempGrid = new TableCellGrid(); // Temporary grid for calculation
+
+        for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++)
+        {
+            var foRow = rows[rowIndex];
+            var maxCellHeight = 0.0;
+            int cellIndexInRow = 0;
+
+            foreach (var foCell in foRow.Cells)
+            {
+                // Find next available column
+                int columnIndex = tempGrid.GetNextAvailableColumn(rowIndex, cellIndexInRow);
+
+                // Calculate cell width
+                var cellWidth = 0.0;
+                var colSpan = foCell.NumberColumnsSpanned;
+                for (int i = 0; i < colSpan && columnIndex + i < columnWidths.Count; i++)
+                {
+                    cellWidth += columnWidths[columnIndex + i];
+                }
+                if (colSpan > 1)
+                    cellWidth += borderSpacing * (colSpan - 1);
+
+                // Layout cell to get its natural height (without row spanning)
+                var cellArea = LayoutTableCell(foCell, 0, 0, cellWidth, 0);
+                if (cellArea != null)
+                {
+                    // Reserve grid cells
+                    var rowSpan = foCell.NumberRowsSpanned;
+                    tempGrid.ReserveCells(rowIndex, columnIndex, rowSpan, colSpan, cellArea);
+
+                    // Only count non-spanning cells for row height
+                    if (rowSpan == 1)
+                    {
+                        maxCellHeight = Math.Max(maxCellHeight, cellArea.Height);
+                    }
+                }
+
+                cellIndexInRow = columnIndex + colSpan;
+            }
+
+            rowHeights.Add(maxCellHeight > 0 ? maxCellHeight : 20.0); // Minimum height of 20pt
+        }
+
+        return rowHeights;
     }
 
     /// <summary>
@@ -2122,6 +2194,33 @@ internal sealed class LayoutEngine
 
     private TableRowArea? LayoutTableRow(Dom.FoTableRow foRow, double x, double y, List<double> columnWidths, double borderSpacing)
     {
+        // Use the row spanning version with an empty grid (for backward compatibility)
+        var grid = new TableCellGrid();
+        var rowHeights = new List<double>(); // Empty for single-row layout
+        return LayoutTableRowWithSpanning(foRow, x, y, columnWidths, borderSpacing, grid, 0, rowHeights);
+    }
+
+    /// <summary>
+    /// Layouts a table row with support for row spanning.
+    /// </summary>
+    /// <param name="foRow">The table row to layout.</param>
+    /// <param name="x">The X coordinate.</param>
+    /// <param name="y">The Y coordinate.</param>
+    /// <param name="columnWidths">The calculated column widths.</param>
+    /// <param name="borderSpacing">The border spacing.</param>
+    /// <param name="grid">The cell grid tracking spanning cells.</param>
+    /// <param name="rowIndex">The current row index (0-based).</param>
+    /// <param name="rowHeights">Pre-calculated row heights for row spanning.</param>
+    private TableRowArea? LayoutTableRowWithSpanning(
+        Dom.FoTableRow foRow,
+        double x,
+        double y,
+        List<double> columnWidths,
+        double borderSpacing,
+        TableCellGrid grid,
+        int rowIndex,
+        List<double> rowHeights)
+    {
         var rowArea = new TableRowArea
         {
             X = x,
@@ -2130,10 +2229,13 @@ internal sealed class LayoutEngine
 
         var currentX = borderSpacing;
         var maxCellHeight = 0.0;
-        int columnIndex = 0;
+        int cellIndexInRow = 0;
 
         foreach (var foCell in foRow.Cells)
         {
+            // Find the next available column (skip columns occupied by row-spanning cells)
+            int columnIndex = grid.GetNextAvailableColumn(rowIndex, cellIndexInRow);
+
             // Calculate cell width (sum of spanned columns)
             var cellWidth = 0.0;
             var colSpan = foCell.NumberColumnsSpanned;
@@ -2145,25 +2247,51 @@ internal sealed class LayoutEngine
             if (colSpan > 1)
                 cellWidth += borderSpacing * (colSpan - 1);
 
-            var cellArea = LayoutTableCell(foCell, currentX, 0, cellWidth);
+            // Calculate cell height for row spanning
+            var rowSpan = foCell.NumberRowsSpanned;
+            double cellHeight = 0;
+
+            // If row heights are available and cell spans multiple rows, sum them up
+            if (rowHeights.Count > 0 && rowSpan > 1)
+            {
+                for (int i = 0; i < rowSpan && rowIndex + i < rowHeights.Count; i++)
+                {
+                    cellHeight += rowHeights[rowIndex + i];
+                }
+                // Add spacing between spanned rows
+                if (rowSpan > 1)
+                    cellHeight += borderSpacing * (rowSpan - 1);
+            }
+
+            // Layout the cell
+            var cellArea = LayoutTableCell(foCell, currentX, 0, cellWidth, cellHeight > 0 ? cellHeight : 0);
             if (cellArea != null)
             {
                 cellArea.ColumnIndex = columnIndex;
                 rowArea.AddCell(cellArea);
-                maxCellHeight = Math.Max(maxCellHeight, cellArea.Height);
+
+                // Reserve grid cells for this cell's span
+                grid.ReserveCells(rowIndex, columnIndex, rowSpan, colSpan, cellArea);
+
+                // Track maximum cell height (only for cells that don't span rows, or if row heights not available)
+                if (rowSpan == 1 || rowHeights.Count == 0)
+                {
+                    maxCellHeight = Math.Max(maxCellHeight, cellArea.Height);
+                }
             }
 
             currentX += cellWidth + borderSpacing;
-            columnIndex += colSpan;
+            cellIndexInRow = columnIndex + colSpan;
         }
 
-        rowArea.Height = maxCellHeight;
+        // Use the calculated row height if available, otherwise use max cell height
+        rowArea.Height = rowHeights.Count > rowIndex ? rowHeights[rowIndex] : maxCellHeight;
         rowArea.Width = currentX;
 
         return rowArea;
     }
 
-    private TableCellArea? LayoutTableCell(Dom.FoTableCell foCell, double x, double y, double cellWidth)
+    private TableCellArea? LayoutTableCell(Dom.FoTableCell foCell, double x, double y, double cellWidth, double specifiedCellHeight = 0)
     {
         var cellArea = new TableCellArea
         {
@@ -2199,7 +2327,15 @@ internal sealed class LayoutEngine
             }
         }
 
-        cellArea.Height = currentY + foCell.PaddingBottom;
+        // Use specified height for row-spanning cells, otherwise use content height
+        if (specifiedCellHeight > 0)
+        {
+            cellArea.Height = Math.Max(specifiedCellHeight, currentY + foCell.PaddingBottom);
+        }
+        else
+        {
+            cellArea.Height = currentY + foCell.PaddingBottom;
+        }
 
         return cellArea;
     }
@@ -2920,5 +3056,95 @@ internal sealed class LayoutEngine
         }
 
         return 0;
+    }
+
+    /// <summary>
+    /// Tracks which cells occupy which grid positions in a table, handling row and column spanning.
+    /// </summary>
+    private sealed class TableCellGrid
+    {
+        private readonly Dictionary<(int row, int col), CellPlacement> _occupied = new();
+
+        /// <summary>
+        /// Represents a cell placement in the grid.
+        /// </summary>
+        private sealed class CellPlacement
+        {
+            public int OriginRow { get; init; }
+            public int OriginCol { get; init; }
+            public int RowSpan { get; init; }
+            public int ColSpan { get; init; }
+            public TableCellArea? CellArea { get; init; }
+        }
+
+        /// <summary>
+        /// Gets the next available column index in the specified row.
+        /// </summary>
+        public int GetNextAvailableColumn(int row, int startColumn = 0)
+        {
+            int col = startColumn;
+            while (_occupied.ContainsKey((row, col)))
+                col++;
+            return col;
+        }
+
+        /// <summary>
+        /// Reserves cells in the grid for a cell with row and column spanning.
+        /// </summary>
+        public void ReserveCells(int row, int col, int rowSpan, int colSpan, TableCellArea? cellArea = null)
+        {
+            var placement = new CellPlacement
+            {
+                OriginRow = row,
+                OriginCol = col,
+                RowSpan = rowSpan,
+                ColSpan = colSpan,
+                CellArea = cellArea
+            };
+
+            // Mark all grid positions occupied by this cell
+            for (int r = 0; r < rowSpan; r++)
+            {
+                for (int c = 0; c < colSpan; c++)
+                {
+                    _occupied[(row + r, col + c)] = placement;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Checks if a cell position is occupied.
+        /// </summary>
+        public bool IsOccupied(int row, int col)
+        {
+            return _occupied.ContainsKey((row, col));
+        }
+
+        /// <summary>
+        /// Gets the cell area that occupies a specific grid position (if from a row-spanning cell).
+        /// </summary>
+        public TableCellArea? GetCellAt(int row, int col)
+        {
+            if (_occupied.TryGetValue((row, col), out var placement))
+            {
+                // Only return the cell area if this is NOT the origin row
+                // (origin row renders the cell normally)
+                if (placement.OriginRow != row)
+                    return placement.CellArea;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Gets the row span information for a cell at a specific position.
+        /// </summary>
+        public (bool isSpanning, int originRow, int rowSpan)? GetSpanInfo(int row, int col)
+        {
+            if (_occupied.TryGetValue((row, col), out var placement))
+            {
+                return (placement.OriginRow != row, placement.OriginRow, placement.RowSpan);
+            }
+            return null;
+        }
     }
 }
