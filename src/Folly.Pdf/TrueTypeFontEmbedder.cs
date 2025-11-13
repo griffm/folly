@@ -74,33 +74,21 @@ internal class TrueTypeFontEmbedder
     }
 
     /// <summary>
-    /// Writes a compressed TrueType font stream.
+    /// Writes a TrueType font stream (uncompressed for maximum compatibility).
     /// </summary>
     private int WriteFontStream(byte[] fontData)
     {
-        // Compress the font data
-        byte[] compressedData;
-        using (var ms = new MemoryStream())
-        {
-            using (var deflate = new DeflateStream(ms, CompressionLevel.Optimal))
-            {
-                deflate.Write(fontData, 0, fontData.Length);
-            }
-            compressedData = ms.ToArray();
-        }
-
         var streamId = _writer.BeginObject();
         _writer.WriteLine("<<");
-        _writer.WriteLine($"  /Length {compressedData.Length}");
+        _writer.WriteLine($"  /Length {fontData.Length}");
         _writer.WriteLine($"  /Length1 {fontData.Length}"); // Uncompressed length
-        _writer.WriteLine("  /Filter /FlateDecode");
         _writer.WriteLine(">>");
         _writer.WriteLine("stream");
 
-        // Write compressed font data
+        // Write uncompressed font data for maximum PDF reader compatibility
         var stream = _writer.GetStream();
-        stream.Write(compressedData, 0, compressedData.Length);
-        _writer.UpdatePosition(compressedData.Length);
+        stream.Write(fontData, 0, fontData.Length);
+        _writer.UpdatePosition(fontData.Length);
 
         _writer.WriteLine("");
         _writer.WriteLine("endstream");
