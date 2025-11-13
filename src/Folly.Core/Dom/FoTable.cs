@@ -80,9 +80,16 @@ public sealed class FoTableColumn : FoElement
     /// Gets the column width as a parsed length value (for fixed widths only).
     /// Returns 0 for proportional-column-width() or "auto".
     /// </summary>
-    public double ColumnWidth => ColumnWidthString.StartsWith("proportional-column-width(") || ColumnWidthString == "auto"
-        ? 0
-        : LengthParser.Parse(ColumnWidthString);
+    public double ColumnWidth
+    {
+        get
+        {
+            var widthString = ColumnWidthString;
+            return widthString.StartsWith("proportional-column-width(") || widthString == "auto"
+                ? 0
+                : LengthParser.Parse(widthString);
+        }
+    }
 
     /// <summary>
     /// Gets the column number.
