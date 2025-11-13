@@ -57,7 +57,7 @@ public class FontFallbackIntegrationTests
 
         // Verify PDF header
         outputMs.Position = 0;
-        var reader = new StreamReader(outputMs);
+        using var reader = new StreamReader(outputMs, leaveOpen: true);
         var header = reader.ReadLine();
         Assert.StartsWith("%PDF-", header);
     }

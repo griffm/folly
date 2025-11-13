@@ -337,8 +337,7 @@ public class TrueTypeFontSerializer
                 // Calculate actual glyph data size from RawGlyphData
                 if (i < font.Glyphs.Length && font.Glyphs[i] != null)
                 {
-                    var glyphData = font.Glyphs[i];
-                    uint glyphSize = (uint)glyphData.GetSerializedSize();
+                    uint glyphSize = (uint)font.Glyphs[i].GetSerializedSize();
                     currentOffset += glyphSize;
                 }
             }
