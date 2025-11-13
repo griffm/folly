@@ -1791,6 +1791,20 @@ internal sealed class LayoutEngine
                     // Otherwise, create a new page
                     if (currentY > bodyMarginTop || mustKeepTogether)
                     {
+                        // Render footer before page break (if footer repetition is enabled)
+                        if (!foTable.TableOmitFooterAtBreak && foTable.Footer != null && allFooterRows.Count > 0)
+                        {
+                            RenderTableFooter(
+                                foTable,
+                                allFooterRows,
+                                footerRowHeights,
+                                columnWidths,
+                                tableX,
+                                calculatedTableWidth,
+                                ref currentY,
+                                currentPage);
+                        }
+
                         // Create new page
                         RenderFloats(currentPage, currentPageMaster, bodyMarginTop);
                         RenderFootnotes(currentPage, currentPageMaster, pageSequence);
@@ -1884,82 +1898,64 @@ internal sealed class LayoutEngine
             }
         }
 
-        // Layout footer rows (if not omitted)
-        if (foTable.Footer != null && !foTable.TableOmitFooterAtBreak && allFooterRows.Count > 0)
+        // Render footer at end of table (always)
+        if (foTable.Footer != null && allFooterRows.Count > 0)
         {
-            // Footer gets its own grid (independent from body)
-            var footerGrid = new TableCellGrid();
+            RenderTableFooter(
+                foTable,
+                allFooterRows,
+                footerRowHeights,
+                columnWidths,
+                tableX,
+                calculatedTableWidth,
+                ref currentY,
+                currentPage);
+        }
+    }
 
-            for (int footerIdx = 0; footerIdx < allFooterRows.Count; footerIdx++)
+    /// <summary>
+    /// Renders table footer rows at the current position.
+    /// This helper is used both for footer repetition at page breaks and for the final footer.
+    /// </summary>
+    private void RenderTableFooter(
+        Dom.FoTable foTable,
+        List<Dom.FoTableRow> footerRows,
+        List<double> footerRowHeights,
+        List<double> columnWidths,
+        double tableX,
+        double calculatedTableWidth,
+        ref double currentY,
+        PageViewport currentPage)
+    {
+        // Footer gets its own grid (independent from body)
+        var footerGrid = new TableCellGrid();
+
+        for (int footerIdx = 0; footerIdx < footerRows.Count; footerIdx++)
+        {
+            var foRow = footerRows[footerIdx];
+            var rowArea = LayoutTableRowWithSpanning(foRow, 0, 0, columnWidths, foTable.BorderSpacing, footerGrid, footerIdx, footerRowHeights);
+            if (rowArea == null)
+                continue;
+
+            // Adjust row position to absolute coordinates
+            rowArea.X = tableX;
+            rowArea.Y = currentY;
+
+            // Create a wrapper table area for just the footer row
+            var footerTableArea = new TableArea
             {
-                var foRow = allFooterRows[footerIdx];
-                var rowArea = LayoutTableRowWithSpanning(foRow, 0, 0, columnWidths, foTable.BorderSpacing, footerGrid, footerIdx, footerRowHeights);
-                if (rowArea == null)
-                    continue;
+                X = tableX,
+                Y = currentY,
+                Width = calculatedTableWidth,
+                Height = rowArea.Height,
+                BorderCollapse = foTable.BorderCollapse,
+                BorderSpacing = foTable.BorderSpacing,
+                ColumnWidths = columnWidths
+            };
+            footerTableArea.AddRow(rowArea);
 
-                var rowHeight = rowArea.Height;
-                var pageBottom = currentPageMaster.PageHeight - bodyMarginBottom;
-
-                // Check if footer row fits on current page
-                if (currentY + rowHeight > pageBottom)
-                {
-                    // Create new page for footer
-                    RenderFloats(currentPage, currentPageMaster, bodyMarginTop);
-                    RenderFootnotes(currentPage, currentPageMaster, pageSequence);
-                    AddLinksToPage(currentPage);
-                    CheckPageLimit(areaTree);
-                    areaTree.AddPage(currentPage);
-                    pageNumber++;
-                    currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
-
-                    // Recalculate body margins for new page master
-                    var regionBody = currentPageMaster.RegionBody;
-                    var regionBodyMarginTop = regionBody?.MarginTop ?? 0;
-                    var regionBodyMarginBottom = regionBody?.MarginBottom ?? 0;
-                    var regionBodyMarginLeft = regionBody?.MarginLeft ?? 0;
-                    var regionBodyMarginRight = regionBody?.MarginRight ?? 0;
-
-                    var regionBeforeExtent = (currentPageMaster.RegionBefore as Dom.FoRegionBefore)?.Extent ?? 0;
-                    var regionAfterExtent = (currentPageMaster.RegionAfter as Dom.FoRegionAfter)?.Extent ?? 0;
-
-                    bodyMarginTop = currentPageMaster.MarginTop + regionBeforeExtent + regionBodyMarginTop;
-                    bodyMarginBottom = currentPageMaster.MarginBottom + regionAfterExtent + regionBodyMarginBottom;
-                    bodyMarginLeft = currentPageMaster.MarginLeft + regionBodyMarginLeft;
-                    bodyMarginRight = currentPageMaster.MarginRight + regionBodyMarginRight;
-
-                    bodyWidth = currentPageMaster.PageWidth - bodyMarginLeft - bodyMarginRight;
-                    bodyHeight = currentPageMaster.PageHeight - bodyMarginTop - bodyMarginBottom;
-
-                    currentPage = CreatePage(currentPageMaster, pageSequence, pageNumber);
-                    currentY = bodyMarginTop;
-                    currentColumn = 0;
-
-                    // Re-layout footer row for new page (grid state maintained)
-                    rowArea = LayoutTableRowWithSpanning(foRow, 0, 0, columnWidths, foTable.BorderSpacing, footerGrid, footerIdx, footerRowHeights);
-                    if (rowArea == null)
-                        continue;
-                }
-
-                // Adjust row position to absolute coordinates
-                rowArea.X = tableX;
-                rowArea.Y = currentY;
-
-                // Create a wrapper table area for just the footer row
-                var footerTableArea = new TableArea
-                {
-                    X = tableX,
-                    Y = currentY,
-                    Width = calculatedTableWidth,
-                    Height = rowArea.Height,
-                    BorderCollapse = foTable.BorderCollapse,
-                    BorderSpacing = foTable.BorderSpacing,
-                    ColumnWidths = columnWidths
-                };
-                footerTableArea.AddRow(rowArea);
-
-                currentPage.AddArea(footerTableArea);
-                currentY += rowArea.Height;
-            }
+            currentPage.AddArea(footerTableArea);
+            currentY += rowArea.Height;
         }
     }
 

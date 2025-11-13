@@ -2845,4 +2845,207 @@ public class LayoutEngineTests
     }
 
     #endregion
+
+    #region Table Footer Repetition Tests
+
+    [Fact]
+    public void TableFooterRepetition_RepeatsOnEveryPageByDefault()
+    {
+        // Test that footer appears on every page when table-omit-footer-at-break is false (default)
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="210mm" page-height="100mm">
+                  <fo:region-body margin="20pt"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:table border="1pt solid black">
+                    <fo:table-header>
+                      <fo:table-row>
+                        <fo:table-cell padding="6pt" background-color="#E0E0E0">
+                          <fo:block font-weight="bold">Header</fo:block>
+                        </fo:table-cell>
+                      </fo:table-row>
+                    </fo:table-header>
+                    <fo:table-footer>
+                      <fo:table-row>
+                        <fo:table-cell padding="6pt" background-color="#FFF3E0">
+                          <fo:block font-weight="bold">Footer Row</fo:block>
+                        </fo:table-cell>
+                      </fo:table-row>
+                    </fo:table-footer>
+                    <fo:table-body>
+                      <fo:table-row>
+                        <fo:table-cell padding="40pt"><fo:block>Row 1</fo:block></fo:table-cell>
+                      </fo:table-row>
+                      <fo:table-row>
+                        <fo:table-cell padding="40pt"><fo:block>Row 2</fo:block></fo:table-cell>
+                      </fo:table-row>
+                      <fo:table-row>
+                        <fo:table-cell padding="40pt"><fo:block>Row 3</fo:block></fo:table-cell>
+                      </fo:table-row>
+                      <fo:table-row>
+                        <fo:table-cell padding="40pt"><fo:block>Row 4</fo:block></fo:table-cell>
+                      </fo:table-row>
+                    </fo:table-body>
+                  </fo:table>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+        Assert.NotNull(areaTree);
+
+        // Should span multiple pages due to tall rows
+        Assert.True(areaTree.Pages.Count >= 2, "Table should span multiple pages");
+
+        // Each page should have header + body rows + footer
+        // We expect: 1 header row + some body rows + 1 footer row on each page
+        // Page 1 and 2 should both have footers (since footer repetition is enabled by default)
+        for (int pageIdx = 0; pageIdx < Math.Min(2, areaTree.Pages.Count); pageIdx++)
+        {
+            var page = areaTree.Pages[pageIdx];
+            var tables = page.Areas.OfType<TableArea>().ToList();
+            Assert.NotEmpty(tables);
+
+            // Count total rows - should have at least 3 (header + body + footer)
+            var rowCount = tables.Sum(t => t.Rows.Count);
+            Assert.True(rowCount >= 3, $"Page {pageIdx + 1} should have at least 3 rows (header + body + footer)");
+        }
+    }
+
+    [Fact]
+    public void TableFooterRepetition_OmitsAtBreakWhenPropertyIsTrue()
+    {
+        // Test that footer only appears at end when table-omit-footer-at-break="true"
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="210mm" page-height="100mm">
+                  <fo:region-body margin="20pt"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:table border="1pt solid black" table-omit-footer-at-break="true">
+                    <fo:table-header>
+                      <fo:table-row>
+                        <fo:table-cell padding="6pt" background-color="#E0E0E0">
+                          <fo:block font-weight="bold">Header</fo:block>
+                        </fo:table-cell>
+                      </fo:table-row>
+                    </fo:table-header>
+                    <fo:table-footer>
+                      <fo:table-row>
+                        <fo:table-cell padding="6pt" background-color="#FFF3E0">
+                          <fo:block font-weight="bold">Footer Row</fo:block>
+                        </fo:table-cell>
+                      </fo:table-row>
+                    </fo:table-footer>
+                    <fo:table-body>
+                      <fo:table-row>
+                        <fo:table-cell padding="40pt"><fo:block>Row 1</fo:block></fo:table-cell>
+                      </fo:table-row>
+                      <fo:table-row>
+                        <fo:table-cell padding="40pt"><fo:block>Row 2</fo:block></fo:table-cell>
+                      </fo:table-row>
+                      <fo:table-row>
+                        <fo:table-cell padding="40pt"><fo:block>Row 3</fo:block></fo:table-cell>
+                      </fo:table-row>
+                      <fo:table-row>
+                        <fo:table-cell padding="40pt"><fo:block>Row 4</fo:block></fo:table-cell>
+                      </fo:table-row>
+                    </fo:table-body>
+                  </fo:table>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+        Assert.NotNull(areaTree);
+
+        // Should span multiple pages
+        Assert.True(areaTree.Pages.Count >= 2, "Table should span multiple pages");
+
+        // First page should have fewer rows (no footer at break)
+        // Expected: 1 header + 1 or 2 body rows (no footer)
+        var page1 = areaTree.Pages[0];
+        var page1Tables = page1.Areas.OfType<TableArea>().ToList();
+        var page1RowCount = page1Tables.Sum(t => t.Rows.Count);
+
+        // Last page should have more rows (includes footer)
+        // Expected: 1 header + body rows + 1 footer
+        var lastPage = areaTree.Pages[areaTree.Pages.Count - 1];
+        var lastPageTables = lastPage.Areas.OfType<TableArea>().ToList();
+        var lastPageRowCount = lastPageTables.Sum(t => t.Rows.Count);
+
+        // Last page should have at least 1 more row than first page (the footer)
+        Assert.True(lastPageRowCount > page1RowCount,
+            $"Last page should have more rows (with footer) than first page. Last: {lastPageRowCount}, First: {page1RowCount}");
+    }
+
+    [Fact]
+    public void TableFooterRepetition_AlwaysAppearsAtEnd()
+    {
+        // Test that footer always appears at the end of the table
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="210mm" page-height="297mm">
+                  <fo:region-body margin="1in"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:table border="1pt solid black">
+                    <fo:table-footer>
+                      <fo:table-row>
+                        <fo:table-cell padding="8pt" background-color="#E3F2FD">
+                          <fo:block font-weight="bold">Table Footer</fo:block>
+                        </fo:table-cell>
+                      </fo:table-row>
+                    </fo:table-footer>
+                    <fo:table-body>
+                      <fo:table-row>
+                        <fo:table-cell padding="6pt"><fo:block>Row 1</fo:block></fo:table-cell>
+                      </fo:table-row>
+                      <fo:table-row>
+                        <fo:table-cell padding="6pt"><fo:block>Row 2</fo:block></fo:table-cell>
+                      </fo:table-row>
+                    </fo:table-body>
+                  </fo:table>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+        Assert.NotNull(areaTree);
+        Assert.Single(areaTree.Pages);
+
+        var page = areaTree.Pages[0];
+        var tables = page.Areas.OfType<TableArea>().ToList();
+        var allRows = tables.SelectMany(t => t.Rows).ToList();
+
+        // Should have at least 3 rows (2 body + 1 footer)
+        Assert.True(allRows.Count >= 3, $"Table should have at least 3 rows (body + footer), got {allRows.Count}");
+    }
+
+    #endregion
 }
