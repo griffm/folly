@@ -142,6 +142,10 @@ GenerateRowSpanningExample(Path.Combine(outputDir, "27-row-spanning.pdf"));
 Console.WriteLine("Generating Example 28: Proportional Column Widths...");
 GenerateProportionalWidthsExample(Path.Combine(outputDir, "28-proportional-widths.pdf"));
 
+// Example 29: Content-Based Column Sizing
+Console.WriteLine("Generating Example 29: Content-Based Column Sizing...");
+GenerateContentBasedSizingExample(Path.Combine(outputDir, "29-content-based-sizing.pdf"));
+
 Console.WriteLine("\n✓ All examples generated successfully!");
 Console.WriteLine($"\nView PDFs in: {outputDir}");
 Console.WriteLine("\nValidate with qpdf:");
@@ -3037,6 +3041,237 @@ static void GenerateProportionalWidthsExample(string outputPath)
 
               <fo:block font-family="Helvetica" font-size="12pt" margin-top="24pt" padding="8pt" background-color="#F5F5F5">
                 Generated with Folly XSL-FO Processor - Phase 4.2 Complete: Proportional Column Widths!
+              </fo:block>
+            </fo:flow>
+          </fo:page-sequence>
+        </fo:root>
+        """;
+
+    using var doc = FoDocument.Load(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml)));
+    doc.SavePdf(outputPath);
+}
+
+static void GenerateContentBasedSizingExample(string outputPath)
+{
+    var foXml = """
+        <?xml version="1.0"?>
+        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+          <fo:layout-master-set>
+            <fo:simple-page-master master-name="A4" page-width="210mm" page-height="297mm">
+              <fo:region-body margin="1in"/>
+            </fo:simple-page-master>
+          </fo:layout-master-set>
+          <fo:page-sequence master-reference="A4">
+            <fo:flow flow-name="xsl-region-body">
+              <!-- Title -->
+              <fo:block font-family="Helvetica" font-size="24pt" font-weight="bold" text-align="center" color="#1976D2" margin-bottom="24pt">
+                Content-Based Column Sizing
+              </fo:block>
+
+              <fo:block font-family="Helvetica" font-size="12pt" margin-bottom="24pt" padding="12pt" background-color="#E3F2FD" border="1pt solid #2196F3">
+                <fo:inline font-weight="bold">Phase 4.3 Feature:</fo:inline> Auto columns now intelligently size based on content width,
+                distributing space proportionally to the longest word in each column. This creates balanced, readable tables
+                that adapt to your data.
+              </fo:block>
+
+              <!-- Example 1: Basic Content-Based Sizing -->
+              <fo:block font-family="Helvetica" font-size="18pt" font-weight="bold" color="#424242" margin-bottom="12pt">
+                Example 1: Auto Columns with Different Content
+              </fo:block>
+
+              <fo:block font-family="Helvetica" font-size="11pt" margin-bottom="8pt" color="#666666">
+                Three auto columns distribute space based on content width. Notice how the column with the longest
+                word gets more space.
+              </fo:block>
+
+              <fo:table border="1pt solid black" border-collapse="separate" border-spacing="2pt" margin-bottom="24pt">
+                <fo:table-column column-width="auto"/>
+                <fo:table-column column-width="auto"/>
+                <fo:table-column column-width="auto"/>
+                <fo:table-body>
+                  <fo:table-row>
+                    <fo:table-cell padding="8pt" background-color="#FFE0B2" border="1pt solid #FF9800">
+                      <fo:block font-weight="bold">Short</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt" background-color="#FFF9C4" border="1pt solid #FBC02D">
+                      <fo:block font-weight="bold">Medium Length</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt" background-color="#C8E6C9" border="1pt solid #4CAF50">
+                      <fo:block font-weight="bold">VeryLongColumnTitle</fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>
+                  <fo:table-row>
+                    <fo:table-cell padding="8pt">
+                      <fo:block>A</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt">
+                      <fo:block>Content here</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt">
+                      <fo:block>LongContentWordHere</fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>
+                  <fo:table-row>
+                    <fo:table-cell padding="8pt">
+                      <fo:block>B</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt">
+                      <fo:block>More text</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt">
+                      <fo:block>ExtraLongContent</fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>
+                </fo:table-body>
+              </fo:table>
+
+              <!-- Example 2: Mixed Column Types -->
+              <fo:block font-family="Helvetica" font-size="18pt" font-weight="bold" color="#424242" margin-top="24pt" margin-bottom="12pt">
+                Example 2: Auto Columns with Fixed Width
+              </fo:block>
+
+              <fo:block font-family="Helvetica" font-size="11pt" margin-bottom="8pt" color="#666666">
+                Combining fixed-width columns with auto columns. The auto columns share the remaining space
+                based on their content requirements.
+              </fo:block>
+
+              <fo:table border="1pt solid black" border-collapse="separate" border-spacing="2pt" margin-bottom="24pt">
+                <fo:table-column column-width="100pt"/>
+                <fo:table-column column-width="auto"/>
+                <fo:table-column column-width="auto"/>
+                <fo:table-body>
+                  <fo:table-row>
+                    <fo:table-cell padding="8pt" background-color="#D1C4E9" border="1pt solid #673AB7">
+                      <fo:block font-weight="bold">Fixed 100pt</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt" background-color="#B3E5FC" border="1pt solid #03A9F4">
+                      <fo:block font-weight="bold">Auto Short</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt" background-color="#F8BBD0" border="1pt solid #E91E63">
+                      <fo:block font-weight="bold">Auto WithLongerContent</fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>
+                  <fo:table-row>
+                    <fo:table-cell padding="8pt">
+                      <fo:block>Always 100pt</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt">
+                      <fo:block>Small</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt">
+                      <fo:block>LongerDescription</fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>
+                </fo:table-body>
+              </fo:table>
+
+              <!-- Example 3: Product Catalog -->
+              <fo:block font-family="Helvetica" font-size="18pt" font-weight="bold" color="#424242" margin-top="24pt" margin-bottom="12pt">
+                Example 3: Product Catalog (Real-World Use Case)
+              </fo:block>
+
+              <fo:block font-family="Helvetica" font-size="11pt" margin-bottom="8pt" color="#666666">
+                A practical example showing how content-based sizing creates readable tables for product catalogs.
+                Each column automatically sizes to fit its content optimally.
+              </fo:block>
+
+              <fo:table border="1pt solid black" border-collapse="separate" border-spacing="0pt" margin-bottom="24pt">
+                <fo:table-column column-width="auto"/>
+                <fo:table-column column-width="auto"/>
+                <fo:table-column column-width="auto"/>
+                <fo:table-column column-width="auto"/>
+                <fo:table-header>
+                  <fo:table-row>
+                    <fo:table-cell padding="10pt" background-color="#37474F" border="1pt solid #263238">
+                      <fo:block font-weight="bold" color="white">SKU</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="10pt" background-color="#37474F" border="1pt solid #263238">
+                      <fo:block font-weight="bold" color="white">Product</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="10pt" background-color="#37474F" border="1pt solid #263238">
+                      <fo:block font-weight="bold" color="white">Category</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="10pt" background-color="#37474F" border="1pt solid #263238">
+                      <fo:block font-weight="bold" color="white">Price</fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>
+                </fo:table-header>
+                <fo:table-body>
+                  <fo:table-row>
+                    <fo:table-cell padding="8pt" border="1pt solid #E0E0E0">
+                      <fo:block>A101</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt" border="1pt solid #E0E0E0">
+                      <fo:block>UltraWidescreenMonitor</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt" border="1pt solid #E0E0E0">
+                      <fo:block>Electronics</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt" border="1pt solid #E0E0E0">
+                      <fo:block>$499</fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>
+                  <fo:table-row>
+                    <fo:table-cell padding="8pt" background-color="#FAFAFA" border="1pt solid #E0E0E0">
+                      <fo:block>B205</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt" background-color="#FAFAFA" border="1pt solid #E0E0E0">
+                      <fo:block>Keyboard</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt" background-color="#FAFAFA" border="1pt solid #E0E0E0">
+                      <fo:block>Accessories</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt" background-color="#FAFAFA" border="1pt solid #E0E0E0">
+                      <fo:block>$79</fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>
+                  <fo:table-row>
+                    <fo:table-cell padding="8pt" border="1pt solid #E0E0E0">
+                      <fo:block>C312</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt" border="1pt solid #E0E0E0">
+                      <fo:block>Mouse</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt" border="1pt solid #E0E0E0">
+                      <fo:block>Accessories</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt" border="1pt solid #E0E0E0">
+                      <fo:block>$29</fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>
+                  <fo:table-row>
+                    <fo:table-cell padding="8pt" background-color="#FAFAFA" border="1pt solid #E0E0E0">
+                      <fo:block>D418</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt" background-color="#FAFAFA" border="1pt solid #E0E0E0">
+                      <fo:block>ErgoStandingDesk</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt" background-color="#FAFAFA" border="1pt solid #E0E0E0">
+                      <fo:block>Furniture</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt" background-color="#FAFAFA" border="1pt solid #E0E0E0">
+                      <fo:block>$799</fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>
+                </fo:table-body>
+              </fo:table>
+
+              <!-- Technical Notes -->
+              <fo:block font-family="Helvetica" font-size="14pt" margin-top="24pt" padding="12pt" background-color="#FFF3E0" border="1pt solid #FF9800">
+                <fo:inline font-weight="bold">How It Works:</fo:inline> Folly measures the longest word in each column
+                across all rows to determine content requirements. Auto columns then share the available space
+                proportionally based on these measurements. This creates balanced tables that adapt to your data
+                while preventing overflow and ensuring readability.
+              </fo:block>
+
+              <fo:block font-family="Helvetica" font-size="11pt" margin-top="12pt" padding="8pt" background-color="#E8F5E9" border="1pt solid #4CAF50">
+                <fo:inline font-weight="bold">World-Class Feature:</fo:inline> Unlike simple equal distribution,
+                content-based sizing intelligently allocates space where it's needed most, resulting in professional,
+                publication-quality tables.
+              </fo:block>
+
+              <fo:block font-family="Helvetica" font-size="12pt" margin-top="24pt" padding="8pt" background-color="#F5F5F5">
+                Generated with Folly XSL-FO Processor - Phase 4.3 Complete: Content-Based Column Sizing!
               </fo:block>
             </fo:flow>
           </fo:page-sequence>
