@@ -110,9 +110,13 @@ GenerateBidiOverrideExample(Path.Combine(outputDir, "19-bidi-override.pdf"));
 Console.WriteLine("Generating Example 20: PDF Metadata...");
 GenerateMetadataExample(Path.Combine(outputDir, "20-metadata.pdf"));
 
-// Example 21: Flatland Book
-Console.WriteLine("Generating Example 21: Flatland Book...");
-GenerateFlatlandBook(Path.Combine(outputDir, "21-flatland.pdf"), examplesDir);
+// Example 21a: Flatland Book (Simple Line Breaking)
+Console.WriteLine("Generating Example 21a: Flatland Book (Simple Line Breaking)...");
+GenerateFlatlandBookSimple(Path.Combine(outputDir, "21a-flatland-simple.pdf"), examplesDir);
+
+// Example 21b: Flatland Book (Advanced: Knuth-Plass + Hyphenation)
+Console.WriteLine("Generating Example 21b: Flatland Book (Advanced: Knuth-Plass + Hyphenation)...");
+GenerateFlatlandBookAdvanced(Path.Combine(outputDir, "21b-flatland-advanced.pdf"), examplesDir);
 
 // Example 22: Emergency Line Breaking
 Console.WriteLine("Generating Example 22: Emergency Line Breaking...");
@@ -2017,7 +2021,7 @@ static void GenerateMetadataExample(string outputPath)
     doc.SavePdf(outputPath);
 }
 
-static void GenerateFlatlandBook(string outputPath, string examplesDir)
+static void GenerateFlatlandBookSimple(string outputPath, string examplesDir)
 {
     // Load the Flatland book from the examples/books directory
     var booksDir = Path.Combine(examplesDir, "books", "flatland");
@@ -2039,8 +2043,72 @@ static void GenerateFlatlandBook(string outputPath, string examplesDir)
     {
         Directory.SetCurrentDirectory(booksDir);
 
+        // Use simple/greedy line breaking (default, fast)
+        var layoutOptions = new LayoutOptions
+        {
+            LineBreaking = LineBreakingAlgorithm.Greedy,
+            EnableHyphenation = false
+        };
+
         using var doc = FoDocument.Load(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml)));
-        doc.SavePdf(outputPath);
+
+        // Build area tree with layout options
+        var areaTree = doc.BuildAreaTree(layoutOptions);
+
+        // Render to PDF
+        using var stream = File.Create(outputPath);
+        using var renderer = new Folly.Pdf.PdfRenderer(stream, new PdfOptions());
+        renderer.Render(areaTree, doc.Root.BookmarkTree);
+    }
+    finally
+    {
+        // Restore original directory
+        Directory.SetCurrentDirectory(originalDir);
+    }
+}
+
+static void GenerateFlatlandBookAdvanced(string outputPath, string examplesDir)
+{
+    // Load the Flatland book from the examples/books directory
+    var booksDir = Path.Combine(examplesDir, "books", "flatland");
+    var foFilePath = Path.Combine(booksDir, "flatland.fo");
+
+    if (!File.Exists(foFilePath))
+    {
+        Console.WriteLine($"Warning: Flatland FO file not found at {foFilePath}");
+        Console.WriteLine("Skipping flatland example.");
+        return;
+    }
+
+    // Read the FO file
+    var foXml = File.ReadAllText(foFilePath);
+
+    // Change to the flatland directory so relative image paths work
+    var originalDir = Directory.GetCurrentDirectory();
+    try
+    {
+        Directory.SetCurrentDirectory(booksDir);
+
+        // Use advanced Knuth-Plass line breaking with hyphenation for optimal typography
+        var layoutOptions = new LayoutOptions
+        {
+            LineBreaking = LineBreakingAlgorithm.Optimal,
+            EnableHyphenation = true,
+            HyphenationLanguage = "en-US",
+            HyphenationMinWordLength = 5,
+            HyphenationMinLeftChars = 2,
+            HyphenationMinRightChars = 3
+        };
+
+        using var doc = FoDocument.Load(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml)));
+
+        // Build area tree with layout options
+        var areaTree = doc.BuildAreaTree(layoutOptions);
+
+        // Render to PDF
+        using var stream = File.Create(outputPath);
+        using var renderer = new Folly.Pdf.PdfRenderer(stream, new PdfOptions());
+        renderer.Render(areaTree, doc.Root.BookmarkTree);
     }
     finally
     {
