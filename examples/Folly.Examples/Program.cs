@@ -142,6 +142,10 @@ GenerateKerningExample(Path.Combine(outputDir, "26-kerning.pdf"), examplesDir);
 Console.WriteLine("Generating Example 27: Table Row Spanning...");
 GenerateRowSpanningExample(Path.Combine(outputDir, "27-row-spanning.pdf"));
 
+// Example 28: Proportional Column Widths
+Console.WriteLine("Generating Example 28: Proportional Column Widths...");
+GenerateProportionalWidthsExample(Path.Combine(outputDir, "28-proportional-widths.pdf"));
+
 Console.WriteLine("\n✓ All examples generated successfully!");
 Console.WriteLine($"\nView PDFs in: {outputDir}");
 Console.WriteLine("\nValidate with qpdf:");
@@ -2899,6 +2903,208 @@ static void GenerateRowSpanningExample(string outputPath)
 
               <fo:block font-family="Helvetica" font-size="12pt" margin-top="24pt" padding="8pt" background-color="#F5F5F5">
                 Generated with Folly XSL-FO Processor - Phase 4.1 Complete: Row Spanning Support!
+              </fo:block>
+            </fo:flow>
+          </fo:page-sequence>
+        </fo:root>
+        """;
+
+    using var doc = FoDocument.Load(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml)));
+    doc.SavePdf(outputPath);
+}
+
+static void GenerateProportionalWidthsExample(string outputPath)
+{
+    var foXml = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+          <fo:layout-master-set>
+            <fo:simple-page-master master-name="A4" page-width="210mm" page-height="297mm" margin="1in">
+              <fo:region-body/>
+            </fo:simple-page-master>
+          </fo:layout-master-set>
+
+          <fo:page-sequence master-reference="A4">
+            <fo:flow flow-name="xsl-region-body">
+              <fo:block font-family="Helvetica" font-size="28pt" font-weight="bold" color="#1976D2" margin-bottom="24pt">
+                Proportional Column Widths
+              </fo:block>
+
+              <fo:block font-family="Helvetica" font-size="14pt" margin-bottom="24pt">
+                This document demonstrates the proportional-column-width() function for flexible table layouts.
+                Columns can be sized proportionally, allowing responsive designs that adapt to available space.
+              </fo:block>
+
+              <!-- Example 1: Equal Proportions -->
+              <fo:block font-family="Helvetica" font-size="18pt" font-weight="bold" color="#424242" margin-bottom="12pt">
+                Example 1: Equal Proportions (1:1:1)
+              </fo:block>
+
+              <fo:table border="1pt solid black" border-collapse="separate" border-spacing="2pt" margin-bottom="24pt">
+                <fo:table-column column-width="proportional-column-width(1)"/>
+                <fo:table-column column-width="proportional-column-width(1)"/>
+                <fo:table-column column-width="proportional-column-width(1)"/>
+                <fo:table-body>
+                  <fo:table-row>
+                    <fo:table-cell padding="8pt" background-color="#E3F2FD">
+                      <fo:block font-weight="bold">Column 1</fo:block>
+                      <fo:block font-size="10pt">1 part</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt" background-color="#E3F2FD">
+                      <fo:block font-weight="bold">Column 2</fo:block>
+                      <fo:block font-size="10pt">1 part</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt" background-color="#E3F2FD">
+                      <fo:block font-weight="bold">Column 3</fo:block>
+                      <fo:block font-size="10pt">1 part</fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>
+                  <fo:table-row>
+                    <fo:table-cell padding="8pt">
+                      <fo:block>Equal width columns</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt">
+                      <fo:block>Each gets 33.3%</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt">
+                      <fo:block>of available space</fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>
+                </fo:table-body>
+              </fo:table>
+
+              <!-- Example 2: Different Proportions -->
+              <fo:block font-family="Helvetica" font-size="18pt" font-weight="bold" color="#424242" margin-top="24pt" margin-bottom="12pt">
+                Example 2: Different Proportions (1:2:3)
+              </fo:block>
+
+              <fo:table border="1pt solid black" border-collapse="separate" border-spacing="2pt" margin-bottom="24pt">
+                <fo:table-column column-width="proportional-column-width(1)"/>
+                <fo:table-column column-width="proportional-column-width(2)"/>
+                <fo:table-column column-width="proportional-column-width(3)"/>
+                <fo:table-body>
+                  <fo:table-row>
+                    <fo:table-cell padding="8pt" background-color="#FFF9C4">
+                      <fo:block font-weight="bold">Small</fo:block>
+                      <fo:block font-size="10pt">1 part (16.7%)</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt" background-color="#FFE0B2">
+                      <fo:block font-weight="bold">Medium</fo:block>
+                      <fo:block font-size="10pt">2 parts (33.3%)</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt" background-color="#FFCCBC">
+                      <fo:block font-weight="bold">Large</fo:block>
+                      <fo:block font-size="10pt">3 parts (50%)</fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>
+                  <fo:table-row>
+                    <fo:table-cell padding="8pt">
+                      <fo:block>Narrow</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt">
+                      <fo:block>Wider than first</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt">
+                      <fo:block>Widest column - gets half the space</fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>
+                </fo:table-body>
+              </fo:table>
+
+              <!-- Example 3: Mixed Fixed and Proportional -->
+              <fo:block font-family="Helvetica" font-size="18pt" font-weight="bold" color="#424242" margin-top="24pt" margin-bottom="12pt">
+                Example 3: Mixed Fixed &amp; Proportional
+              </fo:block>
+
+              <fo:table border="1pt solid black" border-collapse="separate" border-spacing="2pt" margin-bottom="24pt">
+                <fo:table-column column-width="100pt"/>
+                <fo:table-column column-width="proportional-column-width(1)"/>
+                <fo:table-column column-width="proportional-column-width(2)"/>
+                <fo:table-body>
+                  <fo:table-row>
+                    <fo:table-cell padding="8pt" background-color="#C8E6C9">
+                      <fo:block font-weight="bold">Fixed</fo:block>
+                      <fo:block font-size="10pt">100pt</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt" background-color="#B3E5FC">
+                      <fo:block font-weight="bold">Prop 1</fo:block>
+                      <fo:block font-size="10pt">1 part of remainder</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt" background-color="#B2DFDB">
+                      <fo:block font-weight="bold">Prop 2</fo:block>
+                      <fo:block font-size="10pt">2 parts of remainder</fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>
+                  <fo:table-row>
+                    <fo:table-cell padding="8pt">
+                      <fo:block>Always 100pt</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt">
+                      <fo:block>Gets 1/3 of remaining space</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt">
+                      <fo:block>Gets 2/3 of remaining space (twice Column 2)</fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>
+                </fo:table-body>
+              </fo:table>
+
+              <!-- Example 4: All Three Types -->
+              <fo:block font-family="Helvetica" font-size="18pt" font-weight="bold" color="#424242" margin-top="24pt" margin-bottom="12pt">
+                Example 4: Fixed, Proportional &amp; Auto
+              </fo:block>
+
+              <fo:table border="1pt solid black" border-collapse="separate" border-spacing="2pt" margin-bottom="24pt">
+                <fo:table-column column-width="80pt"/>
+                <fo:table-column column-width="proportional-column-width(2)"/>
+                <fo:table-column column-width="auto"/>
+                <fo:table-column column-width="proportional-column-width(1)"/>
+                <fo:table-body>
+                  <fo:table-row>
+                    <fo:table-cell padding="6pt" background-color="#F8BBD0">
+                      <fo:block font-weight="bold" font-size="10pt">Fixed</fo:block>
+                      <fo:block font-size="9pt">80pt</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="6pt" background-color="#E1BEE7">
+                      <fo:block font-weight="bold" font-size="10pt">Prop 2</fo:block>
+                      <fo:block font-size="9pt">2 parts</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="6pt" background-color="#D1C4E9">
+                      <fo:block font-weight="bold" font-size="10pt">Auto</fo:block>
+                      <fo:block font-size="9pt">Equal share</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="6pt" background-color="#C5CAE9">
+                      <fo:block font-weight="bold" font-size="10pt">Prop 1</fo:block>
+                      <fo:block font-size="9pt">1 part</fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>
+                  <fo:table-row>
+                    <fo:table-cell padding="6pt">
+                      <fo:block font-size="10pt">Fixed 80pt</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="6pt">
+                      <fo:block font-size="10pt">2x the proportional</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="6pt">
+                      <fo:block font-size="10pt">Auto-sized</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="6pt">
+                      <fo:block font-size="10pt">1x proportion</fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>
+                </fo:table-body>
+              </fo:table>
+
+              <!-- Technical Notes -->
+              <fo:block font-family="Helvetica" font-size="14pt" margin-top="24pt" padding="12pt" background-color="#FFF3E0" border="1pt solid #FF9800">
+                <fo:inline font-weight="bold">How It Works:</fo:inline> Folly calculates column widths in two passes.
+                First, fixed-width columns are allocated their space. Then, the remaining width is distributed
+                proportionally based on the ratios specified in proportional-column-width(). Auto columns share
+                the remaining space equally.
+              </fo:block>
+
+              <fo:block font-family="Helvetica" font-size="12pt" margin-top="24pt" padding="8pt" background-color="#F5F5F5">
+                Generated with Folly XSL-FO Processor - Phase 4.2 Complete: Proportional Column Widths!
               </fo:block>
             </fo:flow>
           </fo:page-sequence>

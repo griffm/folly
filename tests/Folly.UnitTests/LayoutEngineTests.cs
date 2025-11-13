@@ -2418,4 +2418,219 @@ public class LayoutEngineTests
     }
 
     #endregion
+
+    #region Proportional Column Width Tests
+
+    [Fact]
+    public void TableProportionalColumnWidths_EqualProportions()
+    {
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="210mm" page-height="297mm">
+                  <fo:region-body margin="1in"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:table border="1pt solid black">
+                    <fo:table-column column-width="proportional-column-width(1)"/>
+                    <fo:table-column column-width="proportional-column-width(1)"/>
+                    <fo:table-column column-width="proportional-column-width(1)"/>
+                    <fo:table-body>
+                      <fo:table-row>
+                        <fo:table-cell padding="6pt"><fo:block>Column 1</fo:block></fo:table-cell>
+                        <fo:table-cell padding="6pt"><fo:block>Column 2</fo:block></fo:table-cell>
+                        <fo:table-cell padding="6pt"><fo:block>Column 3</fo:block></fo:table-cell>
+                      </fo:table-row>
+                    </fo:table-body>
+                  </fo:table>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+        Assert.NotNull(areaTree);
+        Assert.Single(areaTree.Pages);
+
+        var page = areaTree.Pages[0];
+        var tables = page.Areas.OfType<TableArea>().ToList();
+        Assert.NotEmpty(tables);
+
+        // All columns should have equal width (proportional 1:1:1)
+        var columnWidths = tables[0].ColumnWidths;
+        Assert.Equal(3, columnWidths.Count);
+        Assert.True(Math.Abs(columnWidths[0] - columnWidths[1]) < 1.0, "Columns 1 and 2 should be equal width");
+        Assert.True(Math.Abs(columnWidths[1] - columnWidths[2]) < 1.0, "Columns 2 and 3 should be equal width");
+    }
+
+    [Fact]
+    public void TableProportionalColumnWidths_DifferentProportions()
+    {
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="210mm" page-height="297mm">
+                  <fo:region-body margin="1in"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:table border="1pt solid black">
+                    <fo:table-column column-width="proportional-column-width(1)"/>
+                    <fo:table-column column-width="proportional-column-width(2)"/>
+                    <fo:table-column column-width="proportional-column-width(3)"/>
+                    <fo:table-body>
+                      <fo:table-row>
+                        <fo:table-cell padding="6pt"><fo:block>Small</fo:block></fo:table-cell>
+                        <fo:table-cell padding="6pt"><fo:block>Medium</fo:block></fo:table-cell>
+                        <fo:table-cell padding="6pt"><fo:block>Large</fo:block></fo:table-cell>
+                      </fo:table-row>
+                    </fo:table-body>
+                  </fo:table>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+        Assert.NotNull(areaTree);
+        Assert.Single(areaTree.Pages);
+
+        var page = areaTree.Pages[0];
+        var tables = page.Areas.OfType<TableArea>().ToList();
+        Assert.NotEmpty(tables);
+
+        // Columns should be in ratio 1:2:3
+        var columnWidths = tables[0].ColumnWidths;
+        Assert.Equal(3, columnWidths.Count);
+
+        // Column 2 should be approximately 2x Column 1
+        var ratio1to2 = columnWidths[1] / columnWidths[0];
+        Assert.True(Math.Abs(ratio1to2 - 2.0) < 0.1, $"Expected ratio ~2.0, got {ratio1to2}");
+
+        // Column 3 should be approximately 3x Column 1
+        var ratio1to3 = columnWidths[2] / columnWidths[0];
+        Assert.True(Math.Abs(ratio1to3 - 3.0) < 0.1, $"Expected ratio ~3.0, got {ratio1to3}");
+    }
+
+    [Fact]
+    public void TableMixedColumnWidths_FixedAndProportional()
+    {
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="210mm" page-height="297mm">
+                  <fo:region-body margin="1in"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:table border="1pt solid black">
+                    <fo:table-column column-width="100pt"/>
+                    <fo:table-column column-width="proportional-column-width(1)"/>
+                    <fo:table-column column-width="proportional-column-width(2)"/>
+                    <fo:table-body>
+                      <fo:table-row>
+                        <fo:table-cell padding="6pt"><fo:block>Fixed 100pt</fo:block></fo:table-cell>
+                        <fo:table-cell padding="6pt"><fo:block>Proportional 1</fo:block></fo:table-cell>
+                        <fo:table-cell padding="6pt"><fo:block>Proportional 2</fo:block></fo:table-cell>
+                      </fo:table-row>
+                    </fo:table-body>
+                  </fo:table>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+        Assert.NotNull(areaTree);
+        Assert.Single(areaTree.Pages);
+
+        var page = areaTree.Pages[0];
+        var tables = page.Areas.OfType<TableArea>().ToList();
+        Assert.NotEmpty(tables);
+
+        var columnWidths = tables[0].ColumnWidths;
+        Assert.Equal(3, columnWidths.Count);
+
+        // First column should be exactly 100pt
+        Assert.Equal(100.0, columnWidths[0], 0.1);
+
+        // Remaining columns should be in ratio 1:2
+        var ratio2to3 = columnWidths[2] / columnWidths[1];
+        Assert.True(Math.Abs(ratio2to3 - 2.0) < 0.1, $"Expected ratio ~2.0, got {ratio2to3}");
+    }
+
+    [Fact]
+    public void TableMixedColumnWidths_FixedProportionalAndAuto()
+    {
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="210mm" page-height="297mm">
+                  <fo:region-body margin="1in"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:table border="1pt solid black">
+                    <fo:table-column column-width="80pt"/>
+                    <fo:table-column column-width="proportional-column-width(2)"/>
+                    <fo:table-column column-width="auto"/>
+                    <fo:table-column column-width="proportional-column-width(1)"/>
+                    <fo:table-body>
+                      <fo:table-row>
+                        <fo:table-cell padding="6pt"><fo:block>Fixed</fo:block></fo:table-cell>
+                        <fo:table-cell padding="6pt"><fo:block>Prop 2</fo:block></fo:table-cell>
+                        <fo:table-cell padding="6pt"><fo:block>Auto</fo:block></fo:table-cell>
+                        <fo:table-cell padding="6pt"><fo:block>Prop 1</fo:block></fo:table-cell>
+                      </fo:table-row>
+                    </fo:table-body>
+                  </fo:table>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+        Assert.NotNull(areaTree);
+        Assert.Single(areaTree.Pages);
+
+        var page = areaTree.Pages[0];
+        var tables = page.Areas.OfType<TableArea>().ToList();
+        Assert.NotEmpty(tables);
+
+        var columnWidths = tables[0].ColumnWidths;
+        Assert.Equal(4, columnWidths.Count);
+
+        // First column should be exactly 80pt
+        Assert.Equal(80.0, columnWidths[0], 0.1);
+
+        // All columns should have positive widths
+        Assert.True(columnWidths.All(w => w > 0), "All columns should have positive widths");
+
+        // Proportional columns should be in ratio 2:1
+        var ratioProp2toProp1 = columnWidths[1] / columnWidths[3];
+        Assert.True(Math.Abs(ratioProp2toProp1 - 2.0) < 0.1, $"Expected ratio ~2.0, got {ratioProp2toProp1}");
+    }
+
+    #endregion
 }
