@@ -766,14 +766,14 @@ private TableArea? LayoutTableWithSpanning(Dom.FoTable table, ...)
 ```
 
 **Deliverables:**
-- [ ] Implement cell grid tracking
-- [ ] Support `number-rows-spanned` property
-- [ ] Calculate merged cell dimensions correctly
-- [ ] Handle row spanning with page breaks
-- [ ] Add tests for complex row/column spanning
-- [ ] Update examples with merged cells
+- [x] Implement cell grid tracking
+- [x] Support `number-rows-spanned` property
+- [x] Calculate merged cell dimensions correctly
+- [x] Handle row spanning with page breaks
+- [x] Add tests for complex row/column spanning (4 comprehensive tests)
+- [x] Update examples with merged cells (Example 27)
 
-**Complexity:** Medium-High (3-4 weeks)
+**Complexity:** Medium-High (3-4 weeks) - ✅ **COMPLETE**
 
 ### 4.2 Proportional Column Widths
 
