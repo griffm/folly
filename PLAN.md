@@ -819,12 +819,12 @@ private List<double> CalculateProportionalWidths(
 ```
 
 **Deliverables:**
-- [ ] Support `proportional-column-width()` function
-- [ ] Mix fixed and proportional widths
-- [ ] Add tests for proportional layouts
-- [ ] Update examples
+- [x] Support `proportional-column-width()` function
+- [x] Mix fixed and proportional widths
+- [x] Add tests for proportional layouts (4 comprehensive tests)
+- [x] Update examples (Example 28)
 
-**Complexity:** Medium (2-3 weeks)
+**Complexity:** Medium (2-3 weeks) - ✅ **COMPLETE**
 
 ### 4.3 Content-Based Column Sizing
 
