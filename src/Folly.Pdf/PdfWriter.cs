@@ -926,17 +926,26 @@ internal sealed class PdfWriter : IDisposable
         bool subsetFonts)
     {
         var pdfFontName = GetPdfFontName(fontName);
+
+        // Write encoding dictionary FIRST (before starting font object)
+        // so we don't nest object creation
+        int? encodingId = null;
+        if (subsetFonts && characterUsage.TryGetValue(fontName, out var usedChars) && usedChars.Count > 0)
+        {
+            encodingId = WriteCustomEncoding(fontName, usedChars);
+        }
+
+        // Now write the font dictionary
         var fontId = BeginObject();
         WriteLine("<<");
         WriteLine("  /Type /Font");
         WriteLine("  /Subtype /Type1");
         WriteLine($"  /BaseFont /{pdfFontName}");
 
-        // Reference the encoding dictionary if one was created for subsetting
-        if (subsetFonts && characterUsage.TryGetValue(fontName, out var usedChars) && usedChars.Count > 0)
+        // Reference the encoding dictionary if one was created
+        if (encodingId.HasValue)
         {
-            var encodingId = WriteCustomEncoding(fontName, usedChars);
-            WriteLine($"  /Encoding {encodingId} 0 R");
+            WriteLine($"  /Encoding {encodingId.Value} 0 R");
         }
 
         WriteLine(">>");
