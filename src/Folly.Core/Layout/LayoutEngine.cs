@@ -1363,6 +1363,7 @@ internal sealed class LayoutEngine
             return lines;
         }
 
+        var hyphenChar = _options.HyphenationCharacter;
         var currentFragment = new StringBuilder();
 
         for (int i = 0; i < word.Length; i++)
@@ -1374,10 +1375,49 @@ internal sealed class LayoutEngine
             if (tentativeWidth > availableWidth && currentFragment.Length > 0)
             {
                 // Adding this character would exceed width
-                // Complete the current fragment and start a new one
-                lines.Add(currentFragment.ToString());
-                currentFragment.Clear();
-                currentFragment.Append(ch);
+                // Try to add a hyphen to indicate the word continues
+                var fragmentWithHyphen = currentFragment.ToString() + hyphenChar;
+                var hyphenWidth = fontMetrics.MeasureWidth(fragmentWithHyphen);
+
+                if (hyphenWidth <= availableWidth)
+                {
+                    // Hyphen fits, use it
+                    lines.Add(fragmentWithHyphen);
+                    currentFragment.Clear();
+                    currentFragment.Append(ch);
+                }
+                else if (currentFragment.Length > 1)
+                {
+                    // Hyphen doesn't fit, try removing last character
+                    var lastChar = currentFragment[currentFragment.Length - 1];
+                    currentFragment.Length--; // Remove last char
+                    fragmentWithHyphen = currentFragment.ToString() + hyphenChar;
+                    hyphenWidth = fontMetrics.MeasureWidth(fragmentWithHyphen);
+
+                    if (hyphenWidth <= availableWidth)
+                    {
+                        // Now it fits with hyphen
+                        lines.Add(fragmentWithHyphen);
+                        currentFragment.Clear();
+                        currentFragment.Append(lastChar);
+                        currentFragment.Append(ch);
+                    }
+                    else
+                    {
+                        // Still doesn't fit, break without hyphen
+                        lines.Add(currentFragment.ToString());
+                        currentFragment.Clear();
+                        currentFragment.Append(lastChar);
+                        currentFragment.Append(ch);
+                    }
+                }
+                else
+                {
+                    // Only one character, can't fit hyphen, break without it
+                    lines.Add(currentFragment.ToString());
+                    currentFragment.Clear();
+                    currentFragment.Append(ch);
+                }
             }
             else
             {
@@ -1386,7 +1426,7 @@ internal sealed class LayoutEngine
             }
         }
 
-        // Add the last fragment if not empty
+        // Add the last fragment if not empty (no hyphen on last fragment)
         if (currentFragment.Length > 0)
         {
             lines.Add(currentFragment.ToString());
