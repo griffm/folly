@@ -311,9 +311,22 @@ public sealed class PdfRenderer : IDisposable
         // In PDF, Tw remains active until explicitly changed, so we must set it even when 0
         content.AppendLine($"{inline.WordSpacing:F3} Tw"); // Set word spacing
 
-        // Get character remapping for this font (if subsetting is enabled)
+        // Get character to glyph ID mapping for TrueType fonts (Type 0/Identity-H)
+        // Fall back to character remapping for Type1 fonts
+        var glyphIdMapping = _writer.GetCharacterToGlyphId(inline.FontFamily);
         var remapping = _writer.GetCharacterRemapping(inline.FontFamily);
-        content.AppendLine($"({EscapeAndRemapString(inline.Text, remapping)}) Tj"); // Show text
+
+        // For TrueType fonts with glyph ID mapping, use hex string format
+        // For Type1 fonts, use literal string format
+        if (glyphIdMapping != null)
+        {
+            content.AppendLine($"<{ConvertToGlyphIdHexString(inline.Text, glyphIdMapping)}> Tj"); // Show text (hex format)
+        }
+        else
+        {
+            content.AppendLine($"({EscapeAndRemapString(inline.Text, remapping)}) Tj"); // Show text (literal format)
+        }
+
         content.AppendLine("ET"); // End text
 
         // Render text decoration (underline, overline, line-through)
@@ -747,6 +760,33 @@ public sealed class PdfRenderer : IDisposable
         { '\u2030', (char)189 },  // Per mille sign (‰) → perthousand
         { '\u0192', (char)166 },  // Latin small letter f with hook (ƒ) → florin
     };
+
+    /// <summary>
+    /// Converts text to a hex string of 2-byte glyph IDs for Type 0 fonts with Identity-H encoding.
+    /// Each character is mapped to its glyph ID and written as a 4-digit hex value.
+    /// Example: "AB" with glyph IDs 65,66 becomes "00410042"
+    /// </summary>
+    private static string ConvertToGlyphIdHexString(string str, Dictionary<char, ushort> glyphIdMapping)
+    {
+        var result = new StringBuilder(str.Length * 4); // 4 hex digits per character
+
+        foreach (var ch in str)
+        {
+            // Look up glyph ID for this character
+            if (glyphIdMapping.TryGetValue(ch, out var glyphId))
+            {
+                // Write glyph ID as 4-digit hex (2 bytes)
+                result.Append($"{glyphId:X4}");
+            }
+            else
+            {
+                // Character not in font - use glyph ID 0 (missing glyph / .notdef)
+                result.Append("0000");
+            }
+        }
+
+        return result.ToString();
+    }
 
     private static string EscapeAndRemapString(string str, Dictionary<char, byte>? remapping)
     {
