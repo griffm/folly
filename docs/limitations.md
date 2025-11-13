@@ -586,7 +586,6 @@ return $"uni{codePoint:X4}";
 ```
 
 **Impact**:
-- Implementation details not clear from TODO search
 - Potential issues with total page count in headers/footers
 
 ---
