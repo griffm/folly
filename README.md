@@ -193,6 +193,7 @@ The core rendering engine is fully operational with extensive feature support:
 - **Table header repetition** on new pages (configurable via `table-omit-header-at-break`)
 - **Table row spanning** (number-rows-spanned) with cell grid tracking for complex layouts
 - **Table column spanning** (number-columns-spanned) for merged cells
+- **Proportional column widths** (proportional-column-width()) for flexible, responsive table layouts
 - List formatting (fo:list-block)
 - **Multi-page list support** with automatic page breaking between items
 - **keep-together support on list items** to prevent breaking across pages
@@ -235,10 +236,10 @@ The core rendering engine is fully operational with extensive feature support:
 - PDF outline/bookmarks for document navigation
 
 **Quality Assurance:**
-- 270+ passing unit tests (99%+ success rate)
+- 274+ passing unit tests (99%+ success rate)
   - 21 XSL-FO conformance tests (formatting object parsing, including repeatable-page-master-reference)
   - 25 property inheritance tests (50+ inheritable properties)
-  - 49+ layout engine tests (line breaking, page breaking, tables, footnotes, text justification, **multi-page tables**, **table row spanning**, **multi-page lists**, **keep-with-next/previous**, **widow/orphan control**, **emergency line breaking**)
+  - 53+ layout engine tests (line breaking, page breaking, tables, footnotes, text justification, **multi-page tables**, **table row spanning**, **proportional column widths**, **multi-page lists**, **keep-with-next/previous**, **widow/orphan control**, **emergency line breaking**)
   - **19 hyphenation tests** (Liang's algorithm, multi-language support, configurable constraints)
   - **5 emergency line breaking tests** (character-level breaking, wrap-option support, narrow columns)
   - **7 Knuth-Plass line breaking tests** (optimal line breaking, TeX-quality typography, comparison with greedy)
@@ -247,7 +248,7 @@ The core rendering engine is fully operational with extensive feature support:
   - 14 PDF validation tests (structure, fonts, compression, metadata, links)
   - 9 AreaTree snapshot tests (layout regression detection)
   - 13 fuzzing/stress tests (malformed input, extreme nesting, large tables)
-  - 27 working example PDFs (including **TrueType font embedding**, **font fallback & system fonts**, **kerning demonstration**, **table row spanning**, multi-page tables, multi-page lists, keep-with-next/previous, emergency line breaking)
+  - 28 working example PDFs (including **TrueType font embedding**, **font fallback & system fonts**, **kerning demonstration**, **table row spanning**, **proportional column widths**, multi-page tables, multi-page lists, keep-with-next/previous, emergency line breaking)
 - 100% qpdf validation success (zero errors)
 - Verified with qpdf 11.9.0
 
