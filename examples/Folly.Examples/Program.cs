@@ -138,6 +138,10 @@ GenerateFontFallbackExample(Path.Combine(outputDir, "25-font-fallback.pdf"));
 Console.WriteLine("Generating Example 26: Kerning Demonstration...");
 GenerateKerningExample(Path.Combine(outputDir, "26-kerning.pdf"), examplesDir);
 
+// Example 27: Table Row Spanning
+Console.WriteLine("Generating Example 27: Table Row Spanning...");
+GenerateRowSpanningExample(Path.Combine(outputDir, "27-row-spanning.pdf"));
+
 Console.WriteLine("\n✓ All examples generated successfully!");
 Console.WriteLine($"\nView PDFs in: {outputDir}");
 Console.WriteLine("\nValidate with qpdf:");
@@ -2722,4 +2726,185 @@ static void GenerateKerningExample(string outputPath, string examplesDir)
     options.TrueTypeFonts["LiberationSans"] = liberationPath;
 
     doc.SavePdf(outputPath, options);
+}
+
+static void GenerateRowSpanningExample(string outputPath)
+{
+    var foXml = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+          <fo:layout-master-set>
+            <fo:simple-page-master master-name="A4" page-width="210mm" page-height="297mm" margin="1in">
+              <fo:region-body/>
+            </fo:simple-page-master>
+          </fo:layout-master-set>
+
+          <fo:page-sequence master-reference="A4">
+            <fo:flow flow-name="xsl-region-body">
+              <fo:block font-family="Helvetica" font-size="28pt" font-weight="bold" color="#1976D2" margin-bottom="24pt">
+                Table Row Spanning
+              </fo:block>
+
+              <fo:block font-family="Helvetica" font-size="14pt" margin-bottom="24pt">
+                This document demonstrates row spanning support in tables, allowing cells to span
+                multiple rows for complex layouts.
+              </fo:block>
+
+              <!-- Example 1: Basic Row Spanning -->
+              <fo:block font-family="Helvetica" font-size="18pt" font-weight="bold" color="#424242" margin-bottom="12pt">
+                Example 1: Basic Row Spanning
+              </fo:block>
+
+              <fo:table border="1pt solid black" border-collapse="separate" border-spacing="2pt" margin-bottom="24pt">
+                <fo:table-column column-width="80pt"/>
+                <fo:table-column column-width="120pt"/>
+                <fo:table-column column-width="120pt"/>
+                <fo:table-body>
+                  <fo:table-row>
+                    <fo:table-cell number-rows-spanned="3" background-color="#E3F2FD" padding="8pt">
+                      <fo:block font-weight="bold">Spans 3 Rows</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt">
+                      <fo:block>Row 1, Col 2</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt">
+                      <fo:block>Row 1, Col 3</fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>
+                  <fo:table-row>
+                    <fo:table-cell padding="8pt" background-color="#FFF9C4">
+                      <fo:block>Row 2, Col 2</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt" background-color="#FFF9C4">
+                      <fo:block>Row 2, Col 3</fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>
+                  <fo:table-row>
+                    <fo:table-cell padding="8pt">
+                      <fo:block>Row 3, Col 2</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt">
+                      <fo:block>Row 3, Col 3</fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>
+                </fo:table-body>
+              </fo:table>
+
+              <!-- Example 2: Combined Row and Column Spanning -->
+              <fo:block font-family="Helvetica" font-size="18pt" font-weight="bold" color="#424242" margin-top="24pt" margin-bottom="12pt">
+                Example 2: Combined Row &amp; Column Spanning
+              </fo:block>
+
+              <fo:table border="1pt solid black" border-collapse="separate" border-spacing="2pt" margin-bottom="24pt">
+                <fo:table-column column-width="100pt"/>
+                <fo:table-column column-width="100pt"/>
+                <fo:table-column column-width="120pt"/>
+                <fo:table-body>
+                  <fo:table-row>
+                    <fo:table-cell number-rows-spanned="2" number-columns-spanned="2" background-color="#FFE0B2" padding="8pt">
+                      <fo:block font-weight="bold" text-align="center">2×2 Spanning Cell</fo:block>
+                      <fo:block margin-top="6pt">Spans 2 rows and 2 columns</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt">
+                      <fo:block>Cell A</fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>
+                  <fo:table-row>
+                    <fo:table-cell padding="8pt" background-color="#C8E6C9">
+                      <fo:block>Cell B</fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>
+                  <fo:table-row>
+                    <fo:table-cell padding="8pt">
+                      <fo:block>Cell C</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt">
+                      <fo:block>Cell D</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="8pt">
+                      <fo:block>Cell E</fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>
+                </fo:table-body>
+              </fo:table>
+
+              <!-- Example 3: Complex Spanning Layout -->
+              <fo:block font-family="Helvetica" font-size="18pt" font-weight="bold" color="#424242" margin-top="24pt" margin-bottom="12pt">
+                Example 3: Complex Spanning Layout
+              </fo:block>
+
+              <fo:table border="1pt solid black" border-collapse="separate" border-spacing="2pt" margin-bottom="24pt">
+                <fo:table-column column-width="80pt"/>
+                <fo:table-column column-width="80pt"/>
+                <fo:table-column column-width="80pt"/>
+                <fo:table-column column-width="80pt"/>
+                <fo:table-body>
+                  <fo:table-row>
+                    <fo:table-cell number-rows-spanned="3" background-color="#F8BBD0" padding="6pt">
+                      <fo:block font-weight="bold">R1C1</fo:block>
+                      <fo:block font-size="10pt">(3 rows)</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="6pt">
+                      <fo:block>R1C2</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell number-rows-spanned="2" background-color="#BBDEFB" padding="6pt">
+                      <fo:block font-weight="bold">R1C3</fo:block>
+                      <fo:block font-size="10pt">(2 rows)</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="6pt">
+                      <fo:block>R1C4</fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>
+                  <fo:table-row>
+                    <fo:table-cell number-rows-spanned="2" background-color="#C5E1A5" padding="6pt">
+                      <fo:block font-weight="bold">R2C2</fo:block>
+                      <fo:block font-size="10pt">(2 rows)</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="6pt">
+                      <fo:block>R2C4</fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>
+                  <fo:table-row>
+                    <fo:table-cell padding="6pt">
+                      <fo:block>R3C3</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="6pt">
+                      <fo:block>R3C4</fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>
+                  <fo:table-row>
+                    <fo:table-cell padding="6pt">
+                      <fo:block>R4C1</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="6pt">
+                      <fo:block>R4C2</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="6pt">
+                      <fo:block>R4C3</fo:block>
+                    </fo:table-cell>
+                    <fo:table-cell padding="6pt">
+                      <fo:block>R4C4</fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>
+                </fo:table-body>
+              </fo:table>
+
+              <!-- Technical Notes -->
+              <fo:block font-family="Helvetica" font-size="14pt" margin-top="24pt" padding="12pt" background-color="#E8F5E9" border="1pt solid #4CAF50">
+                <fo:inline font-weight="bold">Implementation Details:</fo:inline> Folly uses a TableCellGrid to track
+                cell occupancy across rows and columns. The layout engine performs a two-pass layout: first calculating
+                row heights, then rendering cells with proper spanning. This ensures row-spanning cells have the correct
+                height across multiple rows.
+              </fo:block>
+
+              <fo:block font-family="Helvetica" font-size="12pt" margin-top="24pt" padding="8pt" background-color="#F5F5F5">
+                Generated with Folly XSL-FO Processor - Phase 4.1 Complete: Row Spanning Support!
+              </fo:block>
+            </fo:flow>
+          </fo:page-sequence>
+        </fo:root>
+        """;
+
+    using var doc = FoDocument.Load(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml)));
+    doc.SavePdf(outputPath);
 }
