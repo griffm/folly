@@ -533,7 +533,7 @@ var floatWidth = Math.Min(200, bodyWidth / 3);
 
 **Impact**:
 - Cannot use PDF 2.0 features
-- Cannot generate PDF/A-1, PDF/A-2 (require older versions)
+- Cannot generate PDF/A-1 (requires PDF 1.4); PDF/A-2 and PDF/A-3 (based on PDF 1.7) are not supported due to lack of PDF/A conformance features
 - No access to newer compression or security features
 
 ---
