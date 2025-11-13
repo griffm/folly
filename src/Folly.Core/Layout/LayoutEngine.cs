@@ -1092,8 +1092,8 @@ internal sealed class LayoutEngine
             if (tentativeWidth > availableWidth && currentLine.Length > 0)
             {
                 // Adding this word would exceed width
-                // Try hyphenation if enabled
-                if (_options.EnableHyphenation && !word.Contains('-') && !word.Contains('—') && !word.Contains('–'))
+                // Try hyphenation if enabled (both globally and for this block)
+                if (_options.EnableHyphenation && foBlock.Hyphenate && !word.Contains('-') && !word.Contains('—') && !word.Contains('–'))
                 {
                     // Calculate available width for hyphenation
                     var currentLineStr = currentLine.ToString();

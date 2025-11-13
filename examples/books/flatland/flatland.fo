@@ -19,8 +19,8 @@
   <!-- Title Page -->
   <fo:page-sequence master-reference="title-page">
     <fo:flow flow-name="xsl-region-body">
-      <fo:block font-size="32pt" font-weight="bold" text-align="center" space-before="2.5in" space-after="0.75in" font-family="serif">Flatland  A Romance of Many Dimensions</fo:block>
-      <fo:block font-size="14pt" text-align="center" space-after="0.5in" font-family="serif">Edwin A. Abbott (1838-1926. English scholar, theologian, and writer.)</fo:block>
+      <fo:block font-size="32pt" font-weight="bold" text-align="center" space-before="2.5in" space-after="0.75in" font-family="serif" hyphenate="false">Flatland  A Romance of Many Dimensions</fo:block>
+      <fo:block font-size="14pt" text-align="center" space-after="0.5in" font-family="serif" hyphenate="false">Edwin A. Abbott (1838-1926. English scholar, theologian, and writer.)</fo:block>
       <fo:block text-align="center" space-after="0.5in">
         <fo:external-graphic src="images/ill_intro.png" width="100%" scaling="uniform"/>
       </fo:block>
@@ -38,7 +38,7 @@
       <fo:block text-align="center" font-size="10pt" padding-before="0.2in" border-before-width="0.5pt" border-before-style="solid" font-family="serif"><fo:page-number/></fo:block>
     </fo:static-content>
     <fo:flow flow-name="xsl-region-body">
-      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif">§ 1.  Of the Nature of Flatland</fo:block>
+      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif" hyphenate="false">§ 1.  Of the Nature of Flatland</fo:block>
       <fo:block font-size="11pt" text-align="justify" line-height="1.5" space-after="0.25in" font-family="serif">I call our world Flatland, not because we call it so, but to make its
 nature clearer to you, my happy readers, who are privileged to live in
 Space.</fo:block>
@@ -115,7 +115,7 @@ in our country.</fo:block>
       <fo:block text-align="center" font-size="10pt" padding-before="0.2in" border-before-width="0.5pt" border-before-style="solid" font-family="serif"><fo:page-number/></fo:block>
     </fo:static-content>
     <fo:flow flow-name="xsl-region-body">
-      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif">§ 2.  Of the Climate and Houses in Flatland</fo:block>
+      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif" hyphenate="false">§ 2.  Of the Climate and Houses in Flatland</fo:block>
       <fo:block font-size="11pt" text-align="justify" line-height="1.5" space-after="0.25in" font-family="serif">As with you, so also with us, there are four points of the compass
 North, South, East, and West.</fo:block>
       <fo:block font-size="11pt" text-align="justify" line-height="1.5" space-after="0.25in" font-family="serif">There being no sun nor other heavenly bodies, it is impossible for us
@@ -202,7 +202,7 @@ house.</fo:block>
       <fo:block text-align="center" font-size="10pt" padding-before="0.2in" border-before-width="0.5pt" border-before-style="solid" font-family="serif"><fo:page-number/></fo:block>
     </fo:static-content>
     <fo:flow flow-name="xsl-region-body">
-      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif">§ 3.  Concerning the Inhabitants of Flatland</fo:block>
+      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif" hyphenate="false">§ 3.  Concerning the Inhabitants of Flatland</fo:block>
       <fo:block font-size="11pt" text-align="justify" line-height="1.5" space-after="0.25in" font-family="serif">The greatest length or breadth of a full grown inhabitant of Flatland
 may be estimated at about eleven of your inches.  Twelve inches may be
 regarded as a maximum.</fo:block>
@@ -327,7 +327,7 @@ all ended thus.</fo:block>
       <fo:block text-align="center" font-size="10pt" padding-before="0.2in" border-before-width="0.5pt" border-before-style="solid" font-family="serif"><fo:page-number/></fo:block>
     </fo:static-content>
     <fo:flow flow-name="xsl-region-body">
-      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif">§ 4.  Concerning the Women</fo:block>
+      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif" hyphenate="false">§ 4.  Concerning the Women</fo:block>
       <fo:block font-size="11pt" text-align="justify" line-height="1.5" space-after="0.25in" font-family="serif">If our highly pointed Triangles of the Soldier class are formidable, it
 may be readily inferred that far more formidable are our Women.  For if
 a Soldier is a wedge, a Woman is a needle; being, so to speak, ALL
@@ -506,7 +506,7 @@ basis of the constitution of Flatland.</fo:block>
       <fo:block text-align="center" font-size="10pt" padding-before="0.2in" border-before-width="0.5pt" border-before-style="solid" font-family="serif"><fo:page-number/></fo:block>
     </fo:static-content>
     <fo:flow flow-name="xsl-region-body">
-      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif">§ 5.  Of our Methods of Recognizing one another</fo:block>
+      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif" hyphenate="false">§ 5.  Of our Methods of Recognizing one another</fo:block>
       <fo:block font-size="11pt" text-align="justify" line-height="1.5" space-after="0.25in" font-family="serif">You, who are blessed with shade as well as light, you, who are gifted
 with two eyes, endowed with a knowledge of perspective, and charmed
 with the enjoyment of various colours, you, who can actually SEE an
@@ -676,7 +676,7 @@ description of which shall be reserved for the next section.</fo:block>
       <fo:block text-align="center" font-size="10pt" padding-before="0.2in" border-before-width="0.5pt" border-before-style="solid" font-family="serif"><fo:page-number/></fo:block>
     </fo:static-content>
     <fo:flow flow-name="xsl-region-body">
-      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif">§ 6.  Of Recognition by Sight</fo:block>
+      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif" hyphenate="false">§ 6.  Of Recognition by Sight</fo:block>
       <fo:block font-size="11pt" text-align="justify" line-height="1.5" space-after="0.25in" font-family="serif">I am about to appear very inconsistent.  In previous sections I have
 said that all figures in Flatland present the appearance of a straight
 line; and it was added or implied, that it is consequently impossible
@@ -853,7 +853,7 @@ matter of such vital interest that it demands a separate section.</fo:block>
       <fo:block text-align="center" font-size="10pt" padding-before="0.2in" border-before-width="0.5pt" border-before-style="solid" font-family="serif"><fo:page-number/></fo:block>
     </fo:static-content>
     <fo:flow flow-name="xsl-region-body">
-      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif">§ 7.  Concerning Irregular Figures</fo:block>
+      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif" hyphenate="false">§ 7.  Concerning Irregular Figures</fo:block>
       <fo:block font-size="11pt" text-align="justify" line-height="1.5" space-after="0.25in" font-family="serif">Throughout the previous pages I have been assuming—what perhaps should
 have been laid down at the beginning as a distinct and fundamental
 proposition—that every human being in Flatland is a Regular Figure,
@@ -974,7 +974,7 @@ painlessly and mercifully consumed.</fo:block>
       <fo:block text-align="center" font-size="10pt" padding-before="0.2in" border-before-width="0.5pt" border-before-style="solid" font-family="serif"><fo:page-number/></fo:block>
     </fo:static-content>
     <fo:flow flow-name="xsl-region-body">
-      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif">§ 8.  Of the Ancient Practice of Painting</fo:block>
+      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif" hyphenate="false">§ 8.  Of the Ancient Practice of Painting</fo:block>
       <fo:block font-size="11pt" text-align="justify" line-height="1.5" space-after="0.25in" font-family="serif">If my Readers have followed me with any attention up to this point,
 they will not be surprised to hear that life is somewhat dull in
 Flatland.  I do not, of course, mean that there are not battles,
@@ -1077,7 +1077,7 @@ scientific utterance of these modern days.</fo:block>
       <fo:block text-align="center" font-size="10pt" padding-before="0.2in" border-before-width="0.5pt" border-before-style="solid" font-family="serif"><fo:page-number/></fo:block>
     </fo:static-content>
     <fo:flow flow-name="xsl-region-body">
-      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif">§ 9.  Of the Universal Colour Bill</fo:block>
+      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif" hyphenate="false">§ 9.  Of the Universal Colour Bill</fo:block>
       <fo:block font-size="11pt" text-align="justify" line-height="1.5" space-after="0.25in" font-family="serif">But meanwhile the intellectual Arts were fast decaying.</fo:block>
       <fo:block font-size="11pt" text-align="justify" line-height="1.5" space-after="0.25in" font-family="serif">The Art of Sight Recognition, being no longer needed, was no longer
 practised; and the studies of Geometry, Statics, Kinetics, and other
@@ -1209,7 +1209,7 @@ the subversion of our Privileged Classes.</fo:block>
       <fo:block text-align="center" font-size="10pt" padding-before="0.2in" border-before-width="0.5pt" border-before-style="solid" font-family="serif"><fo:page-number/></fo:block>
     </fo:static-content>
     <fo:flow flow-name="xsl-region-body">
-      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif">§ 10.  Of the Suppression of the Chromatic Sedition</fo:block>
+      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif" hyphenate="false">§ 10.  Of the Suppression of the Chromatic Sedition</fo:block>
       <fo:block font-size="11pt" text-align="justify" line-height="1.5" space-after="0.25in" font-family="serif">The agitation for the Universal Colour Bill continued for three years;
 and up to the last moment of that period it seemed as though Anarchy
 were destined to triumph.</fo:block>
@@ -1357,7 +1357,7 @@ Colour Bill.</fo:block>
       <fo:block text-align="center" font-size="10pt" padding-before="0.2in" border-before-width="0.5pt" border-before-style="solid" font-family="serif"><fo:page-number/></fo:block>
     </fo:static-content>
     <fo:flow flow-name="xsl-region-body">
-      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif">§ 11.  Concerning our Priests</fo:block>
+      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif" hyphenate="false">§ 11.  Concerning our Priests</fo:block>
       <fo:block font-size="11pt" text-align="justify" line-height="1.5" space-after="0.25in" font-family="serif">It is high time that I should pass from these brief and discursive
 notes about things in Flatland to the central event of this book, my
 initiation into the mysteries of Space.  THAT is my subject; all that
@@ -1457,7 +1457,7 @@ to similar domestic sacrifices, which have a dissimilar issue.</fo:block>
       <fo:block text-align="center" font-size="10pt" padding-before="0.2in" border-before-width="0.5pt" border-before-style="solid" font-family="serif"><fo:page-number/></fo:block>
     </fo:static-content>
     <fo:flow flow-name="xsl-region-body">
-      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif">§ 12.  Of the Doctrine of our Priests</fo:block>
+      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif" hyphenate="false">§ 12.  Of the Doctrine of our Priests</fo:block>
       <fo:block font-size="11pt" text-align="justify" line-height="1.5" space-after="0.25in" font-family="serif">As to the doctrine of the Circles it may briefly be summed up in a
 single maxim, "Attend to your Configuration."  Whether political,
 ecclesiastical, or moral, all their teaching has for its object the
@@ -1622,7 +1622,7 @@ of Female education.</fo:block>
       <fo:block text-align="center" font-size="10pt" padding-before="0.2in" border-before-width="0.5pt" border-before-style="solid" font-family="serif"><fo:page-number/></fo:block>
     </fo:static-content>
     <fo:flow flow-name="xsl-region-body">
-      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif">§ 13.  How I had a Vision of Lineland</fo:block>
+      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif" hyphenate="false">§ 13.  How I had a Vision of Lineland</fo:block>
       <fo:block font-size="11pt" text-align="justify" line-height="1.5" space-after="0.25in" font-family="serif">It was the last day but one of the 1999th year of our era, and the
 first day of the Long Vacation.  Having amused myself till a late hour
 with my favourite recreation of Geometry, I had retired to rest with an
@@ -1778,7 +1778,7 @@ births."</fo:block>
       <fo:block text-align="center" font-size="10pt" padding-before="0.2in" border-before-width="0.5pt" border-before-style="solid" font-family="serif"><fo:page-number/></fo:block>
     </fo:static-content>
     <fo:flow flow-name="xsl-region-body">
-      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif">§ 14.  How I vainly tried to explain the nature of Flatland</fo:block>
+      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif" hyphenate="false">§ 14.  How I vainly tried to explain the nature of Flatland</fo:block>
       <fo:block font-size="11pt" text-align="justify" line-height="1.5" space-after="0.25in" font-family="serif">Thinking that it was time to bring down the Monarch from his raptures
 to the level of common sense, I determined to endeavour to open up to
 him some glimpses of the truth, that is to say of the nature of things
@@ -1954,7 +1954,7 @@ recalling me to the realities of Flatland.</fo:block>
       <fo:block text-align="center" font-size="10pt" padding-before="0.2in" border-before-width="0.5pt" border-before-style="solid" font-family="serif"><fo:page-number/></fo:block>
     </fo:static-content>
     <fo:flow flow-name="xsl-region-body">
-      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif">§ 15.  Concerning a Stranger from Spaceland</fo:block>
+      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif" hyphenate="false">§ 15.  Concerning a Stranger from Spaceland</fo:block>
       <fo:block font-size="11pt" text-align="justify" line-height="1.5" space-after="0.25in" font-family="serif">From dreams I proceed to facts.</fo:block>
       <fo:block font-size="11pt" text-align="justify" line-height="1.5" space-after="0.25in" font-family="serif">It was the last day of the 1999th year of our era.  The pattering of
 the rain had long ago announced nightfall; and I was sitting in the
@@ -2076,7 +2076,7 @@ IN WORDS THE MYSTERIES OF SPACELAND</fo:block>
       <fo:block text-align="center" font-size="10pt" padding-before="0.2in" border-before-width="0.5pt" border-before-style="solid" font-family="serif"><fo:page-number/></fo:block>
     </fo:static-content>
     <fo:flow flow-name="xsl-region-body">
-      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif">§ 16.  How the Stranger vainly endeavoured to reveal to me
+      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif" hyphenate="false">§ 16.  How the Stranger vainly endeavoured to reveal to me
 in words the mysteries of Spaceland</fo:block>
       <fo:block font-size="11pt" text-align="justify" line-height="1.5" space-after="0.25in" font-family="serif">As soon as the sound of the Peace-cry of my departing Wife had died
 away, I began to approach the Stranger with the intention of taking a
@@ -2345,7 +2345,7 @@ RESORTED TO DEEDS</fo:block>
       <fo:block text-align="center" font-size="10pt" padding-before="0.2in" border-before-width="0.5pt" border-before-style="solid" font-family="serif"><fo:page-number/></fo:block>
     </fo:static-content>
     <fo:flow flow-name="xsl-region-body">
-      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif">§ 17.  How the Sphere, having in vain tried words,
+      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif" hyphenate="false">§ 17.  How the Sphere, having in vain tried words,
 resorted to deeds</fo:block>
       <fo:block font-size="11pt" text-align="justify" line-height="1.5" space-after="0.25in" font-family="serif">It was in vain.  I brought my hardest right angle into violent
 collision with the Stranger, pressing on him with a force sufficient to
@@ -2437,7 +2437,7 @@ fate:  out of your Plane you go.  Once, twice, thrice!  'Tis done!"</fo:block>
       <fo:block text-align="center" font-size="10pt" padding-before="0.2in" border-before-width="0.5pt" border-before-style="solid" font-family="serif"><fo:page-number/></fo:block>
     </fo:static-content>
     <fo:flow flow-name="xsl-region-body">
-      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif">§ 18.  How I came to Spaceland, and what I saw there</fo:block>
+      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif" hyphenate="false">§ 18.  How I came to Spaceland, and what I saw there</fo:block>
       <fo:block font-size="11pt" text-align="justify" line-height="1.5" space-after="0.25in" font-family="serif">An unspeakable horror seized me.  There was a darkness; then a dizzy,
 sickening sensation of sight that was not like seeing; I saw a Line
 that was no Line; Space that was not Space: I was myself, and not
@@ -2599,7 +2599,7 @@ OF SPACELAND, I STILL DESIRED MORE; AND WHAT CAME OF IT</fo:block>
       <fo:block text-align="center" font-size="10pt" padding-before="0.2in" border-before-width="0.5pt" border-before-style="solid" font-family="serif"><fo:page-number/></fo:block>
     </fo:static-content>
     <fo:flow flow-name="xsl-region-body">
-      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif">§ 19.  How, though the Sphere shewed me other mysteries
+      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif" hyphenate="false">§ 19.  How, though the Sphere shewed me other mysteries
 of Spaceland, I still desired more; and what came of it</fo:block>
       <fo:block font-size="11pt" text-align="justify" line-height="1.5" space-after="0.25in" font-family="serif">When I saw my poor brother led away to imprisonment, I attempted to
 leap down into the Council Chamber, desiring to intercede on his
@@ -2829,7 +2829,7 @@ Peace-Cry of my approaching Wife.</fo:block>
       <fo:block text-align="center" font-size="10pt" padding-before="0.2in" border-before-width="0.5pt" border-before-style="solid" font-family="serif"><fo:page-number/></fo:block>
     </fo:static-content>
     <fo:flow flow-name="xsl-region-body">
-      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif">§ 20.  How the Sphere encouraged me in a Vision</fo:block>
+      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif" hyphenate="false">§ 20.  How the Sphere encouraged me in a Vision</fo:block>
       <fo:block font-size="11pt" text-align="justify" line-height="1.5" space-after="0.25in" font-family="serif">Although I had less than a minute for reflection, I felt, by a kind of
 instinct, that I must conceal my experiences from my Wife.  Not that I
 apprehended, at the moment, any danger from her divulging my secret,
@@ -2941,7 +2941,7 @@ TO MY GRANDSON, AND WITH WHAT SUCCESS</fo:block>
       <fo:block text-align="center" font-size="10pt" padding-before="0.2in" border-before-width="0.5pt" border-before-style="solid" font-family="serif"><fo:page-number/></fo:block>
     </fo:static-content>
     <fo:flow flow-name="xsl-region-body">
-      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif">§ 21.  How I tried to teach the Theory of Three Dimensions
+      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif" hyphenate="false">§ 21.  How I tried to teach the Theory of Three Dimensions
 to my Grandson, and with what success</fo:block>
       <fo:block font-size="11pt" text-align="justify" line-height="1.5" space-after="0.25in" font-family="serif">I awoke rejoicing, and began to reflect on the glorious career before
 me.  I would go forth, methought, at once, and evangelize the whole of
@@ -3039,7 +3039,7 @@ OF THREE DIMENSIONS BY OTHER MEANS, AND OF THE RESULT</fo:block>
       <fo:block text-align="center" font-size="10pt" padding-before="0.2in" border-before-width="0.5pt" border-before-style="solid" font-family="serif"><fo:page-number/></fo:block>
     </fo:static-content>
     <fo:flow flow-name="xsl-region-body">
-      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif">§ 22.  How I then tried to diffuse the Theory
+      <fo:block font-size="16pt" font-weight="bold" text-align="center" space-before="0.5in" space-after="0.5in" font-family="serif" hyphenate="false">§ 22.  How I then tried to diffuse the Theory
 of Three Dimensions by other means, and of the result</fo:block>
       <fo:block font-size="11pt" text-align="justify" line-height="1.5" space-after="0.25in" font-family="serif">My failure with my Grandson did not encourage me to communicate my
 secret to others of my household; yet neither was I led by it to
