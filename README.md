@@ -221,6 +221,7 @@ The core rendering engine is fully operational with extensive feature support:
 - **Font fallback & system fonts** - Automatic font resolution with font-family stacks (e.g., "Roboto, Arial, sans-serif")
 - **System font discovery** - Cross-platform support for Windows, macOS, and Linux system fonts
 - **Generic font families** - Automatic mapping of serif, sans-serif, and monospace to system fonts
+- **Kerning support** - Automatic kerning for TrueType fonts using PDF TJ operator for professional typography
 - **Stream compression** - Flate (zlib) compression for optimal PDF file sizes
 - **PDF metadata** - Document Information Dictionary (title, author, subject, keywords, creator, producer, dates)
 - Text positioning with baseline alignment
@@ -233,7 +234,7 @@ The core rendering engine is fully operational with extensive feature support:
 - PDF outline/bookmarks for document navigation
 
 **Quality Assurance:**
-- 320+ passing tests (99%+ success rate)
+- 326+ passing tests (99%+ success rate)
   - 21 XSL-FO conformance tests (formatting object parsing, including repeatable-page-master-reference)
   - 25 property inheritance tests (50+ inheritable properties)
   - 45+ layout engine tests (line breaking, page breaking, tables, footnotes, text justification, **multi-page tables**, **multi-page lists**, **keep-with-next/previous**, **widow/orphan control**, **emergency line breaking**)
@@ -241,11 +242,11 @@ The core rendering engine is fully operational with extensive feature support:
   - **5 emergency line breaking tests** (character-level breaking, wrap-option support, narrow columns)
   - **7 Knuth-Plass line breaking tests** (optimal line breaking, TeX-quality typography, comparison with greedy)
   - **5 list page breaking tests** (multi-page lists, keep-together support, nested content)
-  - **79 font tests** (TrueType parsing, font subsetting, serialization, PDF embedding, ToUnicode CMaps, **font fallback**, **system font discovery**)
+  - **85 font tests** (TrueType parsing, font subsetting, serialization, PDF embedding, ToUnicode CMaps, **font fallback**, **system font discovery**, **kerning support**)
   - 14 PDF validation tests (structure, fonts, compression, metadata, links)
   - 9 AreaTree snapshot tests (layout regression detection)
   - 13 fuzzing/stress tests (malformed input, extreme nesting, large tables)
-  - 25 working example PDFs (including **TrueType font embedding**, **font fallback & system fonts**, multi-page tables, multi-page lists, keep-with-next/previous, emergency line breaking)
+  - 26 working example PDFs (including **TrueType font embedding**, **font fallback & system fonts**, **kerning demonstration**, multi-page tables, multi-page lists, keep-with-next/previous, emergency line breaking)
 - 100% qpdf validation success (zero errors)
 - Verified with qpdf 11.9.0
 
