@@ -2209,15 +2209,19 @@ public class LayoutEngineTests
         var tables = page.Areas.OfType<TableArea>().ToList();
         Assert.NotEmpty(tables);
 
-        var table = tables[0];
-        Assert.Equal(3, table.Rows.Count);
+        // With page-breaking layout, each row gets its own TableArea
+        Assert.True(tables.Count >= 3, $"Expected at least 3 table areas, got {tables.Count}");
+
+        // Collect all rows from all table areas
+        var allRows = tables.SelectMany(t => t.Rows).ToList();
+        Assert.Equal(3, allRows.Count);
 
         // First row should have 3 cells
-        Assert.Equal(3, table.Rows[0].Cells.Count);
+        Assert.Equal(3, allRows[0].Cells.Count);
 
         // Second and third rows should have 2 cells each (first column occupied by spanning cell)
-        Assert.Equal(2, table.Rows[1].Cells.Count);
-        Assert.Equal(2, table.Rows[2].Cells.Count);
+        Assert.Equal(2, allRows[1].Cells.Count);
+        Assert.Equal(2, allRows[2].Cells.Count);
     }
 
     [Fact]
@@ -2267,14 +2271,15 @@ public class LayoutEngineTests
         var tables = page.Areas.OfType<TableArea>().ToList();
         Assert.NotEmpty(tables);
 
-        var table = tables[0];
-        Assert.Equal(2, table.Rows.Count);
+        // Collect all rows from all table areas
+        var allRows = tables.SelectMany(t => t.Rows).ToList();
+        Assert.Equal(2, allRows.Count);
 
         // First row: 4 cells (A, B, C, D)
-        Assert.Equal(4, table.Rows[0].Cells.Count);
+        Assert.Equal(4, allRows[0].Cells.Count);
 
         // Second row: 2 cells (E, F) - columns 0 and 2 occupied by spanning cells
-        Assert.Equal(2, table.Rows[1].Cells.Count);
+        Assert.Equal(2, allRows[1].Cells.Count);
     }
 
     [Fact]
@@ -2327,19 +2332,20 @@ public class LayoutEngineTests
         var tables = page.Areas.OfType<TableArea>().ToList();
         Assert.NotEmpty(tables);
 
-        var table = tables[0];
-        Assert.Equal(3, table.Rows.Count);
+        // Collect all rows from all table areas
+        var allRows = tables.SelectMany(t => t.Rows).ToList();
+        Assert.Equal(3, allRows.Count);
 
         // First row: 2 cells (spanning 2x2 cell + A)
-        Assert.Equal(2, table.Rows[0].Cells.Count);
-        Assert.Equal(2, table.Rows[0].Cells[0].NumberRowsSpanned);
-        Assert.Equal(2, table.Rows[0].Cells[0].NumberColumnsSpanned);
+        Assert.Equal(2, allRows[0].Cells.Count);
+        Assert.Equal(2, allRows[0].Cells[0].NumberRowsSpanned);
+        Assert.Equal(2, allRows[0].Cells[0].NumberColumnsSpanned);
 
         // Second row: 1 cell (B) - first two columns occupied
-        Assert.Single(table.Rows[1].Cells);
+        Assert.Single(allRows[1].Cells);
 
         // Third row: 3 cells (C, D, E) - no spanning
-        Assert.Equal(3, table.Rows[2].Cells.Count);
+        Assert.Equal(3, allRows[2].Cells.Count);
     }
 
     [Fact]
@@ -2400,14 +2406,15 @@ public class LayoutEngineTests
         var tables = page.Areas.OfType<TableArea>().ToList();
         Assert.NotEmpty(tables);
 
-        var table = tables[0];
-        Assert.Equal(4, table.Rows.Count);
+        // Collect all rows from all table areas
+        var allRows = tables.SelectMany(t => t.Rows).ToList();
+        Assert.Equal(4, allRows.Count);
 
         // Verify the grid tracking worked correctly
-        Assert.Equal(4, table.Rows[0].Cells.Count); // R1: 4 cells
-        Assert.Equal(2, table.Rows[1].Cells.Count); // R2: 2 cells (C1 and C3 occupied)
-        Assert.Equal(2, table.Rows[2].Cells.Count); // R3: 2 cells (C1 and C2 occupied)
-        Assert.Equal(4, table.Rows[3].Cells.Count); // R4: 4 cells (no spanning)
+        Assert.Equal(4, allRows[0].Cells.Count); // R1: 4 cells
+        Assert.Equal(2, allRows[1].Cells.Count); // R2: 2 cells (C1 and C3 occupied)
+        Assert.Equal(2, allRows[2].Cells.Count); // R3: 2 cells (C1 and C2 occupied)
+        Assert.Equal(4, allRows[3].Cells.Count); // R4: 4 cells (no spanning)
     }
 
     #endregion
