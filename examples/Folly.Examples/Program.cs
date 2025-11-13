@@ -150,6 +150,10 @@ GenerateProportionalWidthsExample(Path.Combine(outputDir, "28-proportional-width
 Console.WriteLine("Generating Example 29: Content-Based Column Sizing...");
 GenerateContentBasedSizingExample(Path.Combine(outputDir, "29-content-based-sizing.pdf"));
 
+// Example 30: Table Footer Repetition
+Console.WriteLine("Generating Example 30: Table Footer Repetition...");
+GenerateFooterRepetitionExample(Path.Combine(outputDir, "30-footer-repetition.pdf"));
+
 Console.WriteLine("\n✓ All examples generated successfully!");
 Console.WriteLine($"\nView PDFs in: {outputDir}");
 Console.WriteLine("\nValidate with qpdf:");
@@ -3340,6 +3344,141 @@ static void GenerateContentBasedSizingExample(string outputPath)
 
               <fo:block font-family="Helvetica" font-size="12pt" margin-top="24pt" padding="8pt" background-color="#F5F5F5">
                 Generated with Folly XSL-FO Processor - Phase 4.3 Complete: Content-Based Column Sizing!
+              </fo:block>
+            </fo:flow>
+          </fo:page-sequence>
+        </fo:root>
+        """;
+
+    using var doc = FoDocument.Load(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml)));
+    doc.SavePdf(outputPath);
+}
+
+static void GenerateFooterRepetitionExample(string outputPath)
+{
+    var foXml = """
+        <?xml version="1.0"?>
+        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+          <fo:layout-master-set>
+            <fo:simple-page-master master-name="A4" page-width="210mm" page-height="120mm">
+              <fo:region-body margin="20pt"/>
+            </fo:simple-page-master>
+          </fo:layout-master-set>
+          <fo:page-sequence master-reference="A4">
+            <fo:flow flow-name="xsl-region-body">
+              <!-- Title -->
+              <fo:block font-family="Helvetica" font-size="24pt" font-weight="bold" text-align="center" color="#1976D2" margin-bottom="24pt">
+                Table Footer Repetition
+              </fo:block>
+
+              <fo:block font-family="Helvetica" font-size="12pt" margin-bottom="24pt" padding="12pt" background-color="#E3F2FD" border="1pt solid #2196F3">
+                <fo:inline font-weight="bold">Phase 4.4 Feature:</fo:inline> Table footers now repeat at page breaks by default.
+                Use <fo:inline font-family="Courier">table-omit-footer-at-break="true"</fo:inline> to show footers only at the table end.
+              </fo:block>
+
+              <!-- Example 1: Footer Repetition Enabled (Default) -->
+              <fo:block font-family="Helvetica" font-size="18pt" font-weight="bold" color="#424242" margin-bottom="12pt">
+                Example 1: Footer Repetition (Default Behavior)
+              </fo:block>
+
+              <fo:block font-family="Helvetica" font-size="11pt" margin-bottom="8pt" color="#666666">
+                This table spans multiple pages. Notice the footer appears on every page.
+              </fo:block>
+
+              <fo:table border="1pt solid black" border-collapse="separate" border-spacing="2pt" margin-bottom="24pt">
+                <fo:table-header>
+                  <fo:table-row>
+                    <fo:table-cell padding="8pt" background-color="#37474F">
+                      <fo:block font-weight="bold" color="white">Page Header</fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>
+                </fo:table-header>
+                <fo:table-footer>
+                  <fo:table-row>
+                    <fo:table-cell padding="8pt" background-color="#FFF3E0" border="1pt solid #FF9800">
+                      <fo:block font-weight="bold" color="#E65100">Footer Repeats on Every Page</fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>
+                </fo:table-footer>
+                <fo:table-body>
+                  <fo:table-row>
+                    <fo:table-cell padding="35pt"><fo:block>Row 1: This table has tall rows</fo:block></fo:table-cell>
+                  </fo:table-row>
+                  <fo:table-row>
+                    <fo:table-cell padding="35pt"><fo:block>Row 2: Causing page breaks</fo:block></fo:table-cell>
+                  </fo:table-row>
+                  <fo:table-row>
+                    <fo:table-cell padding="35pt"><fo:block>Row 3: Footer appears above</fo:block></fo:table-cell>
+                  </fo:table-row>
+                  <fo:table-row>
+                    <fo:table-cell padding="35pt"><fo:block>Row 4: On every page</fo:block></fo:table-cell>
+                  </fo:table-row>
+                  <fo:table-row>
+                    <fo:table-cell padding="35pt"><fo:block>Row 5: Final row</fo:block></fo:table-cell>
+                  </fo:table-row>
+                </fo:table-body>
+              </fo:table>
+
+              <!-- Example 2: Footer Repetition Disabled -->
+              <fo:block font-family="Helvetica" font-size="18pt" font-weight="bold" color="#424242" margin-top="24pt" margin-bottom="12pt">
+                Example 2: Footer Only at End
+              </fo:block>
+
+              <fo:block font-family="Helvetica" font-size="11pt" margin-bottom="8pt" color="#666666">
+                Using <fo:inline font-family="Courier">table-omit-footer-at-break="true"</fo:inline> shows the footer
+                only after the last row.
+              </fo:block>
+
+              <fo:table border="1pt solid black" border-collapse="separate" border-spacing="2pt" table-omit-footer-at-break="true" margin-bottom="24pt">
+                <fo:table-header>
+                  <fo:table-row>
+                    <fo:table-cell padding="8pt" background-color="#37474F">
+                      <fo:block font-weight="bold" color="white">Page Header</fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>
+                </fo:table-header>
+                <fo:table-footer>
+                  <fo:table-row>
+                    <fo:table-cell padding="8pt" background-color="#E8F5E9" border="1pt solid #4CAF50">
+                      <fo:block font-weight="bold" color="#2E7D32">Footer Only at Table End</fo:block>
+                    </fo:table-cell>
+                  </fo:table-row>
+                </fo:table-footer>
+                <fo:table-body>
+                  <fo:table-row>
+                    <fo:table-cell padding="35pt"><fo:block>Row 1: Footer omitted at breaks</fo:block></fo:table-cell>
+                  </fo:table-row>
+                  <fo:table-row>
+                    <fo:table-cell padding="35pt"><fo:block>Row 2: No footer above</fo:block></fo:table-cell>
+                  </fo:table-row>
+                  <fo:table-row>
+                    <fo:table-cell padding="35pt"><fo:block>Row 3: Still no footer</fo:block></fo:table-cell>
+                  </fo:table-row>
+                  <fo:table-row>
+                    <fo:table-cell padding="35pt"><fo:block>Row 4: Almost there</fo:block></fo:table-cell>
+                  </fo:table-row>
+                  <fo:table-row>
+                    <fo:table-cell padding="35pt"><fo:block>Row 5: Footer appears after this</fo:block></fo:table-cell>
+                  </fo:table-row>
+                </fo:table-body>
+              </fo:table>
+
+              <!-- Technical Notes -->
+              <fo:block font-family="Helvetica" font-size="14pt" margin-top="24pt" padding="12pt" background-color="#FFF3E0" border="1pt solid #FF9800">
+                <fo:inline font-weight="bold">How It Works:</fo:inline> By default, footers repeat at every page break
+                to provide context and summary information on each page (like headers). Set
+                <fo:inline font-family="Courier">table-omit-footer-at-break="true"</fo:inline> when you want totals
+                or concluding information to appear only once at the end.
+              </fo:block>
+
+              <fo:block font-family="Helvetica" font-size="11pt" margin-top="12pt" padding="8pt" background-color="#E8F5E9" border="1pt solid #4CAF50">
+                <fo:inline font-weight="bold">Use Cases:</fo:inline> Footer repetition is perfect for running totals,
+                page references, or disclaimers that should appear on every page. Omit at break for final totals,
+                signatures, or one-time summary information.
+              </fo:block>
+
+              <fo:block font-family="Helvetica" font-size="12pt" margin-top="24pt" padding="8pt" background-color="#F5F5F5">
+                Generated with Folly XSL-FO Processor - Phase 4.4 Complete: Table Footer Repetition!
               </fo:block>
             </fo:flow>
           </fo:page-sequence>
