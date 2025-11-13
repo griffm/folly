@@ -130,6 +130,10 @@ GenerateTrueTypeFontsExample(Path.Combine(outputDir, "24-truetype-fonts.pdf"), e
 Console.WriteLine("Generating Example 25: Font Fallback and System Fonts...");
 GenerateFontFallbackExample(Path.Combine(outputDir, "25-font-fallback.pdf"));
 
+// Example 26: Kerning Demonstration
+Console.WriteLine("Generating Example 26: Kerning Demonstration...");
+GenerateKerningExample(Path.Combine(outputDir, "26-kerning.pdf"), examplesDir);
+
 Console.WriteLine("\n✓ All examples generated successfully!");
 Console.WriteLine($"\nView PDFs in: {outputDir}");
 Console.WriteLine("\nValidate with qpdf:");
@@ -2511,6 +2515,143 @@ static void GenerateFontFallbackExample(string outputPath)
             Keywords = "fonts, fallback, system fonts, font stacks, cross-platform"
         }
     };
+
+    doc.SavePdf(outputPath, options);
+}
+
+static void GenerateKerningExample(string outputPath, string examplesDir)
+{
+    // Find test fonts directory
+    var testFontsDir = Path.Combine(examplesDir, "..", "tests", "Folly.FontTests", "TestFonts");
+    var liberationPath = Path.Combine(testFontsDir, "LiberationSans-Regular.ttf");
+
+    // Check if test fonts exist
+    if (!File.Exists(liberationPath))
+    {
+        Console.WriteLine($"  ⚠ Skipping kerning example - test fonts not found at: {testFontsDir}");
+        return;
+    }
+
+    var foXml = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+          <fo:layout-master-set>
+            <fo:simple-page-master master-name="A4" page-width="210mm" page-height="297mm" margin="1in">
+              <fo:region-body/>
+            </fo:simple-page-master>
+          </fo:layout-master-set>
+
+          <fo:page-sequence master-reference="A4">
+            <fo:flow flow-name="xsl-region-body">
+              <fo:block font-family="LiberationSans" font-size="28pt" font-weight="bold" color="#1976D2" margin-bottom="24pt">
+                Kerning Demonstration
+              </fo:block>
+
+              <fo:block font-family="LiberationSans" font-size="14pt" margin-bottom="24pt">
+                This document demonstrates automatic kerning support for TrueType fonts. Kerning adjusts
+                the spacing between specific character pairs to improve visual appearance and readability.
+              </fo:block>
+
+              <fo:block font-family="LiberationSans" font-size="18pt" font-weight="bold" color="#424242" margin-bottom="12pt">
+                Common Kerning Pairs
+              </fo:block>
+
+              <fo:block font-family="LiberationSans" font-size="14pt" margin-bottom="6pt">
+                The following character combinations typically benefit from kerning:
+              </fo:block>
+
+              <fo:block font-family="LiberationSans" font-size="48pt" margin-left="24pt" margin-bottom="24pt" color="#E91E63">
+                AV WA To Ty Va Yo
+              </fo:block>
+
+              <fo:block font-family="LiberationSans" font-size="14pt" margin-bottom="12pt">
+                Notice how the letters fit together naturally. Without kerning, there would be awkward gaps between these letter pairs.
+              </fo:block>
+
+              <fo:block font-family="LiberationSans" font-size="18pt" font-weight="bold" color="#424242" margin-top="24pt" margin-bottom="12pt">
+                Real-World Example
+              </fo:block>
+
+              <fo:block font-family="LiberationSans" font-size="36pt" margin-left="24pt" margin-bottom="24pt">
+                WAVE Technology
+              </fo:block>
+
+              <fo:block font-family="LiberationSans" font-size="36pt" margin-left="24pt" margin-bottom="24pt">
+                Type Design
+              </fo:block>
+
+              <fo:block font-family="LiberationSans" font-size="36pt" margin-left="24pt" margin-bottom="24pt">
+                Professional Typography
+              </fo:block>
+
+              <fo:block font-family="LiberationSans" font-size="18pt" font-weight="bold" color="#424242" margin-top="24pt" margin-bottom="12pt">
+                How Kerning Works
+              </fo:block>
+
+              <fo:block font-family="LiberationSans" font-size="14pt" margin-bottom="12pt">
+                Folly automatically applies kerning when:
+              </fo:block>
+
+              <fo:block font-family="LiberationSans" font-size="12pt" margin-bottom="6pt" margin-left="18pt">
+                • TrueType or OpenType fonts are used (via PdfOptions.TrueTypeFonts)
+              </fo:block>
+              <fo:block font-family="LiberationSans" font-size="12pt" margin-bottom="6pt" margin-left="18pt">
+                • The font contains kerning pair data (kern table)
+              </fo:block>
+              <fo:block font-family="LiberationSans" font-size="12pt" margin-bottom="12pt" margin-left="18pt">
+                • Specific character combinations match defined kerning pairs
+              </fo:block>
+
+              <fo:block font-family="LiberationSans" font-size="14pt" margin-top="24pt" padding="12pt" background-color="#E3F2FD" border="1pt solid #2196F3">
+                <fo:inline font-weight="bold">Technical Note:</fo:inline> Folly uses the PDF TJ operator to apply kerning
+                adjustments character-by-character, ensuring precise spacing according to the font designer's intentions.
+                Kerning values are automatically converted from font units to PDF units (1000ths of an em).
+              </fo:block>
+
+              <fo:block font-family="LiberationSans" font-size="18pt" font-weight="bold" color="#424242" margin-top="24pt" margin-bottom="12pt">
+                More Examples
+              </fo:block>
+
+              <fo:block font-family="LiberationSans" font-size="24pt" margin-left="24pt" margin-bottom="12pt">
+                PA We Yo Lu ff fi fl
+              </fo:block>
+
+              <fo:block font-family="LiberationSans" font-size="24pt" margin-left="24pt" margin-bottom="12pt">
+                ATTORNEY LAWSUIT
+              </fo:block>
+
+              <fo:block font-family="LiberationSans" font-size="24pt" margin-left="24pt" margin-bottom="24pt">
+                Flying Away Together
+              </fo:block>
+
+              <fo:block font-family="LiberationSans" font-size="12pt" margin-top="24pt" padding="8pt" background-color="#F5F5F5">
+                This PDF demonstrates professional typography with automatic kerning.
+                Generated with Folly XSL-FO Processor - TrueType font support with kerning Phase 3.4 complete!
+              </fo:block>
+            </fo:flow>
+          </fo:page-sequence>
+        </fo:root>
+        """;
+
+    // Render to PDF with TrueType font and kerning
+    using var doc = FoDocument.Load(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml)));
+
+    // Configure PDF options with TrueType fonts
+    var options = new PdfOptions
+    {
+        SubsetFonts = true,
+        CompressStreams = true,
+        Metadata = new PdfMetadata
+        {
+            Title = "Kerning Demonstration",
+            Author = "Folly PDF Engine",
+            Subject = "Automatic kerning with TrueType fonts",
+            Keywords = "kerning, typography, TrueType, OpenType, PDF"
+        }
+    };
+
+    // Map font families to TrueType font files
+    options.TrueTypeFonts["LiberationSans"] = liberationPath;
 
     doc.SavePdf(outputPath, options);
 }

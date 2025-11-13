@@ -4,6 +4,7 @@ namespace Folly.Fonts;
 /// Font metrics for measuring text.
 /// Provides methods to measure text width, line height, ascent, and descent
 /// using the Standard PDF Type 1 fonts.
+/// Note: Kerning is applied during PDF rendering, not during layout measurement.
 /// </summary>
 public sealed class FontMetrics
 {
@@ -33,6 +34,8 @@ public sealed class FontMetrics
 
     /// <summary>
     /// Measures the width of a text string in points.
+    /// Note: This measurement does not include kerning. Kerning is applied
+    /// during PDF rendering for accurate character positioning.
     /// </summary>
     public double MeasureWidth(string text)
     {

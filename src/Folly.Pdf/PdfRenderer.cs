@@ -10,6 +10,9 @@ public sealed class PdfRenderer : IDisposable
     private readonly PdfWriter _writer;
     private bool _disposed;
 
+    // Cache of loaded TrueType fonts for kerning support
+    private readonly Dictionary<string, Fonts.Models.FontFile?> _loadedFonts = new();
+
     /// <summary>
     /// Initializes a new PDF renderer.
     /// </summary>
@@ -37,6 +40,9 @@ public sealed class PdfRenderer : IDisposable
 
         // Collect fonts used in the document and track character usage
         var (fonts, characterUsage) = CollectFonts(areaTree);
+
+        // Load TrueType fonts for kerning support
+        LoadFontsForKerning(fonts);
 
         // Collect images used in the document
         var images = CollectImages(areaTree);
@@ -199,6 +205,62 @@ public sealed class PdfRenderer : IDisposable
         }
     }
 
+    /// <summary>
+    /// Loads TrueType fonts for kerning support.
+    /// Fonts are cached for the lifetime of the renderer.
+    /// </summary>
+    private void LoadFontsForKerning(HashSet<string> fontNames)
+    {
+        foreach (var fontName in fontNames)
+        {
+            // Skip if already loaded
+            if (_loadedFonts.ContainsKey(fontName))
+                continue;
+
+            // Try to load TrueType font from options
+            if (_options.TrueTypeFonts.TryGetValue(fontName, out var fontPath))
+            {
+                try
+                {
+                    var font = Fonts.FontParser.Parse(fontPath);
+                    _loadedFonts[fontName] = font;
+                }
+                catch
+                {
+                    // If loading fails, store null (will fall back to Standard fonts without kerning)
+                    _loadedFonts[fontName] = null;
+                }
+            }
+            else if (_options.EnableFontFallback)
+            {
+                // Try to resolve font via system font discovery
+                var resolver = new Fonts.FontResolver(_options.TrueTypeFonts);
+                var resolvedPath = resolver.ResolveFontFamily(fontName);
+                if (resolvedPath != null)
+                {
+                    try
+                    {
+                        var font = Fonts.FontParser.Parse(resolvedPath);
+                        _loadedFonts[fontName] = font;
+                    }
+                    catch
+                    {
+                        _loadedFonts[fontName] = null;
+                    }
+                }
+                else
+                {
+                    _loadedFonts[fontName] = null;
+                }
+            }
+            else
+            {
+                // No TrueType font available, use Standard fonts without kerning
+                _loadedFonts[fontName] = null;
+            }
+        }
+    }
+
     private int RenderPage(PageViewport page, Dictionary<string, int> fontIds, Dictionary<string, int> imageIds)
     {
         // Build content stream
@@ -316,15 +378,38 @@ public sealed class PdfRenderer : IDisposable
         var glyphIdMapping = _writer.GetCharacterToGlyphId(inline.FontFamily);
         var remapping = _writer.GetCharacterRemapping(inline.FontFamily);
 
+        // Check if we have kerning data available for this font
+        var hasKerning = _loadedFonts.TryGetValue(inline.FontFamily, out var font) &&
+                         font != null &&
+                         font.KerningPairs.Count > 0;
+
         // For TrueType fonts with glyph ID mapping, use hex string format
         // For Type1 fonts, use literal string format
         if (glyphIdMapping != null)
         {
-            content.AppendLine($"<{ConvertToGlyphIdHexString(inline.Text, glyphIdMapping)}> Tj"); // Show text (hex format)
+            if (hasKerning)
+            {
+                // Use TJ operator with kerning adjustments
+                content.AppendLine(BuildKernedTextArrayHex(inline.Text, font!, glyphIdMapping));
+            }
+            else
+            {
+                // Use Tj operator without kerning
+                content.AppendLine($"<{ConvertToGlyphIdHexString(inline.Text, glyphIdMapping)}> Tj"); // Show text (hex format)
+            }
         }
         else
         {
-            content.AppendLine($"({EscapeAndRemapString(inline.Text, remapping)}) Tj"); // Show text (literal format)
+            if (hasKerning)
+            {
+                // Use TJ operator with kerning adjustments
+                content.AppendLine(BuildKernedTextArrayLiteral(inline.Text, font!, remapping));
+            }
+            else
+            {
+                // Use Tj operator without kerning
+                content.AppendLine($"({EscapeAndRemapString(inline.Text, remapping)}) Tj"); // Show text (literal format)
+            }
         }
 
         content.AppendLine("ET"); // End text
@@ -833,6 +918,124 @@ public sealed class PdfRenderer : IDisposable
             }
         }
         return result.ToString();
+    }
+
+    /// <summary>
+    /// Builds a kerned text array for the TJ operator using hex string format (for TrueType fonts).
+    /// Returns a PDF array with strings and kerning adjustments, e.g., "[(A) -100 (V)] TJ"
+    /// </summary>
+    private static string BuildKernedTextArrayHex(string text, Fonts.Models.FontFile font, Dictionary<char, ushort> glyphIdMapping)
+    {
+        if (string.IsNullOrEmpty(text))
+            return "[] TJ";
+
+        var array = new StringBuilder();
+        array.Append('[');
+
+        char? previousChar = null;
+
+        foreach (var ch in text)
+        {
+            // Get kerning adjustment if we have a previous character
+            if (previousChar.HasValue)
+            {
+                var kerning = font.GetKerning(previousChar.Value, ch);
+                if (kerning != 0)
+                {
+                    // Convert font units to PDF units (1000ths of an em)
+                    // Negative kerning values in the font mean characters should be closer
+                    // In PDF, negative values in the TJ array also mean closer, so we negate
+                    var pdfKerning = -kerning * 1000.0 / font.UnitsPerEm;
+                    array.Append($" {pdfKerning:F0}");
+                }
+            }
+
+            // Add character as hex glyph ID
+            if (glyphIdMapping.TryGetValue(ch, out var glyphId))
+            {
+                array.Append($" <{glyphId:X4}>");
+            }
+            else
+            {
+                // Fallback to glyph 0 (.notdef)
+                array.Append(" <0000>");
+            }
+
+            previousChar = ch;
+        }
+
+        array.Append("] TJ");
+        return array.ToString();
+    }
+
+    /// <summary>
+    /// Builds a kerned text array for the TJ operator using literal string format (for Type1 fonts).
+    /// Returns a PDF array with strings and kerning adjustments, e.g., "[(A) -100 (V)] TJ"
+    /// </summary>
+    private static string BuildKernedTextArrayLiteral(string text, Fonts.Models.FontFile font, Dictionary<char, byte>? remapping)
+    {
+        if (string.IsNullOrEmpty(text))
+            return "[] TJ";
+
+        var array = new StringBuilder();
+        array.Append('[');
+
+        char? previousChar = null;
+
+        foreach (var ch in text)
+        {
+            // Get kerning adjustment if we have a previous character
+            if (previousChar.HasValue)
+            {
+                var kerning = font.GetKerning(previousChar.Value, ch);
+                if (kerning != 0)
+                {
+                    // Convert font units to PDF units (1000ths of an em)
+                    var pdfKerning = -kerning * 1000.0 / font.UnitsPerEm;
+                    array.Append($" {pdfKerning:F0}");
+                }
+            }
+
+            // Add character as escaped literal string
+            var escapedChar = EscapeSingleChar(ch, remapping);
+            array.Append($" ({escapedChar})");
+
+            previousChar = ch;
+        }
+
+        array.Append("] TJ");
+        return array.ToString();
+    }
+
+    /// <summary>
+    /// Escapes a single character for PDF literal strings, applying remapping if available.
+    /// </summary>
+    private static string EscapeSingleChar(char ch, Dictionary<char, byte>? remapping)
+    {
+        char outputChar = ch;
+
+        // First, apply font subsetting remapping if available
+        if (remapping != null && remapping.TryGetValue(ch, out var remappedByte))
+        {
+            outputChar = (char)remappedByte;
+        }
+        // Otherwise, apply Unicode to Adobe Standard Encoding conversion
+        else if (UnicodeToAdobeEncoding.TryGetValue(ch, out var adobeChar))
+        {
+            outputChar = adobeChar;
+        }
+
+        // Escape special PDF characters
+        return outputChar switch
+        {
+            '\\' => "\\\\",
+            '(' => "\\(",
+            ')' => "\\)",
+            '\r' => "\\r",
+            '\n' => "\\n",
+            '\t' => "\\t",
+            _ => outputChar.ToString()
+        };
     }
 
     /// <summary>
