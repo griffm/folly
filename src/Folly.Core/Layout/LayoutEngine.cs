@@ -2204,7 +2204,30 @@ internal sealed class LayoutEngine
 
             var remainingWidth = availableWidth - totalFixedWidth - (foTable.BorderSpacing * (expandedColumns.Count + 1));
 
+            // For auto columns, measure content widths to determine optimal sizing
+            List<double> autoColumnContentWidths = new List<double>();
+            double totalAutoContentWidth = 0;
+
+            if (autoCount > 0)
+            {
+                // Measure content widths for all columns
+                var contentWidths = MeasureColumnContentWidths(foTable, expandedColumns.Count);
+
+                // Extract content widths for auto columns only
+                for (int i = 0; i < expandedColumns.Count; i++)
+                {
+                    var (widthSpec, fixedWidth, proportionalValue) = expandedColumns[i];
+                    if (fixedWidth == 0 && proportionalValue == 0) // auto column
+                    {
+                        var contentWidth = contentWidths[i];
+                        autoColumnContentWidths.Add(contentWidth);
+                        totalAutoContentWidth += contentWidth;
+                    }
+                }
+            }
+
             // Distribute remaining width
+            int autoColumnIndex = 0;
             foreach (var (widthSpec, fixedWidth, proportionalValue) in expandedColumns)
             {
                 if (fixedWidth > 0)
@@ -2222,11 +2245,22 @@ internal sealed class LayoutEngine
                 }
                 else
                 {
-                    // Auto width column - distribute equally among all auto columns
-                    var autoWidth = autoCount > 0
-                        ? remainingWidth / autoCount
-                        : 0;
+                    // Auto width column - distribute based on content width ratios
+                    double autoWidth;
+                    if (totalAutoContentWidth > 0)
+                    {
+                        // Distribute remaining width proportional to content width
+                        var contentWidth = autoColumnContentWidths[autoColumnIndex];
+                        autoWidth = remainingWidth * (contentWidth / totalAutoContentWidth);
+                    }
+                    else
+                    {
+                        // No content or all empty - distribute equally
+                        autoWidth = autoCount > 0 ? remainingWidth / autoCount : 0;
+                    }
+
                     columnWidths.Add(Math.Max(50, autoWidth)); // Minimum 50pt
+                    autoColumnIndex++;
                 }
             }
         }
@@ -2261,6 +2295,143 @@ internal sealed class LayoutEngine
             return Math.Max(0, value); // Ensure non-negative
 
         return 1.0; // Default to 1 if parsing fails
+    }
+
+    /// <summary>
+    /// Measures the minimum width required for a block's content (longest word/element).
+    /// This is used for content-based column sizing.
+    /// </summary>
+    private double MeasureBlockMinimumWidth(Dom.FoBlock foBlock)
+    {
+        // Get font metrics for this block
+        var blockFontFamily = Fonts.PdfBaseFontMapper.ResolveFont(
+            foBlock.FontFamily,
+            foBlock.FontWeight,
+            foBlock.FontStyle);
+
+        var fontMetrics = new Fonts.FontMetrics
+        {
+            FamilyName = blockFontFamily,
+            Size = foBlock.FontSize
+        };
+
+        var minWidth = 0.0;
+
+        // Measure text content (find longest word)
+        var text = foBlock.TextContent ?? "";
+        if (!string.IsNullOrWhiteSpace(text))
+        {
+            // Split into words and find the longest
+            var words = text.Split(new[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var word in words)
+            {
+                var wordWidth = fontMetrics.MeasureWidth(word);
+                minWidth = Math.Max(minWidth, wordWidth);
+            }
+        }
+
+        // Handle inline elements
+        foreach (var child in foBlock.Children)
+        {
+            if (child is Dom.FoInline inline)
+            {
+                var inlineText = inline.TextContent ?? "";
+                if (!string.IsNullOrWhiteSpace(inlineText))
+                {
+                    var inlineFontFamily = Fonts.PdfBaseFontMapper.ResolveFont(
+                        inline.FontFamily,
+                        inline.FontWeight,
+                        inline.FontStyle);
+
+                    var inlineFontMetrics = new Fonts.FontMetrics
+                    {
+                        FamilyName = inlineFontFamily,
+                        Size = inline.FontSize ?? foBlock.FontSize
+                    };
+
+                    var inlineWords = inlineText.Split(new[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+                    foreach (var word in inlineWords)
+                    {
+                        var wordWidth = inlineFontMetrics.MeasureWidth(word);
+                        minWidth = Math.Max(minWidth, wordWidth);
+                    }
+                }
+            }
+        }
+
+        // Add padding to the minimum width
+        minWidth += foBlock.PaddingLeft + foBlock.PaddingRight;
+
+        return minWidth;
+    }
+
+    /// <summary>
+    /// Measures the minimum width required for a table cell's content.
+    /// Includes padding and borders.
+    /// </summary>
+    private double MeasureCellMinimumWidth(Dom.FoTableCell foCell)
+    {
+        var minWidth = 0.0;
+
+        // Measure each block in the cell
+        foreach (var foBlock in foCell.Blocks)
+        {
+            var blockMinWidth = MeasureBlockMinimumWidth(foBlock);
+            minWidth = Math.Max(minWidth, blockMinWidth);
+        }
+
+        // Add cell padding and borders
+        minWidth += foCell.PaddingLeft + foCell.PaddingRight + (foCell.BorderWidth * 2);
+
+        return minWidth;
+    }
+
+    /// <summary>
+    /// Measures content widths for all columns in a table.
+    /// Returns a list of minimum widths for each column based on cell content.
+    /// </summary>
+    private List<double> MeasureColumnContentWidths(Dom.FoTable foTable, int columnCount)
+    {
+        var columnWidths = new List<double>();
+        for (int i = 0; i < columnCount; i++)
+            columnWidths.Add(0);
+
+        // Collect all rows (header, body, footer)
+        var allRows = new List<Dom.FoTableRow>();
+        if (foTable.Header != null)
+            allRows.AddRange(foTable.Header.Rows);
+        if (foTable.Body != null)
+            allRows.AddRange(foTable.Body.Rows);
+        if (foTable.Footer != null)
+            allRows.AddRange(foTable.Footer.Rows);
+
+        // Measure content in each cell
+        foreach (var row in allRows)
+        {
+            int columnIndex = 0;
+            foreach (var cell in row.Cells)
+            {
+                if (columnIndex >= columnCount)
+                    break;
+
+                // Measure this cell's content
+                var cellWidth = MeasureCellMinimumWidth(cell);
+
+                // For spanning cells, divide the width across spanned columns
+                var colSpan = cell.NumberColumnsSpanned;
+                if (colSpan > 1)
+                {
+                    cellWidth /= colSpan;
+                }
+
+                // Update the maximum width for this column
+                columnWidths[columnIndex] = Math.Max(columnWidths[columnIndex], cellWidth);
+
+                columnIndex += colSpan;
+            }
+        }
+
+        return columnWidths;
     }
 
     private TableRowArea? LayoutTableRow(Dom.FoTableRow foRow, double x, double y, List<double> columnWidths, double borderSpacing)

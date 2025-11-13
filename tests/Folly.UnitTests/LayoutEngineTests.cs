@@ -2633,4 +2633,216 @@ public class LayoutEngineTests
     }
 
     #endregion
+
+    #region Content-Based Column Sizing Tests
+
+    [Fact]
+    public void TableAutoColumnWidths_EqualContent_EqualDistribution()
+    {
+        // Test that auto columns with equal content get equal width distribution
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="210mm" page-height="297mm">
+                  <fo:region-body margin="1in"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:table border="1pt solid black">
+                    <fo:table-column column-width="auto"/>
+                    <fo:table-column column-width="auto"/>
+                    <fo:table-column column-width="auto"/>
+                    <fo:table-body>
+                      <fo:table-row>
+                        <fo:table-cell padding="6pt"><fo:block>Apple</fo:block></fo:table-cell>
+                        <fo:table-cell padding="6pt"><fo:block>Banana</fo:block></fo:table-cell>
+                        <fo:table-cell padding="6pt"><fo:block>Cherry</fo:block></fo:table-cell>
+                      </fo:table-row>
+                    </fo:table-body>
+                  </fo:table>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+        Assert.NotNull(areaTree);
+        Assert.Single(areaTree.Pages);
+
+        var page = areaTree.Pages[0];
+        var tables = page.Areas.OfType<TableArea>().ToList();
+        Assert.NotEmpty(tables);
+
+        var columnWidths = tables[0].ColumnWidths;
+        Assert.Equal(3, columnWidths.Count);
+
+        // All columns should have widths close to each other (within 20% variance)
+        var avgWidth = columnWidths.Average();
+        foreach (var width in columnWidths)
+        {
+            var variance = Math.Abs(width - avgWidth) / avgWidth;
+            Assert.True(variance < 0.2, $"Column width {width} deviates too much from average {avgWidth}");
+        }
+    }
+
+    [Fact]
+    public void TableAutoColumnWidths_DifferentContent_ProportionalDistribution()
+    {
+        // Test that auto columns with different content get proportional width distribution
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="210mm" page-height="297mm">
+                  <fo:region-body margin="1in"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:table border="1pt solid black">
+                    <fo:table-column column-width="auto"/>
+                    <fo:table-column column-width="auto"/>
+                    <fo:table-column column-width="auto"/>
+                    <fo:table-body>
+                      <fo:table-row>
+                        <fo:table-cell padding="6pt"><fo:block>A</fo:block></fo:table-cell>
+                        <fo:table-cell padding="6pt"><fo:block>Medium</fo:block></fo:table-cell>
+                        <fo:table-cell padding="6pt"><fo:block>VeryLongContentWord</fo:block></fo:table-cell>
+                      </fo:table-row>
+                    </fo:table-body>
+                  </fo:table>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+        Assert.NotNull(areaTree);
+        Assert.Single(areaTree.Pages);
+
+        var page = areaTree.Pages[0];
+        var tables = page.Areas.OfType<TableArea>().ToList();
+        Assert.NotEmpty(tables);
+
+        var columnWidths = tables[0].ColumnWidths;
+        Assert.Equal(3, columnWidths.Count);
+
+        // Column widths should be proportional to content: col1 < col2 < col3
+        Assert.True(columnWidths[0] < columnWidths[1], "Short content column should be narrower than medium");
+        Assert.True(columnWidths[1] < columnWidths[2], "Medium content column should be narrower than long");
+    }
+
+    [Fact]
+    public void TableAutoColumnWidths_WithFixedColumn()
+    {
+        // Test that auto columns work correctly alongside fixed columns
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="210mm" page-height="297mm">
+                  <fo:region-body margin="1in"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:table border="1pt solid black">
+                    <fo:table-column column-width="100pt"/>
+                    <fo:table-column column-width="auto"/>
+                    <fo:table-column column-width="auto"/>
+                    <fo:table-body>
+                      <fo:table-row>
+                        <fo:table-cell padding="6pt"><fo:block>Fixed</fo:block></fo:table-cell>
+                        <fo:table-cell padding="6pt"><fo:block>Short</fo:block></fo:table-cell>
+                        <fo:table-cell padding="6pt"><fo:block>MuchLongerContent</fo:block></fo:table-cell>
+                      </fo:table-row>
+                    </fo:table-body>
+                  </fo:table>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+        Assert.NotNull(areaTree);
+        Assert.Single(areaTree.Pages);
+
+        var page = areaTree.Pages[0];
+        var tables = page.Areas.OfType<TableArea>().ToList();
+        Assert.NotEmpty(tables);
+
+        var columnWidths = tables[0].ColumnWidths;
+        Assert.Equal(3, columnWidths.Count);
+
+        // First column should be exactly 100pt (fixed)
+        Assert.Equal(100.0, columnWidths[0], 0.1);
+
+        // Auto columns should be proportional: col2 < col3
+        Assert.True(columnWidths[1] < columnWidths[2], "Short content auto column should be narrower than long content auto column");
+    }
+
+    [Fact]
+    public void TableAutoColumnWidths_MultipleRows()
+    {
+        // Test that auto column sizing considers content from all rows
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="210mm" page-height="297mm">
+                  <fo:region-body margin="1in"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:table border="1pt solid black">
+                    <fo:table-column column-width="auto"/>
+                    <fo:table-column column-width="auto"/>
+                    <fo:table-body>
+                      <fo:table-row>
+                        <fo:table-cell padding="6pt"><fo:block>Short</fo:block></fo:table-cell>
+                        <fo:table-cell padding="6pt"><fo:block>X</fo:block></fo:table-cell>
+                      </fo:table-row>
+                      <fo:table-row>
+                        <fo:table-cell padding="6pt"><fo:block>Y</fo:block></fo:table-cell>
+                        <fo:table-cell padding="6pt"><fo:block>VeryLongWord</fo:block></fo:table-cell>
+                      </fo:table-row>
+                    </fo:table-body>
+                  </fo:table>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+
+        var areaTree = doc.BuildAreaTree();
+        Assert.NotNull(areaTree);
+        Assert.Single(areaTree.Pages);
+
+        var page = areaTree.Pages[0];
+        var tables = page.Areas.OfType<TableArea>().ToList();
+        Assert.NotEmpty(tables);
+
+        var columnWidths = tables[0].ColumnWidths;
+        Assert.Equal(2, columnWidths.Count);
+
+        // Column 2 should be wider because "VeryLongWord" is the longest content
+        // even though it's in the second row
+        Assert.True(columnWidths[1] > columnWidths[0], "Column with longest word across all rows should be wider");
+    }
+
+    #endregion
 }

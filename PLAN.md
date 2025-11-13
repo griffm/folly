@@ -850,13 +850,13 @@ private double CalculateContentBasedWidth(Dom.FoTableColumn column)
 ```
 
 **Deliverables:**
-- [ ] Measure cell content to determine minimum width
-- [ ] Two-pass layout: measure, then render
-- [ ] Balance content-based and auto columns
-- [ ] Add tests for auto-sized columns
-- [ ] Update examples
+- [x] Measure cell content to determine minimum width - `MeasureColumnContentWidths`, `MeasureCellMinimumWidth`, `MeasureBlockMinimumWidth`
+- [x] Two-pass layout: measure, then render - Content measurement happens during `CalculateColumnWidths`
+- [x] Balance content-based and auto columns - Auto columns distribute space proportionally based on content width ratios
+- [x] Add tests for auto-sized columns - 4 comprehensive tests covering equal content, different content, mixed with fixed, and multi-row scenarios
+- [x] Update examples - Example 29 demonstrates content-based sizing with product catalog use case
 
-**Complexity:** High (3-4 weeks)
+**Complexity:** High (3-4 weeks) ✅ **Completed**
 
 ### 4.4 Table Footer Repetition
 
