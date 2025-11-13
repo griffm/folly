@@ -618,7 +618,7 @@ return $"uni{codePoint:X4}";
 
 **Impact**:
 - Screen resolution (96 DPI) vs print resolution (72 DPI) confusion
-- 96px should be ~72pt, not 96pt
+- 96px at 96 DPI should equal 72pt (1 inch), not 96pt (1.33 inches)
 - Layouts sized in pixels will be ~33% too large
 
 **Risk**: Medium - common in web-to-PDF scenarios
