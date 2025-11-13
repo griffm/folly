@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Security;
 
 namespace Folly.Fonts;
 
@@ -15,7 +16,8 @@ public class FontResolver
     private readonly Dictionary<string, string> _customFonts;
     private readonly Dictionary<string, string> _systemFontCache;
     private readonly Dictionary<string, string> _genericFamilyMap;
-    private bool _systemFontsScanned;
+    private readonly object _scanLock = new object();
+    private volatile bool _systemFontsScanned;
 
     /// <summary>
     /// Creates a new font resolver for font-family stack resolution.
@@ -57,11 +59,17 @@ public class FontResolver
                     return customPath;
             }
 
-            // Try system fonts (scan if needed)
+            // Try system fonts (scan if needed with double-checked locking)
             if (!_systemFontsScanned)
             {
-                ScanSystemFonts();
-                _systemFontsScanned = true;
+                lock (_scanLock)
+                {
+                    if (!_systemFontsScanned)
+                    {
+                        ScanSystemFonts();
+                        _systemFontsScanned = true;
+                    }
+                }
             }
 
             if (_systemFontCache.TryGetValue(family, out var systemPath))
@@ -69,10 +77,13 @@ public class FontResolver
                 return systemPath;
             }
 
-            // Try generic family mapping
+            // Try generic family mapping (with recursion protection)
             if (_genericFamilyMap.TryGetValue(family, out var genericFamily))
             {
                 // Recursively resolve the generic family
+                // Note: Recursion depth is limited by generic family map size (typically 5 entries)
+                // and infinite loops are prevented by the fact that generic families don't
+                // reference each other in the initialization
                 var resolvedPath = ResolveFontFamily(genericFamily);
                 if (resolvedPath != null)
                     return resolvedPath;
@@ -117,15 +128,24 @@ public class FontResolver
                             }
                         }
                     }
-                    catch
+                    catch (Exception ex) when (
+                        ex is IOException ||
+                        ex is UnauthorizedAccessException ||
+                        ex is InvalidDataException ||
+                        ex is NotSupportedException)
                     {
-                        // Skip fonts that fail to parse
+                        // Skip fonts that fail to parse (corrupted files, unsupported formats, access denied, etc.)
+                        // Silently continue to next font - this is expected for some system files
                     }
                 }
             }
-            catch
+            catch (Exception ex) when (
+                ex is IOException ||
+                ex is UnauthorizedAccessException ||
+                ex is SecurityException)
             {
-                // Skip directories that fail to enumerate
+                // Skip directories that fail to enumerate (access denied, network issues, etc.)
+                // Silently continue to next directory - this is expected for some system directories
             }
         }
     }
