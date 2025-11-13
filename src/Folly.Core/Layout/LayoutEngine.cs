@@ -5,6 +5,12 @@ namespace Folly.Layout;
 /// </summary>
 internal sealed class LayoutEngine
 {
+    // Constants
+    private const double MinimumColumnWidth = 50.0; // Minimum column width in points
+    private const double Epsilon = 1e-10; // Tolerance for floating-point comparisons
+    private const double MinimumFontSize = 1.0; // Minimum valid font size in points
+    private const double DefaultFontSize = 12.0; // Default font size when invalid
+
     private readonly LayoutOptions _options;
     private readonly Dictionary<string, List<(int PageNumber, Dom.FoMarker Marker)>> _markers = new();
     private readonly List<Dom.FoFootnote> _currentPageFootnotes = new();
@@ -2152,7 +2158,7 @@ internal sealed class LayoutEngine
             // Calculate widths
             var totalFixedWidth = expandedColumns.Sum(c => c.fixedWidth);
             var totalProportional = expandedColumns.Sum(c => c.proportionalValue);
-            var autoCount = expandedColumns.Count(c => c.fixedWidth == 0 && c.proportionalValue == 0);
+            var autoCount = expandedColumns.Count(c => Math.Abs(c.fixedWidth) < Epsilon && Math.Abs(c.proportionalValue) < Epsilon);
 
             var remainingWidth = availableWidth - totalFixedWidth - (foTable.BorderSpacing * (expandedColumns.Count + 1));
 
@@ -2168,8 +2174,8 @@ internal sealed class LayoutEngine
                 // Extract content widths for auto columns only
                 for (int i = 0; i < expandedColumns.Count; i++)
                 {
-                    var (widthSpec, fixedWidth, proportionalValue) = expandedColumns[i];
-                    if (fixedWidth == 0 && proportionalValue == 0) // auto column
+                    var (_, fixedWidth, proportionalValue) = expandedColumns[i];
+                    if (Math.Abs(fixedWidth) < Epsilon && Math.Abs(proportionalValue) < Epsilon) // auto column
                     {
                         var contentWidth = contentWidths[i];
                         autoColumnContentWidths.Add(contentWidth);
@@ -2180,26 +2186,26 @@ internal sealed class LayoutEngine
 
             // Distribute remaining width
             int autoColumnIndex = 0;
-            foreach (var (widthSpec, fixedWidth, proportionalValue) in expandedColumns)
+            foreach (var (_, fixedWidth, proportionalValue) in expandedColumns)
             {
-                if (fixedWidth > 0)
+                if (fixedWidth > Epsilon)
                 {
                     // Fixed width column
                     columnWidths.Add(fixedWidth);
                 }
-                else if (proportionalValue > 0)
+                else if (proportionalValue > Epsilon)
                 {
                     // Proportional column - get its share of the remaining width
-                    var proportionalWidth = totalProportional > 0
+                    var proportionalWidth = totalProportional > Epsilon
                         ? remainingWidth * (proportionalValue / totalProportional)
                         : 0;
-                    columnWidths.Add(Math.Max(50, proportionalWidth)); // Minimum 50pt
+                    columnWidths.Add(Math.Max(MinimumColumnWidth, proportionalWidth));
                 }
                 else
                 {
                     // Auto width column - distribute based on content width ratios
                     double autoWidth;
-                    if (totalAutoContentWidth > 0)
+                    if (totalAutoContentWidth > Epsilon)
                     {
                         // Distribute remaining width proportional to content width
                         var contentWidth = autoColumnContentWidths[autoColumnIndex];
@@ -2211,7 +2217,7 @@ internal sealed class LayoutEngine
                         autoWidth = autoCount > 0 ? remainingWidth / autoCount : 0;
                     }
 
-                    columnWidths.Add(Math.Max(50, autoWidth)); // Minimum 50pt
+                    columnWidths.Add(Math.Max(MinimumColumnWidth, autoWidth));
                     autoColumnIndex++;
                 }
             }
@@ -2250,6 +2256,18 @@ internal sealed class LayoutEngine
     }
 
     /// <summary>
+    /// Validates and sanitizes a font size to ensure it's within reasonable bounds.
+    /// </summary>
+    private static double ValidateFontSize(double fontSize)
+    {
+        // Return default for invalid sizes (zero, negative, or NaN)
+        if (double.IsNaN(fontSize) || fontSize < MinimumFontSize)
+            return DefaultFontSize;
+
+        return fontSize;
+    }
+
+    /// <summary>
     /// Measures the minimum width required for a block's content (longest word/element).
     /// This is used for content-based column sizing.
     /// </summary>
@@ -2264,7 +2282,7 @@ internal sealed class LayoutEngine
         var fontMetrics = new Fonts.FontMetrics
         {
             FamilyName = blockFontFamily,
-            Size = foBlock.FontSize
+            Size = ValidateFontSize(foBlock.FontSize)
         };
 
         var minWidth = 0.0;
@@ -2298,7 +2316,7 @@ internal sealed class LayoutEngine
                     var inlineFontMetrics = new Fonts.FontMetrics
                     {
                         FamilyName = inlineFontFamily,
-                        Size = inline.FontSize ?? foBlock.FontSize
+                        Size = ValidateFontSize(inline.FontSize ?? foBlock.FontSize)
                     };
 
                     var inlineWords = inlineText.Split(new[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
@@ -2452,9 +2470,8 @@ internal sealed class LayoutEngine
                 {
                     cellHeight += rowHeights[rowIndex + i];
                 }
-                // Add spacing between spanned rows
-                if (rowSpan > 1)
-                    cellHeight += borderSpacing * (rowSpan - 1);
+                // Add spacing between spanned rows (rowSpan > 1 guaranteed by outer condition)
+                cellHeight += borderSpacing * (rowSpan - 1);
             }
 
             // Layout the cell
@@ -2522,14 +2539,9 @@ internal sealed class LayoutEngine
         }
 
         // Use specified height for row-spanning cells, otherwise use content height
-        if (specifiedCellHeight > 0)
-        {
-            cellArea.Height = Math.Max(specifiedCellHeight, currentY + foCell.PaddingBottom);
-        }
-        else
-        {
-            cellArea.Height = currentY + foCell.PaddingBottom;
-        }
+        cellArea.Height = specifiedCellHeight > 0
+            ? Math.Max(specifiedCellHeight, currentY + foCell.PaddingBottom)
+            : currentY + foCell.PaddingBottom;
 
         return cellArea;
     }
@@ -3319,13 +3331,10 @@ internal sealed class LayoutEngine
         /// </summary>
         public TableCellArea? GetCellAt(int row, int col)
         {
-            if (_occupied.TryGetValue((row, col), out var placement))
-            {
-                // Only return the cell area if this is NOT the origin row
-                // (origin row renders the cell normally)
-                if (placement.OriginRow != row)
-                    return placement.CellArea;
-            }
+            // Only return the cell area if this is NOT the origin row (origin row renders the cell normally)
+            if (_occupied.TryGetValue((row, col), out var placement) && placement.OriginRow != row)
+                return placement.CellArea;
+
             return null;
         }
 
