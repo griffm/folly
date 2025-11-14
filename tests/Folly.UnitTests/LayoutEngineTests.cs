@@ -2209,7 +2209,8 @@ public class LayoutEngineTests
         var tables = page.Areas.OfType<TableArea>().ToList();
         Assert.NotEmpty(tables);
 
-        // With page-breaking layout, each row gets its own TableArea
+        // The layout engine may create multiple TableAreas when handling complex row spanning.
+        // We expect at least one TableArea per row (3 rows = minimum 3 TableAreas).
         Assert.True(tables.Count >= 3, $"Expected at least 3 table areas, got {tables.Count}");
 
         // Collect all rows from all table areas
