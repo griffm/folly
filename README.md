@@ -123,7 +123,7 @@ cd examples
 dotnet run --project Folly.Examples
 ```
 
-This generates 32 example PDFs showcasing Folly's capabilities:
+This generates 33 example PDFs showcasing Folly's capabilities:
 - **Hello World** - Basic document with simple text
 - **Multiple Blocks** - Different fonts and sizes
 - **Text Alignment** - Start, center, and end alignment
@@ -132,7 +132,7 @@ This generates 32 example PDFs showcasing Folly's capabilities:
 - **Invoice** - Real-world business document
 - **Tables** - Complex table layouts with spanning
 - **Multi-Page Tables** - 100-row table with automatic page breaks and header repetition
-- **Images** - JPEG and PNG embedding
+- **Images** - JPEG, PNG, BMP, GIF, and TIFF embedding
 - **Lists** - Ordered and unordered list formatting
 - **Multi-Page Lists** - 100-item list with automatic page breaks and keep-together support
 - **Keep/Break Constraints** - Page break control
@@ -156,6 +156,7 @@ This generates 32 example PDFs showcasing Folly's capabilities:
 - **Table Footer Repetition** - Footers at page breaks
 - **Business Letterhead** - Absolute positioning demonstration
 - **Sidebars with Margin Notes** - Left and right side regions for annotations and supplementary content
+- **All Image Formats** - Comprehensive demonstration of BMP, GIF, and TIFF support with zero dependencies
 
 See [examples/README.md](examples/README.md) for details.
 
@@ -248,7 +249,12 @@ The core rendering engine is fully operational with extensive feature support:
 - **Background image rendering** with tiling (repeat, repeat-x, repeat-y, no-repeat) and positioning (keywords, percentages, lengths)
 - Graphics state management
 - **Rotation transformations** using PDF transformation matrices for rotated content (0°, 90°, 180°, 270°)
-- Image embedding (JPEG passthrough, PNG decoding)
+- **Image embedding** with zero dependencies
+  - JPEG (DCTDecode passthrough for optimal file size)
+  - PNG (FlateDecode with PNG predictors, alpha channel support via SMask)
+  - **BMP** (24-bit and 32-bit RGB with alpha, DPI detection, BGR→RGB conversion)
+  - **GIF** (custom LZW decompression, global/local color tables, transparency, indexed color spaces)
+  - **TIFF** (baseline uncompressed RGB, little/big-endian, IFD parsing, DPI extraction)
 - Page numbers (fo:page-number)
 - Hyperlinks (internal and external via fo:basic-link)
 - PDF outline/bookmarks for document navigation
