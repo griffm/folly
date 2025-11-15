@@ -496,8 +496,61 @@ public sealed class SvgToPdfConverter
         // End text object
         _contentStream.AppendLine("ET");
 
+        // Render text-decoration (underline, overline, line-through)
+        var textDecoration = element.GetAttribute("text-decoration");
+        if (!string.IsNullOrWhiteSpace(textDecoration) && textDecoration != "none")
+        {
+            var textWidth = EstimateTextWidth(textContent, fontSize, pdfFont);
+            var lineThickness = fontSize * 0.05; // 5% of font size
+
+            // Set line color same as text color
+            if (style.Fill != null && style.Fill != "none")
+            {
+                var fillColor = ParseColor(style.Fill);
+                if (fillColor != null)
+                {
+                    var (r, g, b) = fillColor.Value;
+                    _contentStream.AppendLine($"{r} {g} {b} RG");
+                }
+            }
+
+            _contentStream.AppendLine($"{lineThickness} w");
+
+            // Parse decoration types (can be space-separated: "underline overline")
+            var decorations = textDecoration.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (var decoration in decorations)
+            {
+                switch (decoration.Trim().ToLowerInvariant())
+                {
+                    case "underline":
+                        // Draw line below baseline
+                        var underlineY = y - fontSize * 0.1;
+                        _contentStream.AppendLine($"{x} {underlineY} m");
+                        _contentStream.AppendLine($"{x + textWidth} {underlineY} l");
+                        _contentStream.AppendLine("S");
+                        break;
+
+                    case "overline":
+                        // Draw line above text
+                        var overlineY = y + fontSize * 0.9;
+                        _contentStream.AppendLine($"{x} {overlineY} m");
+                        _contentStream.AppendLine($"{x + textWidth} {overlineY} l");
+                        _contentStream.AppendLine("S");
+                        break;
+
+                    case "line-through":
+                        // Draw line through middle of text
+                        var lineThroughY = y + fontSize * 0.3;
+                        _contentStream.AppendLine($"{x} {lineThroughY} m");
+                        _contentStream.AppendLine($"{x + textWidth} {lineThroughY} l");
+                        _contentStream.AppendLine("S");
+                        break;
+                }
+            }
+        }
+
         // TODO: Support tspan elements for multi-line text
-        // TODO: Support text-decoration (underline, overline, line-through)
         // TODO: Support textPath for text on curves
     }
 
