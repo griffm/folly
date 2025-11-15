@@ -114,14 +114,32 @@ internal sealed class PdfWriter : IDisposable
             var source = kvp.Key;
             var (data, format, width, height) = kvp.Value;
 
-            if (format == "JPEG")
+            int imageId = -1;
+
+            switch (format)
             {
-                var imageId = WriteJpegXObject(data, width, height);
-                imageIds[source] = imageId;
+                case "JPEG":
+                    imageId = WriteJpegXObject(data, width, height);
+                    break;
+
+                case "PNG":
+                    imageId = WritePngXObject(data, width, height);
+                    break;
+
+                case "BMP":
+                case "GIF":
+                case "TIFF":
+                    // Use new image parsers for BMP, GIF, TIFF
+                    imageId = WriteDecodedImageXObject(data, format, width, height);
+                    break;
+
+                default:
+                    // Unknown format, skip
+                    continue;
             }
-            else if (format == "PNG")
+
+            if (imageId > 0)
             {
-                var imageId = WritePngXObject(data, width, height);
                 imageIds[source] = imageId;
             }
         }
@@ -261,6 +279,134 @@ internal sealed class PdfWriter : IDisposable
         EndObject();
 
         return imageId;
+    }
+
+    /// <summary>
+    /// Writes an image XObject for decoded image formats (BMP, GIF, TIFF).
+    /// Uses the new image parser infrastructure.
+    /// </summary>
+    private int WriteDecodedImageXObject(byte[] imageData, string format, int width, int height)
+    {
+        try
+        {
+            Folly.Images.ImageInfo? imageInfo = null;
+
+            // Parse image using appropriate parser
+            switch (format)
+            {
+                case "BMP":
+                    {
+                        var parser = new Folly.Images.Parsers.BmpParser();
+                        imageInfo = parser.Parse(imageData);
+                        break;
+                    }
+
+                case "GIF":
+                    {
+                        var parser = new Folly.Images.Parsers.GifParser();
+                        imageInfo = parser.Parse(imageData);
+                        break;
+                    }
+
+                case "TIFF":
+                    {
+                        var parser = new Folly.Images.Parsers.TiffParser();
+                        imageInfo = parser.Parse(imageData);
+                        break;
+                    }
+
+                default:
+                    throw new NotSupportedException($"Unsupported image format: {format}");
+            }
+
+            if (imageInfo == null || imageInfo.RawData == null)
+                throw new InvalidDataException($"Failed to parse {format} image");
+
+            // Create SMask if alpha channel is present
+            int? smaskId = null;
+            if (imageInfo.AlphaData != null)
+            {
+                smaskId = WriteSMask(imageInfo.AlphaData, imageInfo.Width, imageInfo.Height, imageInfo.BitsPerComponent);
+            }
+
+            // Write main image XObject
+            var imageId = BeginObject();
+            WriteLine("<<");
+            WriteLine("  /Type /XObject");
+            WriteLine("  /Subtype /Image");
+            WriteLine($"  /Width {imageInfo.Width}");
+            WriteLine($"  /Height {imageInfo.Height}");
+
+            // Handle indexed color space with palette (for GIF)
+            if (imageInfo.Palette != null)
+            {
+                // PDF Indexed ColorSpace: [/Indexed baseColorSpace hival lookup]
+                int paletteSize = imageInfo.Palette.Length / 3; // RGB triplets
+                int hival = paletteSize - 1;
+
+                Write("  /ColorSpace [/Indexed /DeviceRGB ");
+                Write(hival.ToString());
+                Write(" <");
+                foreach (byte b in imageInfo.Palette)
+                {
+                    Write(b.ToString("X2"));
+                }
+                WriteLine(">]");
+            }
+            else
+            {
+                WriteLine($"  /ColorSpace /{imageInfo.ColorSpace}");
+            }
+
+            WriteLine($"  /BitsPerComponent {imageInfo.BitsPerComponent}");
+
+            // Add SMask reference if alpha channel present
+            if (smaskId.HasValue)
+            {
+                WriteLine($"  /SMask {smaskId.Value} 0 R");
+            }
+
+            // Transparency for GIF (indexed color with transparent index)
+            if (imageInfo.Transparency != null && imageInfo.ColorSpace != "DeviceRGB")
+            {
+                // For grayscale transparency
+                if (imageInfo.Transparency.Length == 2)
+                {
+                    int gray = (imageInfo.Transparency[0] << 8) | imageInfo.Transparency[1];
+                    WriteLine($"  /Mask [{gray} {gray}]");
+                }
+                // For RGB transparency
+                else if (imageInfo.Transparency.Length == 6)
+                {
+                    int r1 = (imageInfo.Transparency[0] << 8) | imageInfo.Transparency[1];
+                    int g1 = (imageInfo.Transparency[2] << 8) | imageInfo.Transparency[3];
+                    int b1 = (imageInfo.Transparency[4] << 8) | imageInfo.Transparency[5];
+                    WriteLine($"  /Mask [{r1} {r1} {g1} {g1} {b1} {b1}]");
+                }
+            }
+
+            WriteLine("  /Filter /FlateDecode");
+            WriteLine($"  /Length {imageInfo.RawData.Length}");
+            WriteLine(">>");
+            WriteLine("stream");
+
+            // Write compressed image data
+            _output.Write(imageInfo.RawData, 0, imageInfo.RawData.Length);
+            _position += imageInfo.RawData.Length;
+
+            WriteLine("");
+            WriteLine("endstream");
+            EndObject();
+
+            return imageId;
+        }
+        catch (Exception ex)
+        {
+            // Log error and return -1 to indicate failure
+            // In production, you might want to log this
+            Console.Error.WriteLine($"Failed to write {format} image: {ex.Message}");
+            return -1;
+        }
     }
 
     /// <summary>
