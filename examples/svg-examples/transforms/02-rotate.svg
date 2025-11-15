@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200">
+  <title>Transform - Rotate</title>
+  <desc>Demonstrating rotate transformation</desc>
+
+  <!-- Center point -->
+  <circle cx="150" cy="100" r="3" fill="#E74C3C"/>
+
+  <!-- Original rectangle -->
+  <rect x="120" y="80" width="60" height="40" fill="#9B59B6" opacity="0.3"/>
+
+  <!-- Rotated 45 degrees around center -->
+  <rect x="120" y="80" width="60" height="40" fill="#9B59B6" transform="rotate(45, 150, 100)"/>
+
+  <!-- Text label -->
+  <text x="150" y="170" font-family="Arial, sans-serif" font-size="12" fill="#2C3E50" text-anchor="middle">Rotated 45°</text>
+</svg>

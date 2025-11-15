@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200">
+  <title>Clipping and Masking</title>
+  <desc>Using clipPath to clip elements</desc>
+
+  <defs>
+    <!-- Define a circular clip path -->
+    <clipPath id="circleClip">
+      <circle cx="75" cy="100" r="60"/>
+    </clipPath>
+
+    <!-- Define a star clip path -->
+    <clipPath id="starClip">
+      <polygon points="225,40 235,70 265,70 241,88 250,118 225,100 200,118 209,88 185,70 215,70"/>
+    </clipPath>
+
+    <!-- Gradient for the clipped rectangles -->
+    <linearGradient id="rainbowGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#E74C3C;stop-opacity:1"/>
+      <stop offset="20%" style="stop-color:#F39C12;stop-opacity:1"/>
+      <stop offset="40%" style="stop-color:#F1C40F;stop-opacity:1"/>
+      <stop offset="60%" style="stop-color:#2ECC71;stop-opacity:1"/>
+      <stop offset="80%" style="stop-color:#3498DB;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#9B59B6;stop-opacity:1"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Rectangle clipped by circle -->
+  <rect x="15" y="40" width="120" height="120" fill="url(#rainbowGrad)" clip-path="url(#circleClip)"/>
+
+  <!-- Rectangle clipped by star -->
+  <rect x="165" y="40" width="120" height="120" fill="url(#rainbowGrad)" clip-path="url(#starClip)"/>
+
+  <!-- Show clip path outlines for reference -->
+  <circle cx="75" cy="100" r="60" fill="none" stroke="#2C3E50" stroke-width="1" stroke-dasharray="3,3"/>
+  <polygon points="225,40 235,70 265,70 241,88 250,118 225,100 200,118 209,88 185,70 215,70"
+           fill="none" stroke="#2C3E50" stroke-width="1" stroke-dasharray="3,3"/>
+</svg>

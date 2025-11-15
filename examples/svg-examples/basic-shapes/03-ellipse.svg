@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="250" height="150" viewBox="0 0 250 150">
+  <title>Basic Ellipse</title>
+  <desc>An ellipse with different horizontal and vertical radii</desc>
+
+  <!-- Ellipse with rx and ry -->
+  <ellipse cx="125" cy="75" rx="100" ry="50"
+           fill="#9B59B6"
+           stroke="#7D3C98"
+           stroke-width="3"/>
+</svg>

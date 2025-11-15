@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200">
+  <title>Cubic Bezier Curve</title>
+  <desc>Path using C (cubic bezier curve) command</desc>
+
+  <!-- S-curve using cubic bezier -->
+  <path d="M 50,100 C 100,20 200,180 250,100"
+        fill="none"
+        stroke="#9B59B6"
+        stroke-width="4"/>
+
+  <!-- Control points (for visualization) -->
+  <circle cx="100" cy="20" r="4" fill="#E74C3C"/>
+  <circle cx="200" cy="180" r="4" fill="#E74C3C"/>
+  <line x1="50" y1="100" x2="100" y2="20" stroke="#E74C3C" stroke-width="1" stroke-dasharray="3,3"/>
+  <line x1="250" y1="100" x2="200" y2="180" stroke="#E74C3C" stroke-width="1" stroke-dasharray="3,3"/>
+</svg>

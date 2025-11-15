@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="200" viewBox="0 0 400 200">
+  <title>Text on Path</title>
+  <desc>Text following a curved path</desc>
+
+  <defs>
+    <!-- Define a curved path -->
+    <path id="curvePath" d="M 50,150 Q 200,50 350,150" fill="none" stroke="#DDD" stroke-width="2"/>
+  </defs>
+
+  <!-- Show the path -->
+  <use href="#curvePath"/>
+
+  <!-- Text following the path -->
+  <text font-family="Arial, sans-serif" font-size="20" fill="#2980B9">
+    <textPath href="#curvePath">
+      Text following a curved path!
+    </textPath>
+  </text>
+</svg>

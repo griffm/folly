@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200">
+  <title>Curved Path with Quadratic Bezier</title>
+  <desc>Path using Q (quadratic bezier curve) command</desc>
+
+  <!-- Curved path using quadratic bezier -->
+  <path d="M 50,150 Q 150,20 250,150"
+        fill="none"
+        stroke="#3498DB"
+        stroke-width="4"/>
+
+  <!-- Control point indicator (for visualization) -->
+  <circle cx="150" cy="20" r="4" fill="#E74C3C"/>
+  <line x1="50" y1="150" x2="150" y2="20" stroke="#E74C3C" stroke-width="1" stroke-dasharray="3,3"/>
+  <line x1="250" y1="150" x2="150" y2="20" stroke="#E74C3C" stroke-width="1" stroke-dasharray="3,3"/>
+</svg>

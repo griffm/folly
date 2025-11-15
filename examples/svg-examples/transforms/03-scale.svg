@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200">
+  <title>Transform - Scale</title>
+  <desc>Demonstrating scale transformation</desc>
+
+  <!-- Original rectangle -->
+  <rect x="100" y="70" width="40" height="30" fill="#27AE60" opacity="0.3"/>
+
+  <!-- Scaled 1.5x -->
+  <rect x="100" y="70" width="40" height="30" fill="#27AE60" transform="scale(1.5)"/>
+
+  <!-- Labels -->
+  <text x="120" y="60" font-family="Arial, sans-serif" font-size="12" fill="#2C3E50">Original (1x)</text>
+  <text x="160" y="140" font-family="Arial, sans-serif" font-size="12" fill="#2C3E50">Scaled (1.5x)</text>
+</svg>
