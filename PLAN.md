@@ -27,10 +27,12 @@ This roadmap outlines Folly's evolution from a solid XSL-FO foundation (~70% spe
   - Phase 5.3 (Background Images) ✅ COMPLETE
   - Phase 5.4 (Reference Orientation - Rotation) ✅ COMPLETE
   - Phase 5.5 (Display-Align - Vertical Alignment) ✅ COMPLETE
+- Phase 6 (Internationalization & Advanced Features) 🚧 IN PROGRESS
+  - Phase 6.2 (Additional Image Formats) ✅ COMPLETE (Example 33)
 - Excellent performance (66x faster than target at ~150ms for 200 pages)
-- ~75% XSL-FO 1.1 compliance (up from ~70%)
-- 314+ passing tests (99%+ success rate) - includes 85 font tests and 4 sidebar tests
-- 32 working examples including TrueType font embedding, font fallback, kerning, table features, absolute positioning, and sidebars
+- ~75% XSL-FO 1.1 compliance
+- 331 passing tests (99.4% success rate) - includes 85 font tests, 17 image format tests
+- 33 working examples including TrueType fonts, kerning, tables, positioning, sidebars, and all image formats (BMP, GIF, TIFF)
 
 **Target:** Best-in-class layout engine with ~95% spec compliance, professional typography, zero runtime dependencies
 
@@ -59,7 +61,7 @@ This roadmap outlines Folly's evolution from a solid XSL-FO foundation (~70% spe
 - ✅ Multi-page pagination with conditional page masters
 - ✅ Block and inline formatting
 - ✅ Tables with column spanning
-- ✅ Images (JPEG/PNG)
+- ✅ Images (JPEG/PNG/BMP/GIF/TIFF with zero dependencies)
 - ✅ Links and bookmarks
 - ✅ Font subsetting and compression
 - ✅ Static content (headers/footers)
@@ -1176,23 +1178,36 @@ namespace Folly.BiDi
 - Unicode Standard Annex #9: https://www.unicode.org/reports/tr9/
 - Pure .NET implementation, no native dependencies
 
-### 6.2 Additional Image Formats
+### 6.2 Additional Image Formats ✅ COMPLETE
 
-**Strategy:** Use System.Drawing.Common where available, or minimal parsers
+**Strategy:** Zero dependencies with custom parsers (no System.Drawing)
 
 **Deliverables:**
-- [ ] Add GIF support (System.Drawing or custom parser)
-- [ ] Add WebP support (System.Drawing.Common on .NET 8+)
-- [ ] Add TIFF support (System.Drawing or minimal parser)
-- [ ] Add BMP support (trivial format)
-- [ ] EXIF orientation support (auto-rotate)
-- [ ] DPI/resolution detection (proper sizing)
-- [ ] Add tests for each format
-- [ ] Update examples
+- [x] Add GIF support (custom LZW decompression, 5 tests passing)
+- [x] Add TIFF support (baseline uncompressed RGB, little/big-endian, 6 tests passing)
+- [x] Add BMP support (24-bit and 32-bit RGB with alpha, 6 tests passing)
+- [x] DPI/resolution detection (BMP, TIFF parsers extract DPI from metadata)
+- [x] Add tests for each format (17 new tests, 331 total tests passing)
+- [x] Update examples (Example 33: All Image Formats demonstration)
+- [x] Integration with LayoutEngine and PdfWriter (full PDF embedding support)
+- [x] Alpha channel support (SMask for BMP 32-bit, GIF transparency)
+- [x] Indexed color spaces (GIF palettes embedded in PDF)
+- [ ] WebP support (deferred - requires complex codec)
+- [ ] EXIF orientation support (deferred to Phase 6.5)
 
-**Complexity:** Medium (3-4 weeks)
+**Implementation Details:**
+- **BmpParser:** 24/32-bit RGB with alpha channel extraction, DPI from pixels-per-meter, BGR→RGB conversion
+- **GifParser:** Full LZW decompression (custom implementation), global/local color tables, transparency
+- **TiffParser:** IFD parsing, strip-based images, little/big-endian support, DPI from XResolution/YResolution
 
-**Note:** System.Drawing.Common is available on .NET 8+ with proper warnings
+**Test Coverage:**
+- 6 BMP tests (24-bit, 32-bit with alpha, DPI extraction)
+- 5 GIF tests (GIF87a, GIF89a, LZW decompression, transparency)
+- 6 TIFF tests (little-endian, big-endian, baseline RGB)
+
+**Complexity:** Medium (completed in ~4 hours with AI assistance)
+
+**Note:** Achieved zero dependencies by implementing custom parsers - no System.Drawing required!
 
 ### 6.3 Basic SVG Support
 
