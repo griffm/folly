@@ -82,6 +82,12 @@ public sealed class SvgDocument
     public Dictionary<string, SvgMarker> Markers { get; init; } = new();
 
     /// <summary>
+    /// Gets the filters dictionary (blur, shadows, effects).
+    /// Keys are filter IDs, values are filter objects.
+    /// </summary>
+    public Dictionary<string, SvgFilter> Filters { get; init; } = new();
+
+    /// <summary>
     /// Parses an SVG document from a byte array.
     /// </summary>
     public static SvgDocument Parse(byte[] data)

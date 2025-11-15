@@ -152,6 +152,13 @@ public sealed class SvgStyle
     /// </summary>
     public string? MarkerEnd { get; set; }
 
+    // Filters
+
+    /// <summary>
+    /// Gets or sets the filter reference (e.g., "url(#dropShadow)").
+    /// </summary>
+    public string? Filter { get; set; }
+
     /// <summary>
     /// Creates a copy of this style.
     /// </summary>
@@ -184,7 +191,8 @@ public sealed class SvgStyle
             Mask = Mask,
             MarkerStart = MarkerStart,
             MarkerMid = MarkerMid,
-            MarkerEnd = MarkerEnd
+            MarkerEnd = MarkerEnd,
+            Filter = Filter
         };
     }
 
