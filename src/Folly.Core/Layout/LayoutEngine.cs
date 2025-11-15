@@ -641,7 +641,7 @@ internal sealed class LayoutEngine
 
         // Layout absolutely positioned block containers
         // These are positioned relative to the page, not the flow
-        // Note: We add them to all pages - in the future we could track which page they belong to
+        // TODO: Currently adds to current page only; future enhancement could support page-specific positioning
         foreach (var blockContainer in flow.BlockContainers)
         {
             // Only handle absolute positioning for now
@@ -650,8 +650,6 @@ internal sealed class LayoutEngine
                 var absoluteArea = LayoutBlockContainer(blockContainer, currentPageMaster, pageNumber);
                 if (absoluteArea != null)
                 {
-                    // Add to the current page
-                    // TODO: In the future, support page-specific positioning
                     currentPage.AddAbsoluteArea(absoluteArea);
                 }
             }
@@ -3327,7 +3325,7 @@ internal sealed class LayoutEngine
     }
 
     /// <summary>
-    /// Lays out a block container, handling both normal flow and absolute positioning.
+    /// Lays out a block container with absolute positioning.
     /// </summary>
     private AbsolutePositionedArea? LayoutBlockContainer(
         Dom.FoBlockContainer blockContainer,
@@ -3359,21 +3357,25 @@ internal sealed class LayoutEngine
             PaddingBottom = blockContainer.PaddingAfter,
             PaddingLeft = blockContainer.PaddingStart,
             PaddingRight = blockContainer.PaddingEnd,
-            BorderWidth = (blockContainer.BorderBeforeWidth + blockContainer.BorderAfterWidth +
-                          blockContainer.BorderStartWidth + blockContainer.BorderEndWidth) / 4.0,
-            BorderTopWidth = blockContainer.BorderBeforeWidth,
-            BorderBottomWidth = blockContainer.BorderAfterWidth,
-            BorderLeftWidth = blockContainer.BorderStartWidth,
-            BorderRightWidth = blockContainer.BorderEndWidth
+            BorderTopWidth = blockContainer.BorderTopWidth,
+            BorderBottomWidth = blockContainer.BorderBottomWidth,
+            BorderLeftWidth = blockContainer.BorderLeftWidth,
+            BorderRightWidth = blockContainer.BorderRightWidth,
+            BorderTopStyle = blockContainer.BorderTopStyle,
+            BorderBottomStyle = blockContainer.BorderBottomStyle,
+            BorderLeftStyle = blockContainer.BorderLeftStyle,
+            BorderRightStyle = blockContainer.BorderRightStyle,
+            BorderTopColor = blockContainer.BorderTopColor,
+            BorderBottomColor = blockContainer.BorderBottomColor,
+            BorderLeftColor = blockContainer.BorderLeftColor,
+            BorderRightColor = blockContainer.BorderRightColor
         };
 
-        // Calculate content area (subtract padding)
+        // Calculate content area (subtract padding and borders)
         var contentX = posX + blockContainer.PaddingStart + blockContainer.BorderStartWidth;
         var contentY = posY + blockContainer.PaddingBefore + blockContainer.BorderBeforeWidth;
         var contentWidth = containerWidth - blockContainer.PaddingStart - blockContainer.PaddingEnd -
                            blockContainer.BorderStartWidth - blockContainer.BorderEndWidth;
-        var contentHeight = containerHeight - blockContainer.PaddingBefore - blockContainer.PaddingAfter -
-                            blockContainer.BorderBeforeWidth - blockContainer.BorderAfterWidth;
 
         // Layout children within the absolute container
         var currentY = contentY;
@@ -3395,7 +3397,7 @@ internal sealed class LayoutEngine
             }
             else if (child is Dom.FoBlockContainer nestedContainer)
             {
-                // Nested absolute containers are positioned relative to parent
+                // TODO: Nested absolute containers currently positioned relative to page, not parent container
                 var nestedArea = LayoutBlockContainer(nestedContainer, pageMaster, pageNumber);
                 if (nestedArea != null)
                 {
@@ -3436,49 +3438,83 @@ internal sealed class LayoutEngine
         var pageWidth = pageMaster.PageWidth;
         var pageHeight = pageMaster.PageHeight;
 
+        // Calculate width first (needed for positioning when using right)
+        double containerWidth;
+        bool hasLeft = blockContainer.Left != "auto";
+        bool hasRight = blockContainer.Right != "auto";
+        bool hasWidth = blockContainer.Width != "auto";
+
+        if (hasWidth)
+        {
+            containerWidth = ParseLengthOrPercentage(blockContainer.Width, pageWidth);
+        }
+        else if (hasLeft && hasRight)
+        {
+            // If both left and right specified with auto width, calculate width from constraints
+            var leftOffset = ParseLengthOrPercentage(blockContainer.Left, pageWidth);
+            var rightOffset = ParseLengthOrPercentage(blockContainer.Right, pageWidth);
+            containerWidth = pageWidth - leftOffset - rightOffset;
+        }
+        else
+        {
+            // Default to full width (will be adjusted based on content if needed)
+            containerWidth = pageWidth;
+        }
+
         // Calculate X position (left takes precedence over right)
         double x;
-        if (blockContainer.Left != "auto")
+        if (hasLeft)
         {
             x = ParseLengthOrPercentage(blockContainer.Left, pageWidth);
         }
-        else if (blockContainer.Right != "auto")
+        else if (hasRight)
         {
             var rightOffset = ParseLengthOrPercentage(blockContainer.Right, pageWidth);
-            var width = ParseLengthOrPercentage(blockContainer.Width, pageWidth);
-            x = pageWidth - rightOffset - width;
+            x = pageWidth - rightOffset - containerWidth;
         }
         else
         {
             x = 0; // Default to left edge
         }
 
+        // Calculate height (needed for positioning when using bottom)
+        double containerHeight;
+        bool hasTop = blockContainer.Top != "auto";
+        bool hasBottom = blockContainer.Bottom != "auto";
+        bool hasHeight = blockContainer.Height != "auto";
+
+        if (hasHeight)
+        {
+            containerHeight = ParseLengthOrPercentage(blockContainer.Height, pageHeight);
+        }
+        else if (hasTop && hasBottom)
+        {
+            // If both top and bottom specified with auto height, calculate height from constraints
+            var topOffset = ParseLengthOrPercentage(blockContainer.Top, pageHeight);
+            var bottomOffset = ParseLengthOrPercentage(blockContainer.Bottom, pageHeight);
+            containerHeight = pageHeight - topOffset - bottomOffset;
+        }
+        else
+        {
+            // Default to full height (will be adjusted based on content)
+            containerHeight = pageHeight;
+        }
+
         // Calculate Y position (top takes precedence over bottom)
         double y;
-        if (blockContainer.Top != "auto")
+        if (hasTop)
         {
             y = ParseLengthOrPercentage(blockContainer.Top, pageHeight);
         }
-        else if (blockContainer.Bottom != "auto")
+        else if (hasBottom)
         {
             var bottomOffset = ParseLengthOrPercentage(blockContainer.Bottom, pageHeight);
-            var height = ParseLengthOrPercentage(blockContainer.Height, pageHeight);
-            y = pageHeight - bottomOffset - height;
+            y = pageHeight - bottomOffset - containerHeight;
         }
         else
         {
             y = 0; // Default to top edge
         }
-
-        // Calculate width
-        var containerWidth = blockContainer.Width != "auto"
-            ? ParseLengthOrPercentage(blockContainer.Width, pageWidth)
-            : pageWidth; // Default to full width
-
-        // Calculate height
-        var containerHeight = blockContainer.Height != "auto"
-            ? ParseLengthOrPercentage(blockContainer.Height, pageHeight)
-            : pageHeight; // Default to full height (but will be adjusted based on content)
 
         return (x, y, containerWidth, containerHeight);
     }
