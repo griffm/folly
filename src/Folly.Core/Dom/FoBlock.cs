@@ -150,6 +150,29 @@ public sealed class FoBlock : FoElement
     public string BackgroundColor => Properties.GetString("background-color", "transparent");
 
     /// <summary>
+    /// Gets the background image URI.
+    /// </summary>
+    public string BackgroundImage => Properties.GetString("background-image", "");
+
+    /// <summary>
+    /// Gets the background repeat mode (repeat, repeat-x, repeat-y, no-repeat).
+    /// Default is "repeat" per XSL-FO 1.1 spec.
+    /// </summary>
+    public string BackgroundRepeat => Properties.GetString("background-repeat", "repeat");
+
+    /// <summary>
+    /// Gets the background horizontal position (left, center, right, or length/percentage).
+    /// Default is "0%" per XSL-FO 1.1 spec.
+    /// </summary>
+    public string BackgroundPositionHorizontal => Properties.GetString("background-position-horizontal", "0%");
+
+    /// <summary>
+    /// Gets the background vertical position (top, center, bottom, or length/percentage).
+    /// Default is "0%" per XSL-FO 1.1 spec.
+    /// </summary>
+    public string BackgroundPositionVertical => Properties.GetString("background-position-vertical", "0%");
+
+    /// <summary>
     /// Gets the border width in points.
     /// </summary>
     public double BorderWidth => Properties.GetLength("border-width", 0);

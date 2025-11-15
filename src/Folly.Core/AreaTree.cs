@@ -206,6 +206,46 @@ public sealed class BlockArea : Area
     public string BackgroundColor { get; set; } = "transparent";
 
     /// <summary>
+    /// Gets or sets the background image source path.
+    /// </summary>
+    public string? BackgroundImage { get; set; }
+
+    /// <summary>
+    /// Gets or sets the background image data.
+    /// </summary>
+    public byte[]? BackgroundImageData { get; set; }
+
+    /// <summary>
+    /// Gets or sets the background image format (JPEG, PNG, etc.).
+    /// </summary>
+    public string? BackgroundImageFormat { get; set; }
+
+    /// <summary>
+    /// Gets or sets the background repeat mode (repeat, repeat-x, repeat-y, no-repeat).
+    /// </summary>
+    public string BackgroundRepeat { get; set; } = "repeat";
+
+    /// <summary>
+    /// Gets or sets the background horizontal position.
+    /// </summary>
+    public string BackgroundPositionHorizontal { get; set; } = "0%";
+
+    /// <summary>
+    /// Gets or sets the background vertical position.
+    /// </summary>
+    public string BackgroundPositionVertical { get; set; } = "0%";
+
+    /// <summary>
+    /// Gets or sets the intrinsic width of the background image (for sizing calculations).
+    /// </summary>
+    public double BackgroundImageWidth { get; set; }
+
+    /// <summary>
+    /// Gets or sets the intrinsic height of the background image (for sizing calculations).
+    /// </summary>
+    public double BackgroundImageHeight { get; set; }
+
+    /// <summary>
     /// Gets or sets the border width.
     /// </summary>
     public double BorderWidth { get; set; }
@@ -742,6 +782,46 @@ public sealed class AbsolutePositionedArea : Area
     /// Gets or sets the background color.
     /// </summary>
     public string BackgroundColor { get; set; } = "transparent";
+
+    /// <summary>
+    /// Gets or sets the background image source path.
+    /// </summary>
+    public string? BackgroundImage { get; set; }
+
+    /// <summary>
+    /// Gets or sets the background image data.
+    /// </summary>
+    public byte[]? BackgroundImageData { get; set; }
+
+    /// <summary>
+    /// Gets or sets the background image format (JPEG, PNG, etc.).
+    /// </summary>
+    public string? BackgroundImageFormat { get; set; }
+
+    /// <summary>
+    /// Gets or sets the background repeat mode (repeat, repeat-x, repeat-y, no-repeat).
+    /// </summary>
+    public string BackgroundRepeat { get; set; } = "repeat";
+
+    /// <summary>
+    /// Gets or sets the background horizontal position.
+    /// </summary>
+    public string BackgroundPositionHorizontal { get; set; } = "0%";
+
+    /// <summary>
+    /// Gets or sets the background vertical position.
+    /// </summary>
+    public string BackgroundPositionVertical { get; set; } = "0%";
+
+    /// <summary>
+    /// Gets or sets the intrinsic width of the background image (for sizing calculations).
+    /// </summary>
+    public double BackgroundImageWidth { get; set; }
+
+    /// <summary>
+    /// Gets or sets the intrinsic height of the background image (for sizing calculations).
+    /// </summary>
+    public double BackgroundImageHeight { get; set; }
 
     /// <summary>
     /// Gets or sets padding top.
