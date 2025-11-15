@@ -12,6 +12,8 @@ public sealed class SvgToPdfConverter
     private readonly SvgDocument _document;
     private readonly Stack<SvgTransform> _transformStack = new();
     private readonly Stack<SvgStyle> _styleStack = new();
+    // TODO: Add gradient counter when implementing gradient fill/stroke support
+    // private int _gradientCounter = 0;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SvgToPdfConverter"/> class.

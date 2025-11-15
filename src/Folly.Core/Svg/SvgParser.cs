@@ -85,6 +85,10 @@ public static class SvgParser
         var definitions = new Dictionary<string, SvgElement>();
         CollectDefinitions(rootElement, definitions);
 
+        // Parse gradients
+        var gradients = new Dictionary<string, Gradients.SvgGradient>();
+        CollectGradients(root, gradients);
+
         return new SvgDocument
         {
             Root = rootElement,
@@ -94,7 +98,8 @@ public static class SvgParser
             EffectiveWidthPt = effectiveWidthPt,
             EffectiveHeightPt = effectiveHeightPt,
             PreserveAspectRatio = preserveAspectRatio,
-            Definitions = definitions
+            Definitions = definitions,
+            Gradients = gradients
         };
     }
 
@@ -298,5 +303,199 @@ public static class SvgParser
         {
             CollectDefinitions(child, definitions);
         }
+    }
+
+    private static void CollectGradients(XElement root, Dictionary<string, Gradients.SvgGradient> gradients)
+    {
+        // Find all linearGradient and radialGradient elements
+        var linearGradients = root.Descendants().Where(e => e.Name.LocalName == "linearGradient");
+        var radialGradients = root.Descendants().Where(e => e.Name.LocalName == "radialGradient");
+
+        foreach (var elem in linearGradients)
+        {
+            var gradient = ParseLinearGradient(elem);
+            if (gradient != null && !string.IsNullOrWhiteSpace(gradient.Id))
+            {
+                gradients[gradient.Id] = gradient;
+            }
+        }
+
+        foreach (var elem in radialGradients)
+        {
+            var gradient = ParseRadialGradient(elem);
+            if (gradient != null && !string.IsNullOrWhiteSpace(gradient.Id))
+            {
+                gradients[gradient.Id] = gradient;
+            }
+        }
+    }
+
+    private static Gradients.SvgLinearGradient? ParseLinearGradient(XElement elem)
+    {
+        var id = elem.Attribute("id")?.Value;
+        if (string.IsNullOrWhiteSpace(id)) return null;
+
+        var x1 = ParseDoubleAttr(elem, "x1", 0);
+        var y1 = ParseDoubleAttr(elem, "y1", 0);
+        var x2 = ParseDoubleAttr(elem, "x2", 1);
+        var y2 = ParseDoubleAttr(elem, "y2", 0);
+
+        var gradient = new Gradients.SvgLinearGradient
+        {
+            Id = id,
+            Type = "linearGradient",
+            X1 = x1,
+            Y1 = y1,
+            X2 = x2,
+            Y2 = y2,
+            GradientUnits = elem.Attribute("gradientUnits")?.Value ?? "objectBoundingBox",
+            SpreadMethod = elem.Attribute("spreadMethod")?.Value ?? "pad",
+            Href = elem.Attribute(XName.Get("href", "http://www.w3.org/1999/xlink"))?.Value
+        };
+
+        // Parse gradientTransform
+        var transformAttr = elem.Attribute("gradientTransform")?.Value;
+        if (!string.IsNullOrWhiteSpace(transformAttr))
+        {
+            gradient.GradientTransform = SvgTransformParser.Parse(transformAttr);
+        }
+
+        // Parse stops
+        var stops = elem.Elements().Where(e => e.Name.LocalName == "stop");
+        foreach (var stop in stops)
+        {
+            var gradientStop = ParseGradientStop(stop);
+            if (gradientStop != null)
+            {
+                gradient.Stops.Add(gradientStop);
+            }
+        }
+
+        return gradient;
+    }
+
+    private static Gradients.SvgRadialGradient? ParseRadialGradient(XElement elem)
+    {
+        var id = elem.Attribute("id")?.Value;
+        if (string.IsNullOrWhiteSpace(id)) return null;
+
+        var cx = ParseDoubleAttr(elem, "cx", 0.5);
+        var cy = ParseDoubleAttr(elem, "cy", 0.5);
+        var r = ParseDoubleAttr(elem, "r", 0.5);
+        var fx = ParseDoubleAttr(elem, "fx", cx);
+        var fy = ParseDoubleAttr(elem, "fy", cy);
+        var fr = ParseDoubleAttr(elem, "fr", 0);
+
+        var gradient = new Gradients.SvgRadialGradient
+        {
+            Id = id,
+            Type = "radialGradient",
+            Cx = cx,
+            Cy = cy,
+            R = r,
+            Fx = fx,
+            Fy = fy,
+            Fr = fr,
+            GradientUnits = elem.Attribute("gradientUnits")?.Value ?? "objectBoundingBox",
+            SpreadMethod = elem.Attribute("spreadMethod")?.Value ?? "pad",
+            Href = elem.Attribute(XName.Get("href", "http://www.w3.org/1999/xlink"))?.Value
+        };
+
+        // Parse gradientTransform
+        var transformAttr = elem.Attribute("gradientTransform")?.Value;
+        if (!string.IsNullOrWhiteSpace(transformAttr))
+        {
+            gradient.GradientTransform = SvgTransformParser.Parse(transformAttr);
+        }
+
+        // Parse stops
+        var stops = elem.Elements().Where(e => e.Name.LocalName == "stop");
+        foreach (var stop in stops)
+        {
+            var gradientStop = ParseGradientStop(stop);
+            if (gradientStop != null)
+            {
+                gradient.Stops.Add(gradientStop);
+            }
+        }
+
+        return gradient;
+    }
+
+    private static Gradients.SvgGradientStop? ParseGradientStop(XElement elem)
+    {
+        var offsetStr = elem.Attribute("offset")?.Value;
+        if (string.IsNullOrWhiteSpace(offsetStr)) return null;
+
+        // Parse offset (can be percentage like "50%" or decimal like "0.5")
+        double offset;
+        if (offsetStr.EndsWith('%'))
+        {
+            if (double.TryParse(offsetStr.TrimEnd('%'), out var pct))
+                offset = pct / 100.0;
+            else
+                return null;
+        }
+        else
+        {
+            if (!double.TryParse(offsetStr, out offset))
+                return null;
+        }
+
+        // Parse stop-color and stop-opacity
+        var color = elem.Attribute("stop-color")?.Value ?? "black";
+        var opacity = 1.0;
+
+        var opacityStr = elem.Attribute("stop-opacity")?.Value;
+        if (!string.IsNullOrWhiteSpace(opacityStr))
+        {
+            double.TryParse(opacityStr, out opacity);
+        }
+
+        // Also check style attribute for stop-color and stop-opacity
+        var styleAttr = elem.Attribute("style")?.Value;
+        if (!string.IsNullOrWhiteSpace(styleAttr))
+        {
+            var declarations = styleAttr.Split(';', StringSplitOptions.RemoveEmptyEntries);
+            foreach (var declaration in declarations)
+            {
+                var parts = declaration.Split(':', 2, StringSplitOptions.TrimEntries);
+                if (parts.Length == 2)
+                {
+                    var property = parts[0].Trim();
+                    var value = parts[1].Trim();
+
+                    if (property == "stop-color")
+                        color = value;
+                    else if (property == "stop-opacity")
+                        double.TryParse(value, out opacity);
+                }
+            }
+        }
+
+        return new Gradients.SvgGradientStop
+        {
+            Offset = offset,
+            Color = color,
+            Opacity = opacity
+        };
+    }
+
+    private static double ParseDoubleAttr(XElement elem, string attrName, double defaultValue)
+    {
+        var value = elem.Attribute(attrName)?.Value;
+        if (string.IsNullOrWhiteSpace(value)) return defaultValue;
+
+        // Handle percentages
+        if (value.EndsWith('%'))
+        {
+            if (double.TryParse(value.TrimEnd('%'), out var pct))
+                return pct / 100.0;
+        }
+
+        if (double.TryParse(value, out var result))
+            return result;
+
+        return defaultValue;
     }
 }
