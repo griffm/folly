@@ -646,13 +646,29 @@ static void GenerateMultiPageTableExample(string outputPath)
         <?xml version="1.0"?>
         <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
           <fo:layout-master-set>
-            <fo:simple-page-master master-name="A4" page-width="595pt" page-height="842pt">
-              <fo:region-body margin="72pt"/>
+            <!-- First page master with more top margin for title and intro -->
+            <fo:simple-page-master master-name="first" page-width="595pt" page-height="842pt">
+              <fo:region-body margin-top="72pt" margin-bottom="72pt" margin-left="72pt" margin-right="72pt"/>
               <fo:region-before extent="36pt"/>
               <fo:region-after extent="36pt"/>
             </fo:simple-page-master>
+
+            <!-- Subsequent pages with reduced top margin for better visual balance -->
+            <fo:simple-page-master master-name="rest" page-width="595pt" page-height="842pt">
+              <fo:region-body margin-top="12pt" margin-bottom="72pt" margin-left="72pt" margin-right="72pt"/>
+              <fo:region-before extent="36pt"/>
+              <fo:region-after extent="36pt"/>
+            </fo:simple-page-master>
+
+            <!-- Page sequence master to alternate between first and rest -->
+            <fo:page-sequence-master master-name="pages">
+              <fo:repeatable-page-master-alternatives>
+                <fo:conditional-page-master-reference master-reference="first" page-position="first"/>
+                <fo:conditional-page-master-reference master-reference="rest" page-position="rest"/>
+              </fo:repeatable-page-master-alternatives>
+            </fo:page-sequence-master>
           </fo:layout-master-set>
-          <fo:page-sequence master-reference="A4">
+          <fo:page-sequence master-reference="pages">
             <!-- Header with page number -->
             <fo:static-content flow-name="xsl-region-before">
               <fo:block font-size="10pt" font-family="Helvetica" text-align="end" padding-bottom="6pt" border-bottom-width="0.5pt" border-bottom-style="solid" border-bottom-color="black">
