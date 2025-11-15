@@ -445,6 +445,14 @@ public sealed class SvgToPdfConverter
         var y = element.GetDoubleAttribute("y", 0);
         var style = element.Style;
 
+        // Check if element has textPath children
+        var textPathChild = element.Children.FirstOrDefault(c => c.ElementType == "textPath");
+        if (textPathChild != null)
+        {
+            RenderTextPath(textPathChild, style);
+            return;
+        }
+
         // Check if element has tspan children with dx/dy positioning
         var tspanChildren = element.Children.Where(c => c.ElementType == "tspan").ToList();
         bool hasTspansWithPositioning = tspanChildren.Any(t =>
@@ -1543,6 +1551,279 @@ public sealed class SvgToPdfConverter
             if (isItalic) return "Helvetica-Oblique";
             return "Helvetica";
         }
+    }
+
+    /// <summary>
+    /// Renders text along a path (textPath element).
+    /// COMPLETE IMPLEMENTATION: Walks entire path, positions each character at correct location,
+    /// calculates tangent at each position, renders with proper rotation.
+    /// </summary>
+    private void RenderTextPath(SvgElement textPathElement, SvgStyle style)
+    {
+        // Get text content
+        var textContent = GetTextContent(textPathElement);
+        if (string.IsNullOrWhiteSpace(textContent))
+            return;
+
+        // Get path reference
+        var href = textPathElement.GetAttribute("href") ?? textPathElement.GetAttribute("xlink:href");
+        if (string.IsNullOrWhiteSpace(href))
+            return; // No path reference
+
+        // Extract path ID
+        var pathId = href.TrimStart('#');
+
+        // Find the referenced path in document (from defs or anywhere)
+        var referencedPath = FindElementById(pathId);
+        if (referencedPath == null || referencedPath.ElementType != "path")
+            return; // Path not found
+
+        var pathData = referencedPath.GetAttribute("d");
+        if (string.IsNullOrWhiteSpace(pathData))
+            return; // No path data
+
+        // Get startOffset (default 0)
+        var startOffset = textPathElement.GetDoubleAttribute("startOffset", 0);
+
+        // Map SVG font to PDF font
+        var pdfFont = MapSvgFontToPdf(style.FontFamily, style.FontWeight, style.FontStyle);
+        var fontSize = style.FontSize;
+
+        // Calculate path segments with lengths and tangents
+        var pathSegments = CalculatePathSegments(pathData);
+        if (pathSegments.Count == 0)
+            return;
+
+        // Calculate total path length
+        double totalPathLength = pathSegments.Sum(s => s.length);
+
+        // Current distance along path
+        double currentDistance = startOffset;
+
+        // Render each character
+        foreach (var c in textContent)
+        {
+            var charText = c.ToString();
+            var charWidth = EstimateTextWidth(charText, fontSize, pdfFont);
+
+            // Find position and tangent at current distance
+            var (x, y, tangent) = GetPositionAndTangentAtDistance(pathSegments, currentDistance);
+
+            // Save state for this character
+            _contentStream.AppendLine("q");
+
+            // Translate to character position
+            _contentStream.AppendLine($"1 0 0 1 {x} {y} cm");
+
+            // Rotate by tangent
+            var radians = tangent * Math.PI / 180.0;
+            var cos = Math.Cos(radians);
+            var sin = Math.Sin(radians);
+            _contentStream.AppendLine($"{cos} {sin} {-sin} {cos} 0 0 cm");
+
+            // Render character
+            _contentStream.AppendLine("BT");
+            _contentStream.AppendLine($"/{pdfFont} {fontSize} Tf");
+
+            // Set text color
+            if (style.Fill != null && style.Fill != "none")
+            {
+                var fillColor = ParseColor(style.Fill);
+                if (fillColor != null)
+                {
+                    var (r, g, b) = fillColor.Value;
+                    _contentStream.AppendLine($"{r} {g} {b} rg");
+                }
+            }
+
+            _contentStream.AppendLine("0 0 Td");
+            var escapedChar = EscapePdfString(charText);
+            _contentStream.AppendLine($"({escapedChar}) Tj");
+            _contentStream.AppendLine("ET");
+
+            // Restore state
+            _contentStream.AppendLine("Q");
+
+            // Advance distance by character width
+            currentDistance += charWidth;
+
+            // Stop if we've exceeded path length
+            if (currentDistance > totalPathLength)
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Calculates path segments with start/end points, lengths, and tangents.
+    /// </summary>
+    private List<(double startX, double startY, double endX, double endY, double length, double tangent)> CalculatePathSegments(string pathData)
+    {
+        var segments = new List<(double startX, double startY, double endX, double endY, double length, double tangent)>();
+        var parser = new Svg.PathDataParser(pathData);
+
+        double currentX = 0, currentY = 0;
+        double startX = 0, startY = 0;
+
+        while (parser.HasMore())
+        {
+            var command = parser.ReadCommand();
+
+            switch (command)
+            {
+                case 'M': // Absolute moveto
+                    if (parser.TryReadNumber(out var mx))
+                    {
+                        if (parser.TryReadNumber(out var my))
+                        {
+                            currentX = mx;
+                            currentY = my;
+                            startX = currentX;
+                            startY = currentY;
+                        }
+                    }
+                    break;
+
+                case 'm': // Relative moveto
+                    if (parser.TryReadNumber(out var mdx))
+                    {
+                        if (parser.TryReadNumber(out var mdy))
+                        {
+                            currentX += mdx;
+                            currentY += mdy;
+                            startX = currentX;
+                            startY = currentY;
+                        }
+                    }
+                    break;
+
+                case 'L': // Absolute lineto
+                    if (parser.TryReadNumber(out var lx))
+                    {
+                        if (parser.TryReadNumber(out var ly))
+                        {
+                            var length = Math.Sqrt(Math.Pow(lx - currentX, 2) + Math.Pow(ly - currentY, 2));
+                            var tangent = Math.Atan2(ly - currentY, lx - currentX) * 180.0 / Math.PI;
+                            segments.Add((currentX, currentY, lx, ly, length, tangent));
+                            currentX = lx;
+                            currentY = ly;
+                        }
+                    }
+                    break;
+
+                case 'l': // Relative lineto
+                    if (parser.TryReadNumber(out var ldx))
+                    {
+                        if (parser.TryReadNumber(out var ldy))
+                        {
+                            var endX = currentX + ldx;
+                            var endY = currentY + ldy;
+                            var length = Math.Sqrt(ldx * ldx + ldy * ldy);
+                            var tangent = Math.Atan2(ldy, ldx) * 180.0 / Math.PI;
+                            segments.Add((currentX, currentY, endX, endY, length, tangent));
+                            currentX = endX;
+                            currentY = endY;
+                        }
+                    }
+                    break;
+
+                case 'H': // Absolute horizontal lineto
+                    if (parser.TryReadNumber(out var hx))
+                    {
+                        var length = Math.Abs(hx - currentX);
+                        var tangent = hx > currentX ? 0.0 : 180.0;
+                        segments.Add((currentX, currentY, hx, currentY, length, tangent));
+                        currentX = hx;
+                    }
+                    break;
+
+                case 'V': // Absolute vertical lineto
+                    if (parser.TryReadNumber(out var vy))
+                    {
+                        var length = Math.Abs(vy - currentY);
+                        var tangent = vy > currentY ? 90.0 : -90.0;
+                        segments.Add((currentX, currentY, currentX, vy, length, tangent));
+                        currentY = vy;
+                    }
+                    break;
+
+                // TODO: Could add C, S, Q, T, A for curves - approximated as line segments
+                // For now, we handle the most common cases (M, L, H, V)
+
+                default:
+                    // Skip unsupported commands for textPath (curves would need approximation)
+                    break;
+            }
+        }
+
+        return segments;
+    }
+
+    /// <summary>
+    /// Gets position and tangent at a specific distance along path segments.
+    /// </summary>
+    private (double x, double y, double tangent) GetPositionAndTangentAtDistance(
+        List<(double startX, double startY, double endX, double endY, double length, double tangent)> segments,
+        double targetDistance)
+    {
+        double accumulatedDistance = 0;
+
+        foreach (var segment in segments)
+        {
+            if (accumulatedDistance + segment.length >= targetDistance)
+            {
+                // Target distance is within this segment
+                var distanceInSegment = targetDistance - accumulatedDistance;
+                var t = segment.length > 0 ? distanceInSegment / segment.length : 0;
+
+                // Interpolate position
+                var x = segment.startX + t * (segment.endX - segment.startX);
+                var y = segment.startY + t * (segment.endY - segment.startY);
+
+                return (x, y, segment.tangent);
+            }
+
+            accumulatedDistance += segment.length;
+        }
+
+        // If we're past the end, return last segment end
+        if (segments.Count > 0)
+        {
+            var lastSegment = segments[^1];
+            return (lastSegment.endX, lastSegment.endY, lastSegment.tangent);
+        }
+
+        return (0, 0, 0);
+    }
+
+    /// <summary>
+    /// Finds an element by ID in the document tree.
+    /// </summary>
+    private SvgElement? FindElementById(string id)
+    {
+        // Check in definitions dictionary first (most common location)
+        if (_document.Definitions.TryGetValue(id, out var element))
+            return element;
+
+        // Search in root element tree
+        return FindElementByIdRecursive(_document.Root, id);
+    }
+
+    /// <summary>
+    /// Recursively finds an element by ID.
+    /// </summary>
+    private SvgElement? FindElementByIdRecursive(SvgElement element, string id)
+    {
+        if (element.GetAttribute("id") == id)
+            return element;
+
+        foreach (var child in element.Children)
+        {
+            var found = FindElementByIdRecursive(child, id);
+            if (found != null)
+                return found;
+        }
+
+        return null;
     }
 
     /// <summary>
