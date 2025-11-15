@@ -307,7 +307,12 @@ internal class TrueTypeFontEmbedder
         for (int i = 0; i < glyphWidths.Count; i++)
         {
             var (glyphId, width) = glyphWidths[i];
-            _writer.Write($"{glyphId} [{width}]");
+
+            // Scale width from font units to PDF units (1000 per em)
+            // PDF spec requires CIDFont widths in 1000ths of an em
+            int scaledWidth = width * 1000 / unitsPerEm;
+
+            _writer.Write($"{glyphId} [{scaledWidth}]");
 
             if (i < glyphWidths.Count - 1)
             {
