@@ -453,20 +453,32 @@ public sealed class SvgToPdfConverter
         var pdfFont = MapSvgFontToPdf(style.FontFamily, style.FontWeight, style.FontStyle);
         var fontSize = style.FontSize;
 
+        // Calculate estimated text width
+        var estimatedWidth = EstimateTextWidth(textContent, fontSize, pdfFont);
+
+        // Handle textLength attribute (scale text to fit specific width)
+        double horizontalScale = 100.0; // Default 100% (no scaling)
+        var textLength = element.GetDoubleAttribute("textLength", 0);
+        if (textLength > 0 && estimatedWidth > 0)
+        {
+            // Calculate scale factor to fit text to specified length
+            horizontalScale = (textLength / estimatedWidth) * 100.0;
+        }
+
         // Handle text-anchor alignment (start, middle, end)
         var textAnchor = element.GetAttribute("text-anchor") ?? "start";
         if (textAnchor == "middle" || textAnchor == "end")
         {
-            // Estimate text width for alignment
-            var estimatedWidth = EstimateTextWidth(textContent, fontSize, pdfFont);
+            // Use actual width (with scaling applied) for alignment
+            var actualWidth = textLength > 0 ? textLength : estimatedWidth;
 
             if (textAnchor == "middle")
             {
-                x -= estimatedWidth / 2.0;
+                x -= actualWidth / 2.0;
             }
             else if (textAnchor == "end")
             {
-                x -= estimatedWidth;
+                x -= actualWidth;
             }
         }
 
@@ -475,6 +487,12 @@ public sealed class SvgToPdfConverter
 
         // Set font and size
         _contentStream.AppendLine($"/{pdfFont} {fontSize} Tf");
+
+        // Apply horizontal scaling if textLength specified
+        if (horizontalScale != 100.0)
+        {
+            _contentStream.AppendLine($"{horizontalScale} Tz");
+        }
 
         // Set text position
         _contentStream.AppendLine($"{x} {y} Td");
@@ -509,7 +527,8 @@ public sealed class SvgToPdfConverter
         var textDecoration = element.GetAttribute("text-decoration");
         if (!string.IsNullOrWhiteSpace(textDecoration) && textDecoration != "none")
         {
-            var textWidth = EstimateTextWidth(textContent, fontSize, pdfFont);
+            // Use actual width (with textLength if specified)
+            var textWidth = textLength > 0 ? textLength : estimatedWidth;
             var lineThickness = fontSize * 0.05; // 5% of font size
 
             // Set line color same as text color
