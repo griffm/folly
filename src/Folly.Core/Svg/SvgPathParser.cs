@@ -407,6 +407,271 @@ public static class SvgPathParser
 
         return commands;
     }
+
+    /// <summary>
+    /// Calculates the bounding box of an SVG path by tracking min/max coordinates.
+    /// Returns (minX, minY, width, height) or null if path is empty.
+    /// </summary>
+    public static (double x, double y, double width, double height)? CalculateBoundingBox(string pathData)
+    {
+        var parser = new PathDataParser(pathData);
+
+        double currentX = 0, currentY = 0;
+        double startX = 0, startY = 0;
+        double minX = double.MaxValue;
+        double minY = double.MaxValue;
+        double maxX = double.MinValue;
+        double maxY = double.MinValue;
+        bool hasPoints = false;
+
+        void TrackPoint(double x, double y)
+        {
+            minX = Math.Min(minX, x);
+            minY = Math.Min(minY, y);
+            maxX = Math.Max(maxX, x);
+            maxY = Math.Max(maxY, y);
+            hasPoints = true;
+        }
+
+        while (parser.HasMore())
+        {
+            var command = parser.ReadCommand();
+            if (command == ' ') break;
+
+            var isRelative = char.IsLower(command);
+            var commandUpper = char.ToUpper(command);
+
+            switch (commandUpper)
+            {
+                case 'M': // Move to
+                {
+                    while (true)
+                    {
+                        if (!parser.TryReadNumber(out var x)) break;
+                        if (!parser.TryReadNumber(out var y)) break;
+
+                        if (isRelative)
+                        {
+                            x += currentX;
+                            y += currentY;
+                        }
+
+                        currentX = x;
+                        currentY = y;
+                        startX = x;
+                        startY = y;
+                        TrackPoint(x, y);
+
+                        if (!parser.PeekNumber()) break;
+                    }
+                    break;
+                }
+
+                case 'L': // Line to
+                {
+                    while (true)
+                    {
+                        if (!parser.TryReadNumber(out var x)) break;
+                        if (!parser.TryReadNumber(out var y)) break;
+
+                        if (isRelative)
+                        {
+                            x += currentX;
+                            y += currentY;
+                        }
+
+                        currentX = x;
+                        currentY = y;
+                        TrackPoint(x, y);
+
+                        if (!parser.PeekNumber()) break;
+                    }
+                    break;
+                }
+
+                case 'H': // Horizontal line
+                {
+                    while (parser.TryReadNumber(out var x))
+                    {
+                        if (isRelative)
+                            x += currentX;
+
+                        currentX = x;
+                        TrackPoint(x, currentY);
+
+                        if (!parser.PeekNumber()) break;
+                    }
+                    break;
+                }
+
+                case 'V': // Vertical line
+                {
+                    while (parser.TryReadNumber(out var y))
+                    {
+                        if (isRelative)
+                            y += currentY;
+
+                        currentY = y;
+                        TrackPoint(currentX, y);
+
+                        if (!parser.PeekNumber()) break;
+                    }
+                    break;
+                }
+
+                case 'C': // Cubic Bézier
+                {
+                    while (true)
+                    {
+                        if (!parser.TryReadNumber(out var x1)) break;
+                        if (!parser.TryReadNumber(out var y1)) break;
+                        if (!parser.TryReadNumber(out var x2)) break;
+                        if (!parser.TryReadNumber(out var y2)) break;
+                        if (!parser.TryReadNumber(out var x)) break;
+                        if (!parser.TryReadNumber(out var y)) break;
+
+                        if (isRelative)
+                        {
+                            x1 += currentX; y1 += currentY;
+                            x2 += currentX; y2 += currentY;
+                            x += currentX; y += currentY;
+                        }
+
+                        // Track all points (conservative bbox)
+                        TrackPoint(x1, y1);
+                        TrackPoint(x2, y2);
+                        TrackPoint(x, y);
+
+                        currentX = x;
+                        currentY = y;
+
+                        if (!parser.PeekNumber()) break;
+                    }
+                    break;
+                }
+
+                case 'S': // Smooth cubic Bézier
+                {
+                    while (true)
+                    {
+                        if (!parser.TryReadNumber(out var x2)) break;
+                        if (!parser.TryReadNumber(out var y2)) break;
+                        if (!parser.TryReadNumber(out var x)) break;
+                        if (!parser.TryReadNumber(out var y)) break;
+
+                        if (isRelative)
+                        {
+                            x2 += currentX; y2 += currentY;
+                            x += currentX; y += currentY;
+                        }
+
+                        TrackPoint(x2, y2);
+                        TrackPoint(x, y);
+
+                        currentX = x;
+                        currentY = y;
+
+                        if (!parser.PeekNumber()) break;
+                    }
+                    break;
+                }
+
+                case 'Q': // Quadratic Bézier
+                {
+                    while (true)
+                    {
+                        if (!parser.TryReadNumber(out var x1)) break;
+                        if (!parser.TryReadNumber(out var y1)) break;
+                        if (!parser.TryReadNumber(out var x)) break;
+                        if (!parser.TryReadNumber(out var y)) break;
+
+                        if (isRelative)
+                        {
+                            x1 += currentX; y1 += currentY;
+                            x += currentX; y += currentY;
+                        }
+
+                        TrackPoint(x1, y1);
+                        TrackPoint(x, y);
+
+                        currentX = x;
+                        currentY = y;
+
+                        if (!parser.PeekNumber()) break;
+                    }
+                    break;
+                }
+
+                case 'T': // Smooth quadratic Bézier
+                {
+                    while (true)
+                    {
+                        if (!parser.TryReadNumber(out var x)) break;
+                        if (!parser.TryReadNumber(out var y)) break;
+
+                        if (isRelative)
+                        {
+                            x += currentX;
+                            y += currentY;
+                        }
+
+                        TrackPoint(x, y);
+
+                        currentX = x;
+                        currentY = y;
+
+                        if (!parser.PeekNumber()) break;
+                    }
+                    break;
+                }
+
+                case 'A': // Elliptical arc
+                {
+                    while (true)
+                    {
+                        if (!parser.TryReadNumber(out var rx)) break;
+                        if (!parser.TryReadNumber(out var ry)) break;
+                        if (!parser.TryReadNumber(out var angle)) break;
+                        if (!parser.TryReadNumber(out var largeArcFlag)) break;
+                        if (!parser.TryReadNumber(out var sweepFlag)) break;
+                        if (!parser.TryReadNumber(out var x)) break;
+                        if (!parser.TryReadNumber(out var y)) break;
+
+                        if (isRelative)
+                        {
+                            x += currentX;
+                            y += currentY;
+                        }
+
+                        // Track start and end points (conservative bbox)
+                        TrackPoint(currentX, currentY);
+                        TrackPoint(x, y);
+
+                        // For better accuracy, we could also track the arc extrema
+                        // but this conservative bbox is sufficient for gradients
+
+                        currentX = x;
+                        currentY = y;
+
+                        if (!parser.PeekNumber()) break;
+                    }
+                    break;
+                }
+
+                case 'Z': // Close path
+                {
+                    currentX = startX;
+                    currentY = startY;
+                    break;
+                }
+            }
+        }
+
+        if (!hasPoints)
+            return null;
+
+        return (minX, minY, maxX - minX, maxY - minY);
+    }
 }
 
 /// <summary>

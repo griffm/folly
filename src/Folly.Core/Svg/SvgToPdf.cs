@@ -331,6 +331,25 @@ public sealed class SvgToPdfConverter
         var coords = SvgLengthParser.ParseList(points);
         if (coords.Length < 2) return;
 
+        // Calculate bounding box for gradient support (in case fill is specified)
+        var minX = double.MaxValue;
+        var minY = double.MaxValue;
+        var maxX = double.MinValue;
+        var maxY = double.MinValue;
+
+        for (int i = 0; i < coords.Length; i += 2)
+        {
+            if (i + 1 < coords.Length)
+            {
+                var x = coords[i];
+                var y = coords[i + 1];
+                minX = Math.Min(minX, x);
+                minY = Math.Min(minY, y);
+                maxX = Math.Max(maxX, x);
+                maxY = Math.Max(maxY, y);
+            }
+        }
+
         // Move to first point
         _contentStream.AppendLine($"{coords[0]} {coords[1]} m");
 
@@ -341,7 +360,9 @@ public sealed class SvgToPdfConverter
                 _contentStream.AppendLine($"{coords[i]} {coords[i + 1]} l");
         }
 
-        ApplyStroke(element.Style);
+        // Pass bounding box for gradient support (polyline can have fill too)
+        var bbox = (minX, minY, maxX - minX, maxY - minY);
+        ApplyFillAndStroke(element.Style, bbox);
     }
 
     private void RenderPolygon(SvgElement element)
@@ -351,6 +372,25 @@ public sealed class SvgToPdfConverter
 
         var coords = SvgLengthParser.ParseList(points);
         if (coords.Length < 2) return;
+
+        // Calculate bounding box for gradient support
+        var minX = double.MaxValue;
+        var minY = double.MaxValue;
+        var maxX = double.MinValue;
+        var maxY = double.MinValue;
+
+        for (int i = 0; i < coords.Length; i += 2)
+        {
+            if (i + 1 < coords.Length)
+            {
+                var x = coords[i];
+                var y = coords[i + 1];
+                minX = Math.Min(minX, x);
+                minY = Math.Min(minY, y);
+                maxX = Math.Max(maxX, x);
+                maxY = Math.Max(maxY, y);
+            }
+        }
 
         // Move to first point
         _contentStream.AppendLine($"{coords[0]} {coords[1]} m");
@@ -365,7 +405,9 @@ public sealed class SvgToPdfConverter
         // Close path
         _contentStream.AppendLine("h");
 
-        ApplyFillAndStroke(element.Style);
+        // Pass bounding box for gradient support
+        var bbox = (minX, minY, maxX - minX, maxY - minY);
+        ApplyFillAndStroke(element.Style, bbox);
     }
 
     private void RenderPath(SvgElement element)
@@ -380,7 +422,9 @@ public sealed class SvgToPdfConverter
             _contentStream.AppendLine(command);
         }
 
-        ApplyFillAndStroke(element.Style);
+        // Calculate bounding box for gradient support
+        var bbox = SvgPathParser.CalculateBoundingBox(d);
+        ApplyFillAndStroke(element.Style, bbox);
 
         // Render markers if specified
         RenderMarkers(element, d);
