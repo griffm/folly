@@ -441,13 +441,26 @@ public sealed class SvgToPdfConverter
 
     private void RenderText(SvgElement element)
     {
-        // Get text content (either from text content or tspan children)
-        var textContent = GetTextContent(element);
-        if (string.IsNullOrWhiteSpace(textContent)) return;
-
         var x = element.GetDoubleAttribute("x", 0);
         var y = element.GetDoubleAttribute("y", 0);
         var style = element.Style;
+
+        // Check if element has tspan children with dx/dy positioning
+        var tspanChildren = element.Children.Where(c => c.ElementType == "tspan").ToList();
+        bool hasTspansWithPositioning = tspanChildren.Any(t =>
+            t.Attributes.ContainsKey("dx") || t.Attributes.ContainsKey("dy") ||
+            t.Attributes.ContainsKey("x") || t.Attributes.ContainsKey("y"));
+
+        // If we have tspans with positioning, render them individually
+        if (hasTspansWithPositioning)
+        {
+            RenderTextWithTspans(element, x, y, style);
+            return;
+        }
+
+        // Otherwise, render as simple text (original behavior)
+        var textContent = GetTextContent(element);
+        if (string.IsNullOrWhiteSpace(textContent)) return;
 
         // Map SVG font to PDF font
         var pdfFont = MapSvgFontToPdf(style.FontFamily, style.FontWeight, style.FontStyle);
@@ -1507,6 +1520,94 @@ public sealed class SvgToPdfConverter
             if (isItalic) return "Helvetica-Oblique";
             return "Helvetica";
         }
+    }
+
+    /// <summary>
+    /// Renders text with tspan children that have dx/dy positioning.
+    /// Each tspan is rendered separately with its own offset.
+    /// </summary>
+    private void RenderTextWithTspans(SvgElement element, double baseX, double baseY, SvgStyle style)
+    {
+        // Map SVG font to PDF font
+        var pdfFont = MapSvgFontToPdf(style.FontFamily, style.FontWeight, style.FontStyle);
+        var fontSize = style.FontSize;
+
+        // Begin text object
+        _contentStream.AppendLine("BT");
+
+        // Set font and size
+        _contentStream.AppendLine($"/{pdfFont} {fontSize} Tf");
+
+        // Set text color (use fill color)
+        if (style.Fill != null && style.Fill != "none")
+        {
+            var fillColor = ParseColor(style.Fill);
+            if (fillColor != null)
+            {
+                var (r, g, b) = fillColor.Value;
+                _contentStream.AppendLine($"{r} {g} {b} rg");
+            }
+        }
+
+        // Set text opacity if needed
+        if (style.FillOpacity < 1.0 || style.Opacity < 1.0)
+        {
+            var textOpacity = style.FillOpacity * style.Opacity;
+            var gsName = AddOpacityGraphicsState(textOpacity, textOpacity);
+            _contentStream.AppendLine($"/{gsName} gs");
+        }
+
+        // Track current position
+        double currentX = baseX;
+        double currentY = baseY;
+
+        // Render direct text content if present
+        if (!string.IsNullOrWhiteSpace(element.TextContent))
+        {
+            _contentStream.AppendLine($"{currentX} {currentY} Td");
+            var escapedText = EscapePdfString(element.TextContent);
+            _contentStream.AppendLine($"({escapedText}) Tj");
+
+            // Update position (estimate width)
+            currentX += EstimateTextWidth(element.TextContent, fontSize, pdfFont);
+        }
+
+        // Render each tspan with positioning
+        foreach (var tspan in element.Children.Where(c => c.ElementType == "tspan"))
+        {
+            var tspanText = GetTextContent(tspan);
+            if (string.IsNullOrWhiteSpace(tspanText))
+                continue;
+
+            // Get tspan positioning
+            var dx = tspan.GetDoubleAttribute("dx", 0);
+            var dy = tspan.GetDoubleAttribute("dy", 0);
+
+            // Check for absolute positioning
+            if (tspan.Attributes.ContainsKey("x"))
+            {
+                currentX = tspan.GetDoubleAttribute("x", currentX);
+            }
+            if (tspan.Attributes.ContainsKey("y"))
+            {
+                currentY = tspan.GetDoubleAttribute("y", currentY);
+            }
+
+            // Apply dx/dy offsets
+            currentX += dx;
+            currentY += dy;
+
+            // Position and render this tspan
+            _contentStream.AppendLine($"{currentX} {currentY} Td");
+            var escapedText = EscapePdfString(tspanText);
+            _contentStream.AppendLine($"({escapedText}) Tj");
+
+            // Update current position for next tspan
+            currentX += EstimateTextWidth(tspanText, fontSize, pdfFont);
+        }
+
+        // End text object
+        _contentStream.AppendLine("ET");
     }
 
     /// <summary>
