@@ -440,12 +440,29 @@ public sealed class SvgToPdfConverter
         var y = element.GetDoubleAttribute("y", 0);
         var style = element.Style;
 
-        // Begin text object
-        _contentStream.AppendLine("BT");
-
         // Map SVG font to PDF font
         var pdfFont = MapSvgFontToPdf(style.FontFamily, style.FontWeight, style.FontStyle);
         var fontSize = style.FontSize;
+
+        // Handle text-anchor alignment (start, middle, end)
+        var textAnchor = element.GetAttribute("text-anchor") ?? "start";
+        if (textAnchor == "middle" || textAnchor == "end")
+        {
+            // Estimate text width for alignment
+            var estimatedWidth = EstimateTextWidth(textContent, fontSize, pdfFont);
+
+            if (textAnchor == "middle")
+            {
+                x -= estimatedWidth / 2.0;
+            }
+            else if (textAnchor == "end")
+            {
+                x -= estimatedWidth;
+            }
+        }
+
+        // Begin text object
+        _contentStream.AppendLine("BT");
 
         // Set font and size
         _contentStream.AppendLine($"/{pdfFont} {fontSize} Tf");
@@ -471,17 +488,15 @@ public sealed class SvgToPdfConverter
         }
 
         // Render text
-        // TODO: Escape special characters in PDF strings (parentheses, backslash)
         var escapedText = EscapePdfString(textContent);
         _contentStream.AppendLine($"({escapedText}) Tj");
 
         // End text object
         _contentStream.AppendLine("ET");
 
-        // TODO: Support text-anchor (start, middle, end)
         // TODO: Support tspan elements for multi-line text
         // TODO: Support text-decoration (underline, overline, line-through)
-        // TODO: Support text transforms (rotate, etc.)
+        // TODO: Support textPath for text on curves
     }
 
     private void RenderUse(SvgElement element)
@@ -1300,6 +1315,30 @@ public sealed class SvgToPdfConverter
             if (isItalic) return "Helvetica-Oblique";
             return "Helvetica";
         }
+    }
+
+    /// <summary>
+    /// Estimates the width of text in PDF points for text-anchor alignment.
+    /// Uses font-specific character width estimates for common PDF standard fonts.
+    /// </summary>
+    private double EstimateTextWidth(string text, double fontSize, string pdfFont)
+    {
+        if (string.IsNullOrEmpty(text))
+            return 0;
+
+        // Average character width as a fraction of fontSize for standard PDF fonts
+        // These are empirical values based on typical character widths
+        double avgCharWidth = pdfFont switch
+        {
+            "Courier" or "Courier-Bold" or "Courier-Oblique" or "Courier-BoldOblique"
+                => 0.6,  // Monospace fonts have consistent width
+            "Times-Roman" or "Times-Bold" or "Times-Italic" or "Times-BoldItalic"
+                => 0.45, // Times is relatively narrow
+            _ => 0.5     // Helvetica and default: medium width
+        };
+
+        // Estimate total width
+        return text.Length * fontSize * avgCharWidth;
     }
 
     /// <summary>
