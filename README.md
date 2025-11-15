@@ -226,6 +226,9 @@ The core rendering engine is fully operational with extensive feature support:
 - **Side regions** (fo:region-start, fo:region-end) for left and right sidebars - ideal for margin notes, glossaries, and supplementary content
 - **Absolute positioning** (fo:block-container with absolute-position) for letterheads, watermarks, and complex forms
 - **Z-index layering** for controlling stacking order of absolutely positioned elements
+- **Background images** (background-image, background-repeat, background-position) with support for tiling, positioning, and security validation
+- **Reference orientation** (reference-orientation) for rotating block containers (0°, 90°, 180°, 270°) using PDF transformation matrices
+- **Display-align** (display-align) for vertical alignment of content (center, after/bottom) within block containers
 
 **PDF Rendering:**
 - PDF 1.7 output with correct structure
@@ -242,7 +245,9 @@ The core rendering engine is fully operational with extensive feature support:
 - Text positioning with baseline alignment
 - Border rendering (solid, dashed, dotted)
 - Background colors (named and hex formats)
+- **Background image rendering** with tiling (repeat, repeat-x, repeat-y, no-repeat) and positioning (keywords, percentages, lengths)
 - Graphics state management
+- **Rotation transformations** using PDF transformation matrices for rotated content (0°, 90°, 180°, 270°)
 - Image embedding (JPEG passthrough, PNG decoding)
 - Page numbers (fo:page-number)
 - Hyperlinks (internal and external via fo:basic-link)

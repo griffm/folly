@@ -593,6 +593,14 @@ public sealed class PdfRenderer : IDisposable
     private void RenderAbsoluteArea(AbsolutePositionedArea absoluteArea, StringBuilder content,
         Dictionary<string, int> fontIds, Dictionary<string, int> imageIds, double pageHeight)
     {
+        // Apply rotation transformation if specified
+        bool hasRotation = absoluteArea.ReferenceOrientation != 0;
+        if (hasRotation)
+        {
+            content.AppendLine("q"); // Save graphics state
+            ApplyRotationTransformation(content, absoluteArea, pageHeight);
+        }
+
         // Render background color if specified
         if (absoluteArea.BackgroundColor != "transparent" && !string.IsNullOrWhiteSpace(absoluteArea.BackgroundColor))
         {
@@ -660,6 +668,55 @@ public sealed class PdfRenderer : IDisposable
         {
             RenderArea(child, content, fontIds, imageIds, pageHeight);
         }
+
+        // Restore graphics state if rotation was applied
+        if (hasRotation)
+        {
+            content.AppendLine("Q"); // Restore graphics state
+        }
+    }
+
+    /// <summary>
+    /// Applies rotation transformation matrix to the PDF content stream.
+    /// Rotates content around the center of the absolute area.
+    /// </summary>
+    private void ApplyRotationTransformation(StringBuilder content, AbsolutePositionedArea area, double pageHeight)
+    {
+        var rotation = area.ReferenceOrientation;
+
+        // Convert from top-left origin to bottom-left origin (PDF coordinate system)
+        var pdfY = pageHeight - area.Y - area.Height;
+
+        // Calculate rotation center (center of the area)
+        var centerX = area.X + area.Width / 2.0;
+        var centerY = pdfY + area.Height / 2.0;
+
+        // Get transformation matrix components based on rotation angle
+        double a, b, c, d;
+        switch (rotation)
+        {
+            case 90:
+                a = 0; b = 1; c = -1; d = 0;
+                break;
+            case 180:
+                a = -1; b = 0; c = 0; d = -1;
+                break;
+            case 270:
+                a = 0; b = -1; c = 1; d = 0;
+                break;
+            default: // 0 or invalid
+                a = 1; b = 0; c = 0; d = 1;
+                break;
+        }
+
+        // Calculate translation to rotate around center point
+        // Formula: Translate to center, rotate, translate back
+        // T(cx, cy) * R(θ) * T(-cx, -cy)
+        var tx = centerX - (a * centerX + c * centerY);
+        var ty = centerY - (b * centerX + d * centerY);
+
+        // Apply transformation matrix: a b c d tx ty cm
+        content.AppendLine($"{a:F6} {b:F6} {c:F6} {d:F6} {tx:F2} {ty:F2} cm");
     }
 
     private void RenderBackground(BlockArea block, StringBuilder content, double pageHeight, double offsetX, double offsetY)

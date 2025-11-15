@@ -3559,6 +3559,8 @@ internal sealed class LayoutEngine
             Height = containerHeight,
             Position = blockContainer.AbsolutePosition,
             ZIndex = ParseZIndex(blockContainer.ZIndex),
+            ReferenceOrientation = NormalizeRotation(blockContainer.ReferenceOrientation),
+            DisplayAlign = blockContainer.DisplayAlign,
             BackgroundColor = blockContainer.BackgroundColor,
             BackgroundRepeat = blockContainer.BackgroundRepeat,
             BackgroundPositionHorizontal = blockContainer.BackgroundPositionHorizontal,
@@ -3637,6 +3639,9 @@ internal sealed class LayoutEngine
         {
             absoluteArea.Height = currentY - posY;
         }
+
+        // Apply display-align vertical alignment
+        ApplyDisplayAlign(absoluteArea, blockContainer.DisplayAlign, contentY, currentY);
 
         return absoluteArea;
     }
@@ -3763,6 +3768,65 @@ internal sealed class LayoutEngine
             return value;
 
         return 0;
+    }
+
+    /// <summary>
+    /// Normalizes rotation angles to the range 0, 90, 180, 270.
+    /// Converts negative rotations (e.g., -90 to 270) and ensures valid values.
+    /// </summary>
+    private static int NormalizeRotation(int rotation)
+    {
+        // Normalize to 0-359 range
+        rotation = rotation % 360;
+        if (rotation < 0)
+            rotation += 360;
+
+        // Round to nearest 90-degree increment
+        if (rotation <= 45)
+            return 0;
+        if (rotation <= 135)
+            return 90;
+        if (rotation <= 225)
+            return 180;
+        if (rotation <= 315)
+            return 270;
+        return 0;
+    }
+
+    /// <summary>
+    /// Applies vertical alignment (display-align) to children of an absolutely positioned area.
+    /// Adjusts child Y positions to implement center or after (bottom) alignment.
+    /// </summary>
+    private static void ApplyDisplayAlign(AbsolutePositionedArea area, string displayAlign, double contentY, double currentY)
+    {
+        // Only apply for center or after alignment
+        if (displayAlign != "center" && displayAlign != "after")
+            return;
+
+        // Calculate total content height and available height
+        var contentHeight = currentY - contentY;
+        var availableHeight = area.Height - area.PaddingTop - area.PaddingBottom;
+
+        // If content fits exactly or overflows, no adjustment needed
+        if (contentHeight >= availableHeight)
+            return;
+
+        // Calculate vertical offset based on alignment
+        double yOffset;
+        if (displayAlign == "center")
+        {
+            yOffset = (availableHeight - contentHeight) / 2.0;
+        }
+        else // displayAlign == "after"
+        {
+            yOffset = availableHeight - contentHeight;
+        }
+
+        // Adjust Y position of all children
+        foreach (var child in area.Children)
+        {
+            child.Y += yOffset;
+        }
     }
 
     /// <summary>

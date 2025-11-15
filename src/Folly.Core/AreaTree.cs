@@ -779,6 +779,20 @@ public sealed class AbsolutePositionedArea : Area
     public int ZIndex { get; set; } = 0;
 
     /// <summary>
+    /// Gets or sets the reference orientation in degrees (0, 90, 180, 270, -90, -180, -270).
+    /// Specifies the rotation of the block container.
+    /// Default is 0.
+    /// </summary>
+    public int ReferenceOrientation { get; set; } = 0;
+
+    /// <summary>
+    /// Gets or sets the display alignment (auto, before, center, after).
+    /// Controls vertical alignment of content within the block container.
+    /// Default is "auto" (align to top).
+    /// </summary>
+    public string DisplayAlign { get; set; } = "auto";
+
+    /// <summary>
     /// Gets or sets the background color.
     /// </summary>
     public string BackgroundColor { get; set; } = "transparent";
