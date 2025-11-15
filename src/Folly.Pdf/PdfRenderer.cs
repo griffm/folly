@@ -1046,9 +1046,10 @@ public sealed class PdfRenderer : IDisposable
                 if (kerning != 0)
                 {
                     // Convert font units to PDF units (1000ths of an em)
-                    // Negative kerning values in the font mean characters should be closer
-                    // In PDF, negative values in the TJ array also mean closer, so no negation needed
-                    var pdfKerning = kerning * 1000.0 / font.UnitsPerEm;
+                    // Font: negative kerning = characters closer, positive = further apart
+                    // PDF TJ: positive adjustment = move left (closer), negative = move right (further)
+                    // Therefore: negate the font kerning value
+                    var pdfKerning = -kerning * 1000.0 / font.UnitsPerEm;
                     array.Append($" {pdfKerning:F0}");
                 }
             }
@@ -1094,9 +1095,10 @@ public sealed class PdfRenderer : IDisposable
                 if (kerning != 0)
                 {
                     // Convert font units to PDF units (1000ths of an em)
-                    // Negative kerning values in the font mean characters should be closer
-                    // In PDF, negative values in the TJ array also mean closer, so no negation needed
-                    var pdfKerning = kerning * 1000.0 / font.UnitsPerEm;
+                    // Font: negative kerning = characters closer, positive = further apart
+                    // PDF TJ: positive adjustment = move left (closer), negative = move right (further)
+                    // Therefore: negate the font kerning value
+                    var pdfKerning = -kerning * 1000.0 / font.UnitsPerEm;
                     array.Append($" {pdfKerning:F0}");
                 }
             }
