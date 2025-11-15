@@ -169,10 +169,12 @@ public sealed class SvgToPdfConverter
             case "use":
                 RenderUse(element);
                 break;
+            case "image":
+                RenderImage(element);
+                break;
             case "defs":
                 // Definitions: skip rendering (elements are referenced via <use>)
                 return;
-            // TODO: More element types (image, tspan, etc.)
         }
 
         // Render children
@@ -484,6 +486,74 @@ public sealed class SvgToPdfConverter
 
         // Restore graphics state
         _contentStream.AppendLine("Q");
+    }
+
+    private void RenderImage(SvgElement element)
+    {
+        // Get image href (either href or xlink:href)
+        var href = element.GetAttribute("href") ?? element.GetAttribute("xlink:href");
+        if (string.IsNullOrWhiteSpace(href)) return;
+
+        var x = element.GetDoubleAttribute("x", 0);
+        var y = element.GetDoubleAttribute("y", 0);
+        var width = element.GetDoubleAttribute("width", 0);
+        var height = element.GetDoubleAttribute("height", 0);
+
+        if (width <= 0 || height <= 0) return;
+
+        // Check if it's a data URI
+        if (href.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase))
+        {
+            // Parse data URI: data:image/png;base64,iVBORw0KGgoAAAA...
+            var parts = href.Split(',');
+            if (parts.Length == 2)
+            {
+                var imageData = parts[1];
+                var mimeType = parts[0];
+
+                // Decode base64 if present
+                byte[] decodedData;
+                if (mimeType.Contains("base64", StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        decodedData = System.Convert.FromBase64String(imageData);
+                    }
+                    catch
+                    {
+                        return; // Invalid base64
+                    }
+                }
+                else
+                {
+                    // URL-encoded data (rare)
+                    return; // TODO: Handle URL-encoded image data
+                }
+
+                // Add image to XObjects collection
+                var imageName = $"Im{++_xObjectCounter}";
+                _xObjects[imageName] = decodedData;
+
+                // Render image using PDF Do operator
+                _contentStream.AppendLine("q"); // Save state
+                _contentStream.AppendLine($"{width} 0 0 {height} {x} {y} cm"); // Position and scale
+                _contentStream.AppendLine($"/{imageName} Do"); // Draw image
+                _contentStream.AppendLine("Q"); // Restore state
+            }
+        }
+        else if (href.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                 href.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            // External URL - cannot embed without fetching
+            // TODO: Could add option to fetch external images
+            // For now, we'll skip external images
+        }
+        else
+        {
+            // Local file reference - cannot resolve without file system access
+            // TODO: Could add option to resolve local file paths
+            // For now, we'll skip local file references
+        }
     }
 
     private void ApplyFillAndStroke(SvgStyle style, (double x, double y, double width, double height)? boundingBox = null)
