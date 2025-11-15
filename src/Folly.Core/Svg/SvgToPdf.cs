@@ -109,6 +109,9 @@ public sealed class SvgToPdfConverter
             case "g":
                 // Group: just render children
                 break;
+            case "symbol":
+                // Symbol: container for reusable elements, render children
+                break;
             case "text":
                 RenderText(element);
                 break;
@@ -118,6 +121,9 @@ public sealed class SvgToPdfConverter
             case "use":
                 RenderUse(element);
                 break;
+            case "defs":
+                // Definitions: skip rendering (elements are referenced via <use>)
+                return;
             // TODO: More element types (image, tspan, etc.)
         }
 
@@ -142,19 +148,61 @@ public sealed class SvgToPdfConverter
 
         if (width <= 0 || height <= 0) return;
 
-        // If rx or ry are specified, we need rounded corners
-        if (rx > 0 || ry > 0)
+        // SVG spec: if one of rx/ry is specified but the other isn't, use the specified value for both
+        if (rx > 0 && ry == 0) ry = rx;
+        if (ry > 0 && rx == 0) rx = ry;
+
+        // Clamp to half the width/height (SVG spec)
+        rx = Math.Min(rx, width / 2);
+        ry = Math.Min(ry, height / 2);
+
+        // If rx or ry are specified, draw rounded rectangle using Bézier curves
+        if (rx > 0 && ry > 0)
         {
-            // TODO: Implement rounded rectangles using Bézier curves
-            // For now, fall back to regular rectangle
-            _contentStream.AppendLine($"{x} {y} {width} {height} re");
+            DrawRoundedRectangle(x, y, width, height, rx, ry);
         }
         else
         {
+            // Regular rectangle
             _contentStream.AppendLine($"{x} {y} {width} {height} re");
         }
 
         ApplyFillAndStroke(element.Style);
+    }
+
+    private void DrawRoundedRectangle(double x, double y, double width, double height, double rx, double ry)
+    {
+        // Magic number for Bézier approximation of a quarter circle
+        const double kappa = 0.5522847498;
+        var cpx = kappa * rx;
+        var cpy = kappa * ry;
+
+        // Start at top-left corner (after the rounded corner)
+        _contentStream.AppendLine($"{x + rx} {y} m");
+
+        // Top edge
+        _contentStream.AppendLine($"{x + width - rx} {y} l");
+
+        // Top-right corner
+        _contentStream.AppendLine($"{x + width - rx + cpx} {y} {x + width} {y + ry - cpy} {x + width} {y + ry} c");
+
+        // Right edge
+        _contentStream.AppendLine($"{x + width} {y + height - ry} l");
+
+        // Bottom-right corner
+        _contentStream.AppendLine($"{x + width} {y + height - ry + cpy} {x + width - rx + cpx} {y + height} {x + width - rx} {y + height} c");
+
+        // Bottom edge
+        _contentStream.AppendLine($"{x + rx} {y + height} l");
+
+        // Bottom-left corner
+        _contentStream.AppendLine($"{x + rx - cpx} {y + height} {x} {y + height - ry + cpy} {x} {y + height - ry} c");
+
+        // Left edge
+        _contentStream.AppendLine($"{x} {y + ry} l");
+
+        // Top-left corner
+        _contentStream.AppendLine($"{x} {y + ry - cpy} {x + rx - cpx} {y} {x + rx} {y} c");
     }
 
     private void RenderCircle(SvgElement element)
@@ -286,7 +334,50 @@ public sealed class SvgToPdfConverter
 
     private void RenderUse(SvgElement element)
     {
-        // TODO: Implement <use> element (references to other elements)
+        // Get the href attribute (either href or xlink:href)
+        var href = element.GetAttribute("href") ?? element.GetAttribute("xlink:href");
+        if (string.IsNullOrWhiteSpace(href)) return;
+
+        // Remove the '#' prefix
+        var id = href.StartsWith('#') ? href[1..] : href;
+
+        // Look up the referenced element
+        if (!_document.Definitions.TryGetValue(id, out var referencedElement))
+            return; // Referenced element not found
+
+        // Get x, y transformations from <use> element
+        var x = element.GetDoubleAttribute("x", 0);
+        var y = element.GetDoubleAttribute("y", 0);
+
+        // Save graphics state
+        _contentStream.AppendLine("q");
+
+        // Apply translation if x or y are non-zero
+        if (x != 0 || y != 0)
+        {
+            _contentStream.AppendLine($"1 0 0 1 {x} {y} cm");
+        }
+
+        // Merge styles: use element's style overrides referenced element's style
+        var mergedStyle = referencedElement.Style.Clone();
+        // TODO: Merge element.Style properties into mergedStyle
+
+        // Clone the referenced element and render it
+        // We need to temporarily override its parent and style
+        var originalParent = referencedElement.Parent;
+        var originalStyle = referencedElement.Style;
+
+        referencedElement.Parent = element;
+        referencedElement.Style = mergedStyle;
+
+        RenderElement(referencedElement);
+
+        // Restore original parent and style
+        referencedElement.Parent = originalParent;
+        referencedElement.Style = originalStyle;
+
+        // Restore graphics state
+        _contentStream.AppendLine("Q");
     }
 
     private void ApplyFillAndStroke(SvgStyle style)
