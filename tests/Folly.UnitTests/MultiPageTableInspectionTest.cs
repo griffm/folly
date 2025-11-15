@@ -1,6 +1,7 @@
 using Folly;
 using Folly.Testing;
 using Xunit;
+using System;
 using System.IO;
 using System.Linq;
 
@@ -125,10 +126,52 @@ public class MultiPageTableInspectionTest
             output.AppendLine($"\nPage 2 dimensions: {page2.Width} x {page2.Height}");
             output.AppendLine($"Page 2 area count: {page2.Areas.Count}");
 
-            // Look for any areas with unusual Y coordinates (negative or very large)
-            foreach (var area in page2.Areas)
+            // Use the query API to inspect the first table on page 2
+            var query = areaTree.Query().Page(1);
+            var tables = page2.Areas.OfType<TableArea>().ToList();
+
+            output.AppendLine($"\nTables on page 2: {tables.Count}");
+
+            if (tables.Count > 0)
             {
-                InspectAreaPosition(area, output, 0, "Page2");
+                var firstTable = tables[0];
+                output.AppendLine($"\nFirst table: {firstTable.Rows.Count} rows");
+
+                // Look at the first few rows in detail
+                for (int rowIdx = 0; rowIdx < Math.Min(3, firstTable.Rows.Count); rowIdx++)
+                {
+                    var row = firstTable.Rows[rowIdx];
+                    output.AppendLine($"\n  Row {rowIdx}: {row.Cells.Count} cells, Height={row.Height:F2}");
+
+                    // Check each cell
+                    for (int cellIdx = 0; cellIdx < row.Cells.Count; cellIdx++)
+                    {
+                        var cell = row.Cells[cellIdx];
+                        output.AppendLine($"    Cell {cellIdx}: {cell.Children.Count} children");
+
+                        // Look for blocks and their lines
+                        foreach (var child in cell.Children)
+                        {
+                            if (child is BlockArea block)
+                            {
+                                output.AppendLine($"      Block: {block.Children.Count} children (lines)");
+
+                                foreach (var lineChild in block.Children)
+                                {
+                                    if (lineChild is LineArea line)
+                                    {
+                                        output.AppendLine($"        Line: {line.Inlines.Count} inlines, Y={line.Y:F2}");
+
+                                        foreach (var inline in line.Inlines)
+                                        {
+                                            output.AppendLine($"          Inline: '{inline.Text}' at Y={inline.Y:F2}");
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
 
