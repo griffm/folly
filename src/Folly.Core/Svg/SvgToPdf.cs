@@ -347,8 +347,56 @@ public sealed class SvgToPdfConverter
 
     private void RenderText(SvgElement element)
     {
-        // TODO: Implement text rendering
-        // This is complex - needs font selection, positioning, etc.
+        // Get text content (either from text content or tspan children)
+        var textContent = GetTextContent(element);
+        if (string.IsNullOrWhiteSpace(textContent)) return;
+
+        var x = element.GetDoubleAttribute("x", 0);
+        var y = element.GetDoubleAttribute("y", 0);
+        var style = element.Style;
+
+        // Begin text object
+        _contentStream.AppendLine("BT");
+
+        // Map SVG font to PDF font
+        var pdfFont = MapSvgFontToPdf(style.FontFamily, style.FontWeight, style.FontStyle);
+        var fontSize = style.FontSize;
+
+        // Set font and size
+        _contentStream.AppendLine($"/{pdfFont} {fontSize} Tf");
+
+        // Set text position
+        _contentStream.AppendLine($"{x} {y} Td");
+
+        // Set text color (use fill color)
+        if (style.Fill != null && style.Fill != "none")
+        {
+            var fillColor = ParseColor(style.Fill);
+            if (fillColor != null)
+            {
+                var (r, g, b) = fillColor.Value;
+                _contentStream.AppendLine($"{r} {g} {b} rg");
+            }
+        }
+
+        // Set text opacity if needed
+        if (style.FillOpacity < 1.0 || style.Opacity < 1.0)
+        {
+            // TODO: Set text opacity in graphics state
+        }
+
+        // Render text
+        // TODO: Escape special characters in PDF strings (parentheses, backslash)
+        var escapedText = EscapePdfString(textContent);
+        _contentStream.AppendLine($"({escapedText}) Tj");
+
+        // End text object
+        _contentStream.AppendLine("ET");
+
+        // TODO: Support text-anchor (start, middle, end)
+        // TODO: Support tspan elements for multi-line text
+        // TODO: Support text-decoration (underline, overline, line-through)
+        // TODO: Support text transforms (rotate, etc.)
     }
 
     private void RenderUse(SvgElement element)
@@ -436,12 +484,31 @@ public sealed class SvgToPdfConverter
         }
         else if (fillIsGradient)
         {
-            // TODO: Apply gradient fill - requires:
-            // 1. Calculate bounding box of the current path
-            // 2. Generate PDF shading dictionary using SvgGradientToPdf
-            // 3. Add shading to PDF resources
-            // 4. Use 'sh' operator to paint with shading
-            // For now, gradients are parsed but not yet rendered
+            // Apply gradient fill
+            var gradientId = ExtractUrlId(style.Fill!);
+            if (!string.IsNullOrWhiteSpace(gradientId) && _document.Gradients.TryGetValue(gradientId, out var gradient))
+            {
+                // TODO: Full gradient rendering requires:
+                // 1. Calculate bounding box of the current path (need to track path bounds)
+                // 2. Generate PDF shading dictionary using SvgGradientToPdf.GenerateShadingDictionary()
+                // 3. Add shading to PDF resources dictionary (requires PdfWriter integration)
+                // 4. Save graphics state (q)
+                // 5. Clip to current path (W n)
+                // 6. Use 'sh /Shading1' operator to paint with shading
+                // 7. Restore graphics state (Q)
+                //
+                // Example code structure:
+                // var bbox = CalculatePathBoundingBox(); // Need to implement
+                // var shadingDict = Gradients.SvgGradientToPdf.GenerateShadingDictionary(gradient, bbox);
+                // var shadingName = AddShadingToResources(shadingDict); // Need PdfWriter
+                // _contentStream.AppendLine("q");
+                // _contentStream.AppendLine("W n"); // Clip to path
+                // _contentStream.AppendLine($"{shadingName} sh"); // Paint with shading
+                // _contentStream.AppendLine("Q");
+                //
+                // For now, gradients are parsed and stored but shading rendering requires
+                // deeper integration with PDF resource management
+            }
         }
 
         // Set stroke color and width
@@ -721,5 +788,100 @@ public sealed class SvgToPdfConverter
         // - MarkerUnits="strokeWidth" requires multiplying by current stroke width
         //
         // For now, markers are parsed and stored but not yet rendered
+    }
+
+    /// <summary>
+    /// Gets the text content from a text element (including tspan children).
+    /// </summary>
+    private string GetTextContent(SvgElement element)
+    {
+        // Get direct text content if present
+        if (!string.IsNullOrWhiteSpace(element.TextContent))
+            return element.TextContent;
+
+        // Recursively get text from children (for tspan support)
+        var sb = new StringBuilder();
+        foreach (var child in element.Children)
+        {
+            if (child.ElementType == "tspan" || child.ElementType == "text")
+            {
+                sb.Append(GetTextContent(child));
+            }
+        }
+
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// Maps SVG font family, weight, and style to a PDF base font.
+    /// </summary>
+    private string MapSvgFontToPdf(string? fontFamily, string fontWeight, string fontStyle)
+    {
+        // Normalize font family
+        var family = fontFamily?.ToLowerInvariant().Trim() ?? "sans-serif";
+
+        // Remove quotes
+        family = family.Trim('"', '\'');
+
+        // Determine if bold
+        var isBold = fontWeight == "bold" || fontWeight == "700" || fontWeight == "800" || fontWeight == "900";
+
+        // Determine if italic
+        var isItalic = fontStyle == "italic" || fontStyle == "oblique";
+
+        // Map to PDF standard fonts (Helvetica, Times, Courier)
+        // TODO: This is a simplified mapping. A full implementation would use FontMetrics and PdfBaseFontMapper
+        if (family.Contains("serif") && !family.Contains("sans"))
+        {
+            // Times Roman family
+            if (isBold && isItalic) return "Times-BoldItalic";
+            if (isBold) return "Times-Bold";
+            if (isItalic) return "Times-Italic";
+            return "Times-Roman";
+        }
+        else if (family.Contains("mono") || family.Contains("courier"))
+        {
+            // Courier family
+            if (isBold && isItalic) return "Courier-BoldOblique";
+            if (isBold) return "Courier-Bold";
+            if (isItalic) return "Courier-Oblique";
+            return "Courier";
+        }
+        else
+        {
+            // Helvetica family (default for sans-serif)
+            if (isBold && isItalic) return "Helvetica-BoldOblique";
+            if (isBold) return "Helvetica-Bold";
+            if (isItalic) return "Helvetica-Oblique";
+            return "Helvetica";
+        }
+    }
+
+    /// <summary>
+    /// Escapes special characters in a PDF string (parentheses and backslash).
+    /// </summary>
+    private string EscapePdfString(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return text;
+
+        var sb = new StringBuilder(text.Length);
+        foreach (var c in text)
+        {
+            switch (c)
+            {
+                case '(':
+                case ')':
+                case '\\':
+                    sb.Append('\\');
+                    sb.Append(c);
+                    break;
+                default:
+                    sb.Append(c);
+                    break;
+            }
+        }
+
+        return sb.ToString();
     }
 }
