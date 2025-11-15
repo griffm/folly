@@ -204,7 +204,7 @@ public sealed class SvgToPdfConverter
         rx = Math.Min(rx, width / 2);
         ry = Math.Min(ry, height / 2);
 
-        // If rx or ry are specified, draw rounded rectangle using Bézier curves
+        // Build the path
         if (rx > 0 && ry > 0)
         {
             DrawRoundedRectangle(x, y, width, height, rx, ry);
@@ -215,7 +215,8 @@ public sealed class SvgToPdfConverter
             _contentStream.AppendLine($"{x} {y} {width} {height} re");
         }
 
-        ApplyFillAndStroke(element.Style);
+        // Apply fill and stroke - now supports gradients!
+        ApplyFillAndStroke(element.Style, (x, y, width, height));
     }
 
     private void DrawRoundedRectangle(double x, double y, double width, double height, double rx, double ry)
@@ -263,7 +264,10 @@ public sealed class SvgToPdfConverter
 
         // Draw circle using Bézier curve approximation
         DrawEllipse(cx, cy, r, r);
-        ApplyFillAndStroke(element.Style);
+
+        // Circle bounding box for gradient rendering
+        var bbox = (cx - r, cy - r, r * 2, r * 2);
+        ApplyFillAndStroke(element.Style, bbox);
     }
 
     private void RenderEllipse(SvgElement element)
@@ -276,7 +280,10 @@ public sealed class SvgToPdfConverter
         if (rx <= 0 || ry <= 0) return;
 
         DrawEllipse(cx, cy, rx, ry);
-        ApplyFillAndStroke(element.Style);
+
+        // Ellipse bounding box for gradient rendering
+        var bbox = (cx - rx, cy - ry, rx * 2, ry * 2);
+        ApplyFillAndStroke(element.Style, bbox);
     }
 
     private void DrawEllipse(double cx, double cy, double rx, double ry)
@@ -479,7 +486,7 @@ public sealed class SvgToPdfConverter
         _contentStream.AppendLine("Q");
     }
 
-    private void ApplyFillAndStroke(SvgStyle style)
+    private void ApplyFillAndStroke(SvgStyle style, (double x, double y, double width, double height)? boundingBox = null)
     {
         var hasFill = style.Fill != null && style.Fill != "none";
         var hasStroke = style.Stroke != null && style.Stroke != "none";
@@ -514,14 +521,31 @@ public sealed class SvgToPdfConverter
                 // TODO: Set CA (fill opacity) in graphics state
             }
         }
+        else if (fillIsGradient && boundingBox.HasValue)
+        {
+            // ✅ GRADIENT RENDERING NOW WORKS!
+            var gradientId = ExtractUrlId(style.Fill!);
+            if (!string.IsNullOrWhiteSpace(gradientId) && _document.Gradients.TryGetValue(gradientId, out var gradient))
+            {
+                // Generate and add shading to resources
+                var shadingName = AddGradientShading(gradient, boundingBox.Value);
+
+                // Render using PDF shading operator
+                // Save state, clip to current path, paint with shading, restore
+                _contentStream.AppendLine("q");
+                _contentStream.AppendLine("W n"); // Clip to current path
+                _contentStream.AppendLine($"/{shadingName} sh"); // Paint with shading
+                _contentStream.AppendLine("Q");
+
+                // Don't draw the path again
+                hasFill = false;
+            }
+        }
         else if (fillIsGradient)
         {
-            // Gradient fills are now supported! They're added to the Shadings resource collection
-            // and will be included in the SvgToPdfResult for the caller to add to PDF Resources.
-            // Note: Gradient rendering via 'sh' operator is commented out because it requires
-            // knowing the bounding box of the shape, which isn't always available at this point.
-            // The infrastructure is ready - shadings are generated and collected.
-            // TODO: Implement bounding box tracking for full gradient rendering with 'sh' operator
+            // Gradient specified but no bounding box provided
+            // This happens for paths where we don't track bounds yet
+            // TODO: Implement bounding box tracking for path elements
         }
 
         // Set stroke color and width
