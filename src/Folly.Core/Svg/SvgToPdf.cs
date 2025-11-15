@@ -22,10 +22,8 @@ public sealed class SvgToPdfConverter
     // Resource counters for naming
     private int _shadingCounter = 0;
     private int _graphicsStateCounter = 0;
-#pragma warning disable CS0414 // Field is assigned but never used (infrastructure for future features)
     private int _patternCounter = 0;
     private int _xObjectCounter = 0;
-#pragma warning restore CS0414
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SvgToPdfConverter"/> class.
@@ -784,16 +782,44 @@ public sealed class SvgToPdfConverter
             }
         }
 
-        // Draw path
-        // TODO: Pattern fills/strokes require creating PDF pattern resources and using /Pattern color space
-        // For now, we'll render the path with solid colors only
-        if (fillIsPattern || strokeIsPattern)
+        // Handle pattern fills/strokes
+        if (fillIsPattern)
         {
-            // TODO: Implement pattern fill/stroke using PDF tiling patterns (Type 1)
-            // This requires: 1) Creating XObject Form for pattern tile
-            //                2) Setting /Pattern color space
-            //                3) Using scn/SCN operators with pattern name
-            // For now, fall back to basic rendering
+            var patternId = ExtractUrlId(style.Fill!);
+            if (!string.IsNullOrWhiteSpace(patternId) && _document.Patterns.TryGetValue(patternId, out var pattern))
+            {
+                // Add pattern to resources
+                var patternName = AddPattern(pattern, boundingBox);
+
+                // Set pattern color space and use pattern
+                _contentStream.AppendLine("/Pattern cs");
+                _contentStream.AppendLine($"/{patternName} scn");
+            }
+            else
+            {
+                // Pattern not found, skip fill
+                hasFill = false;
+            }
+        }
+
+        if (strokeIsPattern)
+        {
+            var patternId = ExtractUrlId(style.Stroke!);
+            if (!string.IsNullOrWhiteSpace(patternId) && _document.Patterns.TryGetValue(patternId, out var pattern))
+            {
+                // Add pattern to resources
+                var patternName = AddPattern(pattern, boundingBox);
+
+                // Set pattern color space for stroke and use pattern
+                _contentStream.AppendLine("/Pattern CS");
+                _contentStream.AppendLine($"/{patternName} SCN");
+                _contentStream.AppendLine($"{style.StrokeWidth} w");
+            }
+            else
+            {
+                // Pattern not found, skip stroke
+                hasStroke = false;
+            }
         }
 
         if (hasFill && hasStroke)
@@ -1477,5 +1503,99 @@ public sealed class SvgToPdfConverter
         _graphicsStates[gsName] = gsDict;
 
         return gsName;
+    }
+
+    /// <summary>
+    /// Adds a pattern to the resource collection and returns its name.
+    /// Creates a PDF Type 1 tiling pattern from an SVG pattern definition.
+    /// </summary>
+    /// <param name="pattern">The SVG pattern to convert.</param>
+    /// <param name="boundingBox">The bounding box of the shape being filled (for objectBoundingBox units).</param>
+    /// <returns>The pattern resource name (e.g., "P1").</returns>
+    private string AddPattern(SvgPattern pattern, (double x, double y, double width, double height)? boundingBox)
+    {
+        // Calculate pattern tile dimensions
+        double tileWidth = pattern.Width;
+        double tileHeight = pattern.Height;
+        double tileX = pattern.X;
+        double tileY = pattern.Y;
+
+        // Handle objectBoundingBox units (default)
+        if (pattern.PatternUnits == "objectBoundingBox" && boundingBox.HasValue)
+        {
+            var bbox = boundingBox.Value;
+            tileX = bbox.x + pattern.X * bbox.width;
+            tileY = bbox.y + pattern.Y * bbox.height;
+            tileWidth = pattern.Width * bbox.width;
+            tileHeight = pattern.Height * bbox.height;
+        }
+
+        // Render pattern content elements into a content stream
+        var patternContent = new StringBuilder();
+
+        // Save original content stream
+        var originalStream = _contentStream.ToString();
+        var originalLength = _contentStream.Length;
+
+        // Clear content stream to render pattern content
+        _contentStream.Clear();
+
+        // Render each pattern element
+        foreach (var element in pattern.PatternElements)
+        {
+            RenderElement(element);
+        }
+
+        // Get pattern content
+        var patternContentStr = _contentStream.ToString();
+
+        // Restore original content stream
+        _contentStream.Clear();
+        _contentStream.Append(originalStream);
+
+        // Create Form XObject for pattern content
+        var formXObjectName = $"FXO{++_xObjectCounter}";
+
+        // Build Form XObject dictionary
+        var formXObject = $@"<<
+  /Type /XObject
+  /Subtype /Form
+  /BBox [0 0 {tileWidth} {tileHeight}]
+  /Matrix [1 0 0 1 0 0]
+  /Resources << >>
+  /Length {Encoding.UTF8.GetByteCount(patternContentStr)}
+>>
+stream
+{patternContentStr}endstream";
+
+        // Add Form XObject to XObjects collection
+        // TODO: This should be bytes, but for now we'll store as string and convert later
+        _xObjects[formXObjectName] = Encoding.UTF8.GetBytes(formXObject);
+
+        // Create PDF Type 1 tiling pattern dictionary
+        var patternDict = $@"<<
+  /Type /Pattern
+  /PatternType 1
+  /PaintType 1
+  /TilingType 1
+  /BBox [0 0 {tileWidth} {tileHeight}]
+  /XStep {tileWidth}
+  /YStep {tileHeight}
+  /Resources <<
+    /XObject << /{formXObjectName} {++_xObjectCounter} 0 R >>
+  >>
+  /Matrix [1 0 0 1 {tileX} {tileY}]
+  /Length {patternContentStr.Length}
+>>
+stream
+{patternContentStr}endstream";
+
+        // Create unique pattern name
+        var patternName = $"P{++_patternCounter}";
+
+        // Add to patterns collection
+        _patterns[patternName] = patternDict;
+
+        return patternName;
     }
 }
