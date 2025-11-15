@@ -166,6 +166,10 @@ GenerateSidebarsExample(Path.Combine(outputDir, "32-sidebars.pdf"));
 Console.WriteLine("Generating Example 33: All Image Formats...");
 GenerateImageFormatsExample(Path.Combine(outputDir, "33-image-formats.pdf"), examplesDir);
 
+// Example 34: Rounded Corners (Border Radius)
+Console.WriteLine("Generating Example 34: Rounded Corners (Border Radius)...");
+GenerateRoundedCornersExample(Path.Combine(outputDir, "34-rounded-corners.pdf"));
+
 Console.WriteLine("\n✓ All examples generated successfully!");
 Console.WriteLine($"\nView PDFs in: {outputDir}");
 Console.WriteLine("\nValidate with qpdf:");
@@ -4098,3 +4102,100 @@ static void WriteInt16LE(byte[] d, int o, int v) { d[o] = (byte)v; d[o+1] = (byt
 static void WriteUInt16LEList(List<byte> d, int v) { d.Add((byte)v); d.Add((byte)(v >> 8)); }
 static void WriteUInt32LEList(List<byte> d, uint v) { d.Add((byte)v); d.Add((byte)(v >> 8)); d.Add((byte)(v >> 16)); d.Add((byte)(v >> 24)); }
 static void WriteTiffEntry(List<byte> d, ushort t, ushort y, uint c, uint v) { WriteUInt16LEList(d, t); WriteUInt16LEList(d, y); WriteUInt32LEList(d, c); WriteUInt32LEList(d, v); }
+
+static void GenerateRoundedCornersExample(string outputPath)
+{
+    var xml = """
+        <?xml version="1.0"?>
+        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+          <fo:layout-master-set>
+            <fo:simple-page-master master-name="A4" page-width="8.5in" page-height="11in"
+                                   margin-top="0.75in" margin-bottom="0.75in"
+                                   margin-left="0.75in" margin-right="0.75in">
+              <fo:region-body margin-top="0.5in" margin-bottom="0.5in"/>
+              <fo:region-before extent="0.5in"/>
+              <fo:region-after extent="0.5in"/>
+            </fo:simple-page-master>
+          </fo:layout-master-set>
+
+          <fo:page-sequence master-reference="A4">
+            <!-- Header -->
+            <fo:static-content flow-name="xsl-region-before">
+              <fo:block text-align="center" font-size="10pt" color="#666666" border-bottom="0.5pt solid #CCCCCC" padding-bottom="8pt">
+                Example 34: Rounded Corners (Border Radius) - Page <fo:page-number/>
+              </fo:block>
+            </fo:static-content>
+
+            <!-- Main Content -->
+            <fo:flow flow-name="xsl-region-body">
+              <fo:block font-size="24pt" font-weight="bold" space-after="12pt" text-align="center">
+                Rounded Corners (Border Radius)
+              </fo:block>
+
+              <fo:block font-size="11pt" space-after="18pt" text-align="center" color="#555555">
+                Demonstration of border-radius property for smooth, rounded corners
+              </fo:block>
+
+              <!-- Uniform Radius -->
+              <fo:block font-size="14pt" font-weight="bold" space-before="18pt" space-after="12pt" color="#2C5282">
+                1. Uniform Border Radius
+              </fo:block>
+
+              <fo:block border="3pt solid #2C5282" border-radius="10pt" padding="16pt"
+                        background-color="#EBF8FF" space-after="12pt">
+                <fo:block font-weight="bold" space-after="6pt">Uniform 10pt radius on all corners</fo:block>
+                <fo:block>This block uses border-radius="10pt" to create smooth, equally rounded corners
+                on all four sides. Perfect for modern, clean design.</fo:block>
+              </fo:block>
+
+              <fo:block border="2pt solid #38A169" border-radius="20pt" padding="14pt"
+                        background-color="#F0FFF4" space-after="12pt">
+                <fo:block font-weight="bold" space-after="6pt">Larger 20pt radius</fo:block>
+                <fo:block>Increasing the radius to 20pt creates more pronounced curves. This is great for
+                callout boxes and highlighted content.</fo:block>
+              </fo:block>
+
+              <!-- Individual Corner Radii -->
+              <fo:block font-size="14pt" font-weight="bold" space-before="18pt" space-after="12pt" color="#2C5282">
+                2. Individual Corner Radii
+              </fo:block>
+
+              <fo:block border="3pt solid #D97706"
+                        border-top-left-radius="5pt"
+                        border-top-right-radius="15pt"
+                        border-bottom-right-radius="25pt"
+                        border-bottom-left-radius="35pt"
+                        padding="14pt" background-color="#FFFAF0" space-after="12pt">
+                <fo:block font-weight="bold" space-after="6pt">Different radius per corner</fo:block>
+                <fo:block>Top-left: 5pt, Top-right: 15pt, Bottom-right: 25pt, Bottom-left: 35pt</fo:block>
+              </fo:block>
+
+              <!--  Border Styles -->
+              <fo:block font-size="14pt" font-weight="bold" space-before="18pt" space-after="12pt" color="#2C5282">
+                3. Rounded Corners with Different Border Styles
+              </fo:block>
+
+              <fo:block border="2pt solid #9333EA" border-radius="12pt" padding="12pt"
+                        background-color="#FAF5FF" space-after="12pt">
+                <fo:block font-weight="bold">Solid Border</fo:block>
+              </fo:block>
+
+              <fo:block border="2pt dashed #DC2626" border-radius="12pt" padding="12pt"
+                        background-color="#FEF2F2" space-after="12pt">
+                <fo:block font-weight="bold">Dashed Border</fo:block>
+              </fo:block>
+
+              <fo:block border="2pt dotted #0891B2" border-radius="12pt" padding="12pt"
+                        background-color="#ECFEFF" space-after="12pt">
+                <fo:block font-weight="bold">Dotted Border</fo:block>
+              </fo:block>
+            </fo:flow>
+          </fo:page-sequence>
+        </fo:root>
+        """;
+
+    using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(xml));
+    using var doc = FoDocument.Load(stream);
+    using var output = File.Create(outputPath);
+    doc.SavePdf(output);
+}

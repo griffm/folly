@@ -620,12 +620,21 @@ public sealed class PdfRenderer : IDisposable
         }
 
         // Render borders if specified
+        var hasRadius = absoluteArea.BorderTopLeftRadius > 0 || absoluteArea.BorderTopRightRadius > 0 ||
+                        absoluteArea.BorderBottomLeftRadius > 0 || absoluteArea.BorderBottomRightRadius > 0;
+
         var hasDirectionalBorder = (absoluteArea.BorderTopStyle != "none" && absoluteArea.BorderTopWidth > 0) ||
                                     (absoluteArea.BorderBottomStyle != "none" && absoluteArea.BorderBottomWidth > 0) ||
                                     (absoluteArea.BorderLeftStyle != "none" && absoluteArea.BorderLeftWidth > 0) ||
                                     (absoluteArea.BorderRightStyle != "none" && absoluteArea.BorderRightWidth > 0);
 
-        if (hasDirectionalBorder)
+        if (hasRadius && hasDirectionalBorder)
+        {
+            // Render rounded border
+            var pdfY = pageHeight - absoluteArea.Y - absoluteArea.Height;
+            RenderRoundedBorderForAbsoluteArea(absoluteArea, content, absoluteArea.X, pdfY);
+        }
+        else if (hasDirectionalBorder)
         {
             // Convert from top-left origin to bottom-left origin
             var pdfY = pageHeight - absoluteArea.Y - absoluteArea.Height;
@@ -981,6 +990,17 @@ public sealed class PdfRenderer : IDisposable
         var y = offsetY + block.Y;
         var pdfY = pageHeight - y - block.Height;
 
+        // Check if any border radius is present
+        var hasRadius = block.BorderTopLeftRadius > 0 || block.BorderTopRightRadius > 0 ||
+                        block.BorderBottomLeftRadius > 0 || block.BorderBottomRightRadius > 0;
+
+        if (hasRadius)
+        {
+            // Render rounded border
+            RenderRoundedBorder(block, content, x, pdfY);
+            return;
+        }
+
         // Check if we should use directional borders or generic border
         var hasDirectionalBorders = block.BorderTopStyle != "none" || block.BorderBottomStyle != "none" ||
                                      block.BorderLeftStyle != "none" || block.BorderRightStyle != "none";
@@ -1043,6 +1063,241 @@ public sealed class PdfRenderer : IDisposable
             content.AppendLine("S");
             content.AppendLine("Q");
         }
+    }
+
+    /// <summary>
+    /// Renders a border with rounded corners using Bezier curves.
+    /// </summary>
+    private void RenderRoundedBorder(BlockArea block, StringBuilder content, double x, double pdfY)
+    {
+        // Clamp radii to ensure they don't exceed half the box dimensions
+        var maxRadiusX = block.Width / 2;
+        var maxRadiusY = block.Height / 2;
+
+        var topLeftRadius = Math.Min(block.BorderTopLeftRadius, Math.Min(maxRadiusX, maxRadiusY));
+        var topRightRadius = Math.Min(block.BorderTopRightRadius, Math.Min(maxRadiusX, maxRadiusY));
+        var bottomRightRadius = Math.Min(block.BorderBottomRightRadius, Math.Min(maxRadiusX, maxRadiusY));
+        var bottomLeftRadius = Math.Min(block.BorderBottomLeftRadius, Math.Min(maxRadiusX, maxRadiusY));
+
+        // Bezier curve constant for approximating a quarter circle
+        // Magic number: 4/3 * (sqrt(2) - 1) ≈ 0.552284749831
+        const double kappa = 0.552284749831;
+
+        // TODO: For now, use a uniform border style. In the future, we could support
+        // different styles per side with rounded corners, but that's complex.
+        var borderWidth = Math.Max(Math.Max(block.BorderTopWidth, block.BorderBottomWidth),
+                                   Math.Max(block.BorderLeftWidth, block.BorderRightWidth));
+        var borderColor = block.BorderTopColor != "black" ? block.BorderTopColor :
+                         block.BorderBottomColor != "black" ? block.BorderBottomColor :
+                         block.BorderLeftColor != "black" ? block.BorderLeftColor :
+                         block.BorderRightColor;
+        var borderStyle = block.BorderTopStyle != "none" ? block.BorderTopStyle :
+                         block.BorderBottomStyle != "none" ? block.BorderBottomStyle :
+                         block.BorderLeftStyle != "none" ? block.BorderLeftStyle :
+                         block.BorderRightStyle;
+
+        if (borderStyle == "none" || borderWidth <= 0)
+            return;
+
+        var (r, g, b) = ParseColor(borderColor);
+
+        content.AppendLine("q"); // Save graphics state
+        content.AppendLine($"{r:F3} {g:F3} {b:F3} RG");
+        content.AppendLine($"{borderWidth:F2} w");
+
+        // Set dash pattern based on style
+        switch (borderStyle.ToLowerInvariant())
+        {
+            case "dashed":
+                content.AppendLine("[3 2] 0 d");
+                break;
+            case "dotted":
+                content.AppendLine("[1 1] 0 d");
+                break;
+            default: // solid
+                content.AppendLine("[] 0 d");
+                break;
+        }
+
+        // Adjust for border width (stroke is centered on path)
+        var halfWidth = borderWidth / 2;
+        var left = x + halfWidth;
+        var right = x + block.Width - halfWidth;
+        var bottom = pdfY + halfWidth;
+        var top = pdfY + block.Height - halfWidth;
+
+        // Adjust radii for the stroke offset
+        var tlr = Math.Max(0, topLeftRadius - halfWidth);
+        var trr = Math.Max(0, topRightRadius - halfWidth);
+        var brr = Math.Max(0, bottomRightRadius - halfWidth);
+        var blr = Math.Max(0, bottomLeftRadius - halfWidth);
+
+        // Build the rounded rectangle path
+        // Start at the top-left corner, after the radius
+        content.AppendLine($"{left + tlr:F2} {top:F2} m");
+
+        // Top edge + top-right corner
+        content.AppendLine($"{right - trr:F2} {top:F2} l");
+        if (trr > 0)
+        {
+            var cp1x = right - trr + trr * kappa;
+            var cp1y = top;
+            var cp2x = right;
+            var cp2y = top - trr + trr * kappa;
+            content.AppendLine($"{cp1x:F2} {cp1y:F2} {cp2x:F2} {cp2y:F2} {right:F2} {top - trr:F2} c");
+        }
+
+        // Right edge + bottom-right corner
+        content.AppendLine($"{right:F2} {bottom + brr:F2} l");
+        if (brr > 0)
+        {
+            var cp1x = right;
+            var cp1y = bottom + brr - brr * kappa;
+            var cp2x = right - brr + brr * kappa;
+            var cp2y = bottom;
+            content.AppendLine($"{cp1x:F2} {cp1y:F2} {cp2x:F2} {cp2y:F2} {right - brr:F2} {bottom:F2} c");
+        }
+
+        // Bottom edge + bottom-left corner
+        content.AppendLine($"{left + blr:F2} {bottom:F2} l");
+        if (blr > 0)
+        {
+            var cp1x = left + blr - blr * kappa;
+            var cp1y = bottom;
+            var cp2x = left;
+            var cp2y = bottom + blr - blr * kappa;
+            content.AppendLine($"{cp1x:F2} {cp1y:F2} {cp2x:F2} {cp2y:F2} {left:F2} {bottom + blr:F2} c");
+        }
+
+        // Left edge + top-left corner
+        content.AppendLine($"{left:F2} {top - tlr:F2} l");
+        if (tlr > 0)
+        {
+            var cp1x = left;
+            var cp1y = top - tlr + tlr * kappa;
+            var cp2x = left + tlr - tlr * kappa;
+            var cp2y = top;
+            content.AppendLine($"{cp1x:F2} {cp1y:F2} {cp2x:F2} {cp2y:F2} {left + tlr:F2} {top:F2} c");
+        }
+
+        content.AppendLine("S"); // Stroke the path
+        content.AppendLine("Q"); // Restore graphics state
+    }
+
+    /// <summary>
+    /// Renders a border with rounded corners for AbsolutePositionedArea using Bezier curves.
+    /// </summary>
+    private void RenderRoundedBorderForAbsoluteArea(AbsolutePositionedArea area, StringBuilder content, double x, double pdfY)
+    {
+        // Clamp radii to ensure they don't exceed half the box dimensions
+        var maxRadiusX = area.Width / 2;
+        var maxRadiusY = area.Height / 2;
+
+        var topLeftRadius = Math.Min(area.BorderTopLeftRadius, Math.Min(maxRadiusX, maxRadiusY));
+        var topRightRadius = Math.Min(area.BorderTopRightRadius, Math.Min(maxRadiusX, maxRadiusY));
+        var bottomRightRadius = Math.Min(area.BorderBottomRightRadius, Math.Min(maxRadiusX, maxRadiusY));
+        var bottomLeftRadius = Math.Min(area.BorderBottomLeftRadius, Math.Min(maxRadiusX, maxRadiusY));
+
+        // Bezier curve constant for approximating a quarter circle
+        const double kappa = 0.552284749831;
+
+        // TODO: For now, use a uniform border style
+        var borderWidth = Math.Max(Math.Max(area.BorderTopWidth, area.BorderBottomWidth),
+                                   Math.Max(area.BorderLeftWidth, area.BorderRightWidth));
+        var borderColor = area.BorderTopColor != "black" ? area.BorderTopColor :
+                         area.BorderBottomColor != "black" ? area.BorderBottomColor :
+                         area.BorderLeftColor != "black" ? area.BorderLeftColor :
+                         area.BorderRightColor;
+        var borderStyle = area.BorderTopStyle != "none" ? area.BorderTopStyle :
+                         area.BorderBottomStyle != "none" ? area.BorderBottomStyle :
+                         area.BorderLeftStyle != "none" ? area.BorderLeftStyle :
+                         area.BorderRightStyle;
+
+        if (borderStyle == "none" || borderWidth <= 0)
+            return;
+
+        var (r, g, b) = ParseColor(borderColor);
+
+        content.AppendLine("q"); // Save graphics state
+        content.AppendLine($"{r:F3} {g:F3} {b:F3} RG");
+        content.AppendLine($"{borderWidth:F2} w");
+
+        // Set dash pattern based on style
+        switch (borderStyle.ToLowerInvariant())
+        {
+            case "dashed":
+                content.AppendLine("[3 2] 0 d");
+                break;
+            case "dotted":
+                content.AppendLine("[1 1] 0 d");
+                break;
+            default: // solid
+                content.AppendLine("[] 0 d");
+                break;
+        }
+
+        // Adjust for border width (stroke is centered on path)
+        var halfWidth = borderWidth / 2;
+        var left = x + halfWidth;
+        var right = x + area.Width - halfWidth;
+        var bottom = pdfY + halfWidth;
+        var top = pdfY + area.Height - halfWidth;
+
+        // Adjust radii for the stroke offset
+        var tlr = Math.Max(0, topLeftRadius - halfWidth);
+        var trr = Math.Max(0, topRightRadius - halfWidth);
+        var brr = Math.Max(0, bottomRightRadius - halfWidth);
+        var blr = Math.Max(0, bottomLeftRadius - halfWidth);
+
+        // Build the rounded rectangle path (same as BlockArea)
+        content.AppendLine($"{left + tlr:F2} {top:F2} m");
+
+        // Top edge + top-right corner
+        content.AppendLine($"{right - trr:F2} {top:F2} l");
+        if (trr > 0)
+        {
+            var cp1x = right - trr + trr * kappa;
+            var cp1y = top;
+            var cp2x = right;
+            var cp2y = top - trr + trr * kappa;
+            content.AppendLine($"{cp1x:F2} {cp1y:F2} {cp2x:F2} {cp2y:F2} {right:F2} {top - trr:F2} c");
+        }
+
+        // Right edge + bottom-right corner
+        content.AppendLine($"{right:F2} {bottom + brr:F2} l");
+        if (brr > 0)
+        {
+            var cp1x = right;
+            var cp1y = bottom + brr - brr * kappa;
+            var cp2x = right - brr + brr * kappa;
+            var cp2y = bottom;
+            content.AppendLine($"{cp1x:F2} {cp1y:F2} {cp2x:F2} {cp2y:F2} {right - brr:F2} {bottom:F2} c");
+        }
+
+        // Bottom edge + bottom-left corner
+        content.AppendLine($"{left + blr:F2} {bottom:F2} l");
+        if (blr > 0)
+        {
+            var cp1x = left + blr - blr * kappa;
+            var cp1y = bottom;
+            var cp2x = left;
+            var cp2y = bottom + blr - blr * kappa;
+            content.AppendLine($"{cp1x:F2} {cp1y:F2} {cp2x:F2} {cp2y:F2} {left:F2} {bottom + blr:F2} c");
+        }
+
+        // Left edge + top-left corner
+        content.AppendLine($"{left:F2} {top - tlr:F2} l");
+        if (tlr > 0)
+        {
+            var cp1x = left;
+            var cp1y = top - tlr + tlr * kappa;
+            var cp2x = left + tlr - tlr * kappa;
+            var cp2y = top;
+            content.AppendLine($"{cp1x:F2} {cp1y:F2} {cp2x:F2} {cp2y:F2} {left + tlr:F2} {top:F2} c");
+        }
+
+        content.AppendLine("S"); // Stroke the path
+        content.AppendLine("Q"); // Restore graphics state
     }
 
     private void RenderBorderSide(StringBuilder content, double width, string color, string style, double x1, double y1, double x2, double y2)
