@@ -371,14 +371,16 @@ public sealed class PdfRenderer : IDisposable
                 RenderBackgroundImage(blockArea, content, imageIds, pageHeight, offsetX, offsetY);
             }
 
-            // Render borders (check both generic and directional borders)
+            // Render borders (check both generic and directional borders, plus border-radius)
             var hasGenericBorder = blockArea.BorderStyle != "none" && blockArea.BorderWidth > 0;
             var hasDirectionalBorder = (blockArea.BorderTopStyle != "none" && blockArea.BorderTopWidth > 0) ||
                                         (blockArea.BorderBottomStyle != "none" && blockArea.BorderBottomWidth > 0) ||
                                         (blockArea.BorderLeftStyle != "none" && blockArea.BorderLeftWidth > 0) ||
                                         (blockArea.BorderRightStyle != "none" && blockArea.BorderRightWidth > 0);
+            var hasBorderRadius = blockArea.BorderTopLeftRadius > 0 || blockArea.BorderTopRightRadius > 0 ||
+                                  blockArea.BorderBottomLeftRadius > 0 || blockArea.BorderBottomRightRadius > 0;
 
-            if (hasGenericBorder || hasDirectionalBorder)
+            if (hasGenericBorder || hasDirectionalBorder || hasBorderRadius)
             {
                 RenderBorder(blockArea, content, pageHeight, offsetX, offsetY);
             }
@@ -628,9 +630,9 @@ public sealed class PdfRenderer : IDisposable
                                     (absoluteArea.BorderLeftStyle != "none" && absoluteArea.BorderLeftWidth > 0) ||
                                     (absoluteArea.BorderRightStyle != "none" && absoluteArea.BorderRightWidth > 0);
 
-        if (hasRadius && hasDirectionalBorder)
+        if (hasRadius)
         {
-            // Render rounded border
+            // Render rounded border (takes precedence over directional borders)
             var pdfY = pageHeight - absoluteArea.Y - absoluteArea.Height;
             RenderRoundedBorderForAbsoluteArea(absoluteArea, content, absoluteArea.X, pdfY);
         }
