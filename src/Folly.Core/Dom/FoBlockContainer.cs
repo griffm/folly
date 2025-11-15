@@ -91,6 +91,21 @@ public sealed class FoBlockContainer : FoElement
     public string BackgroundColor => Properties.GetString("background-color", "");
 
     /// <summary>
+    /// Gets the border width (base value for all sides).
+    /// </summary>
+    public double BorderWidth => Properties.GetLength("border-width", 0);
+
+    /// <summary>
+    /// Gets the border color (base value for all sides).
+    /// </summary>
+    public string BorderColor => Properties.GetString("border-color", "black");
+
+    /// <summary>
+    /// Gets the border style (base value for all sides).
+    /// </summary>
+    public string BorderStyle => Properties.GetString("border-style", "none");
+
+    /// <summary>
     /// Gets the border-before-width.
     /// </summary>
     public double BorderBeforeWidth => Properties.GetLength("border-before-width", 0);
@@ -109,6 +124,78 @@ public sealed class FoBlockContainer : FoElement
     /// Gets the border-end-width.
     /// </summary>
     public double BorderEndWidth => Properties.GetLength("border-end-width", 0);
+
+    /// <summary>
+    /// Gets the top border width.
+    /// Maps from border-before-width in XSL-FO based on writing-mode.
+    /// </summary>
+    public double BorderTopWidth => GetDirectionalLength("border-before-width", "border-top-width", BorderWidth);
+
+    /// <summary>
+    /// Gets the bottom border width.
+    /// Maps from border-after-width in XSL-FO based on writing-mode.
+    /// </summary>
+    public double BorderBottomWidth => GetDirectionalLength("border-after-width", "border-bottom-width", BorderWidth);
+
+    /// <summary>
+    /// Gets the left border width.
+    /// Maps from border-start-width in XSL-FO based on writing-mode.
+    /// </summary>
+    public double BorderLeftWidth => GetDirectionalLength("border-start-width", "border-left-width", BorderWidth);
+
+    /// <summary>
+    /// Gets the right border width.
+    /// Maps from border-end-width in XSL-FO based on writing-mode.
+    /// </summary>
+    public double BorderRightWidth => GetDirectionalLength("border-end-width", "border-right-width", BorderWidth);
+
+    /// <summary>
+    /// Gets the top border style.
+    /// Maps from border-before-style in XSL-FO based on writing-mode.
+    /// </summary>
+    public string BorderTopStyle => GetDirectionalString("border-before-style", "border-top-style", BorderStyle);
+
+    /// <summary>
+    /// Gets the bottom border style.
+    /// Maps from border-after-style in XSL-FO based on writing-mode.
+    /// </summary>
+    public string BorderBottomStyle => GetDirectionalString("border-after-style", "border-bottom-style", BorderStyle);
+
+    /// <summary>
+    /// Gets the left border style.
+    /// Maps from border-start-style in XSL-FO based on writing-mode.
+    /// </summary>
+    public string BorderLeftStyle => GetDirectionalString("border-start-style", "border-left-style", BorderStyle);
+
+    /// <summary>
+    /// Gets the right border style.
+    /// Maps from border-end-style in XSL-FO based on writing-mode.
+    /// </summary>
+    public string BorderRightStyle => GetDirectionalString("border-end-style", "border-right-style", BorderStyle);
+
+    /// <summary>
+    /// Gets the top border color.
+    /// Maps from border-before-color in XSL-FO based on writing-mode.
+    /// </summary>
+    public string BorderTopColor => GetDirectionalString("border-before-color", "border-top-color", BorderColor);
+
+    /// <summary>
+    /// Gets the bottom border color.
+    /// Maps from border-after-color in XSL-FO based on writing-mode.
+    /// </summary>
+    public string BorderBottomColor => GetDirectionalString("border-after-color", "border-bottom-color", BorderColor);
+
+    /// <summary>
+    /// Gets the left border color.
+    /// Maps from border-start-color in XSL-FO based on writing-mode.
+    /// </summary>
+    public string BorderLeftColor => GetDirectionalString("border-start-color", "border-left-color", BorderColor);
+
+    /// <summary>
+    /// Gets the right border color.
+    /// Maps from border-end-color in XSL-FO based on writing-mode.
+    /// </summary>
+    public string BorderRightColor => GetDirectionalString("border-end-color", "border-right-color", BorderColor);
 
     /// <summary>
     /// Gets the padding-before.
