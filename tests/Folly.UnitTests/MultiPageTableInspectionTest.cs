@@ -190,6 +190,46 @@ public class MultiPageTableInspectionTest
 
         Console.WriteLine(output.ToString());
 
+        // DETAILED: Check every single table row on page 2 to see where they actually are
+        if (areaTree.Pages.Count >= 2)
+        {
+            var page2 = areaTree.Pages[1];
+            var allTables = page2.Areas.OfType<TableArea>().ToList();
+
+            output.Clear();
+            output.AppendLine("\n=== DETAILED ROW POSITIONS ON PAGE 2 ===");
+            output.AppendLine($"Page height: 842pt, Footer at: 806pt, Should stop at: ~734pt");
+            output.AppendLine($"Total tables: {allTables.Count}\n");
+
+            int rowNum = 0;
+            int tableNum = 0;
+            foreach (var table in allTables)
+            {
+                output.AppendLine($"  Table {tableNum++} at Y={table.Y:F2}:");
+                foreach (var row in table.Rows)
+                {
+                    var absoluteRowY = table.Y + row.Y;
+                    var rowBottom = absoluteRowY + row.Height;
+                    var firstCellText = row.Cells.Count > 0 && row.Cells[0].Children.Count > 0
+                        ? ExtractTextFromArea(row.Cells[0].Children[0])
+                        : "";
+
+                    output.AppendLine($"    Row {rowNum++}: absY={absoluteRowY:F2}, relY={row.Y:F2}, H={row.Height:F2}, Bottom={rowBottom:F2} - '{firstCellText}'");
+
+                    if (rowBottom > 806)
+                    {
+                        output.AppendLine($"      ⚠ WARNING: Row extends {rowBottom - 806:F2}pt past footer!");
+                    }
+                    else if (rowBottom > 734)
+                    {
+                        output.AppendLine($"      ⚠ Past pageBottom ({rowBottom - 734:F2}pt over)");
+                    }
+                }
+            }
+
+            Console.WriteLine(output.ToString());
+        }
+
         // Save JSON for detailed inspection
         var json = AreaTreeInspector.ToJson(areaTree, new AreaTreeSerializationOptions
         {
@@ -200,6 +240,26 @@ public class MultiPageTableInspectionTest
         });
         File.WriteAllText("/tmp/multipage_table_inspection.json", json);
         Console.WriteLine("\nArea tree JSON saved to: /tmp/multipage_table_inspection.json");
+    }
+
+    private static string ExtractTextFromArea(Area area)
+    {
+        if (area is BlockArea block)
+        {
+            var text = new System.Text.StringBuilder();
+            foreach (var child in block.Children)
+            {
+                if (child is LineArea line)
+                {
+                    foreach (var inline in line.Inlines)
+                    {
+                        text.Append(inline.Text);
+                    }
+                }
+            }
+            return text.ToString();
+        }
+        return "";
     }
 
     private void InspectAreaPosition(Area area, System.Text.StringBuilder output, int depth, string context)

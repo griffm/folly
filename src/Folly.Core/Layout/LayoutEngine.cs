@@ -1941,15 +1941,15 @@ internal sealed class LayoutEngine
                     // else: row is too large for any page, render it anyway at current position
                 }
 
-                // Adjust row position to absolute coordinates
-                rowArea.X = tableX;
-                rowArea.Y = currentY;
+                // Row coordinates should be relative to its wrapper table, not absolute
+                rowArea.X = 0;
+                rowArea.Y = 0;
 
-                // Create a wrapper table area for just this row
+                // Create a wrapper table area for just this row at the current Y position
                 var rowTableArea = new TableArea
                 {
                     X = tableX,
-                    Y = currentY,
+                    Y = currentY,  // Table is at absolute Y position
                     Width = calculatedTableWidth,
                     Height = rowArea.Height,
                     BorderCollapse = foTable.BorderCollapse,
