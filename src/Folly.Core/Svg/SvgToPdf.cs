@@ -1620,10 +1620,79 @@ public sealed class SvgToPdfConverter
             currentX += dx;
             currentY += dy;
 
-            // Position and render this tspan
-            _contentStream.AppendLine($"{currentX} {currentY} Td");
-            var escapedText = EscapePdfString(tspanText);
-            _contentStream.AppendLine($"({escapedText}) Tj");
+            // Check for rotate attribute (simplified: single value rotates entire tspan)
+            var rotateAttr = tspan.GetAttribute("rotate");
+            double rotationAngle = 0;
+            if (!string.IsNullOrWhiteSpace(rotateAttr))
+            {
+                // Parse first rotation value (full per-character rotation would be more complex)
+                var rotateValues = rotateAttr.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (rotateValues.Length > 0 && double.TryParse(rotateValues[0], out rotationAngle))
+                {
+                    // We have a rotation angle - need to exit text mode, apply transform, re-enter
+                    _contentStream.AppendLine("ET"); // Exit text mode temporarily
+                    _contentStream.AppendLine("q"); // Save state
+
+                    // Apply rotation transform around current position
+                    var radians = rotationAngle * Math.PI / 180.0;
+                    var cos = Math.Cos(radians);
+                    var sin = Math.Sin(radians);
+
+                    // Translate to position, rotate, translate back
+                    _contentStream.AppendLine($"1 0 0 1 {currentX} {currentY} cm"); // Translate to position
+                    _contentStream.AppendLine($"{cos} {sin} {-sin} {cos} 0 0 cm"); // Rotate
+
+                    // Re-enter text mode at origin (since we translated)
+                    _contentStream.AppendLine("BT");
+                    _contentStream.AppendLine($"/{pdfFont} {fontSize} Tf");
+
+                    // Reapply text color
+                    if (style.Fill != null && style.Fill != "none")
+                    {
+                        var fillColor = ParseColor(style.Fill);
+                        if (fillColor != null)
+                        {
+                            var (r, g, b) = fillColor.Value;
+                            _contentStream.AppendLine($"{r} {g} {b} rg");
+                        }
+                    }
+
+                    _contentStream.AppendLine("0 0 Td"); // Position at origin
+                    var escapedText = EscapePdfString(tspanText);
+                    _contentStream.AppendLine($"({escapedText}) Tj");
+                    _contentStream.AppendLine("ET");
+                    _contentStream.AppendLine("Q"); // Restore state
+
+                    // Re-enter text mode for next tspan
+                    _contentStream.AppendLine("BT");
+                    _contentStream.AppendLine($"/{pdfFont} {fontSize} Tf");
+
+                    // Reapply text color again
+                    if (style.Fill != null && style.Fill != "none")
+                    {
+                        var fillColor = ParseColor(style.Fill);
+                        if (fillColor != null)
+                        {
+                            var (r, g, b) = fillColor.Value;
+                            _contentStream.AppendLine($"{r} {g} {b} rg");
+                        }
+                    }
+                }
+                else
+                {
+                    // No rotation or parse failed - render normally
+                    _contentStream.AppendLine($"{currentX} {currentY} Td");
+                    var escapedText = EscapePdfString(tspanText);
+                    _contentStream.AppendLine($"({escapedText}) Tj");
+                }
+            }
+            else
+            {
+                // No rotation - render normally
+                _contentStream.AppendLine($"{currentX} {currentY} Td");
+                var escapedText = EscapePdfString(tspanText);
+                _contentStream.AppendLine($"({escapedText}) Tj");
+            }
 
             // Update current position for next tspan
             currentX += EstimateTextWidth(tspanText, fontSize, pdfFont);
