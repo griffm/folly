@@ -170,6 +170,10 @@ GenerateImageFormatsExample(Path.Combine(outputDir, "33-image-formats.pdf"), exa
 Console.WriteLine("Generating Example 34: Rounded Corners (Border Radius)...");
 GenerateRoundedCornersExample(Path.Combine(outputDir, "34-rounded-corners.pdf"));
 
+// Example 35: Unicode BiDi (RTL Languages)
+Console.WriteLine("Generating Example 35: Unicode BiDi (RTL Languages)...");
+GenerateBiDiExample(Path.Combine(outputDir, "35-bidi-rtl.pdf"));
+
 Console.WriteLine("\n✓ All examples generated successfully!");
 Console.WriteLine($"\nView PDFs in: {outputDir}");
 Console.WriteLine("\nValidate with qpdf:");
@@ -4189,6 +4193,229 @@ static void GenerateRoundedCornersExample(string outputPath)
                         background-color="#ECFEFF" space-after="12pt">
                 <fo:block font-weight="bold">Dotted Border</fo:block>
               </fo:block>
+            </fo:flow>
+          </fo:page-sequence>
+        </fo:root>
+        """;
+
+    using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(xml));
+    using var doc = FoDocument.Load(stream);
+    using var output = File.Create(outputPath);
+    doc.SavePdf(output);
+}
+
+static void GenerateBiDiExample(string outputPath)
+{
+    // This example demonstrates the Unicode Bidirectional Algorithm (UAX#9)
+    // with Hebrew, Arabic, and mixed LTR/RTL text
+    var xml = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+          <fo:layout-master-set>
+            <fo:simple-page-master master-name="A4" page-width="595pt" page-height="842pt">
+              <fo:region-body margin="72pt"/>
+            </fo:simple-page-master>
+          </fo:layout-master-set>
+
+          <fo:page-sequence master-reference="A4">
+            <fo:flow flow-name="xsl-region-body">
+
+              <!-- Title -->
+              <fo:block font-size="24pt" font-weight="bold" text-align="center"
+                        margin-bottom="20pt" border-bottom="2pt solid #2C3E50"
+                        padding-bottom="10pt">
+                Unicode Bidirectional Text (UAX#9)
+              </fo:block>
+
+              <fo:block font-size="12pt" margin-bottom="20pt" text-align="center" color="#7F8C8D">
+                Supporting Hebrew, Arabic, and Mixed LTR/RTL Content
+              </fo:block>
+
+              <!-- Section 1: Hebrew Examples -->
+              <fo:block font-size="18pt" font-weight="bold" color="#2C3E50"
+                        margin-top="20pt" margin-bottom="10pt" border-left="4pt solid #3498DB"
+                        padding-left="8pt">
+                1. Hebrew Text
+              </fo:block>
+
+              <fo:block margin-bottom="8pt" font-size="11pt" color="#7F8C8D" font-style="italic">
+                Hebrew text is automatically reversed for proper RTL display:
+              </fo:block>
+
+              <!-- Hebrew: שלום עולם (Hello World) -->
+              <fo:block font-size="16pt" margin-bottom="12pt" padding="10pt"
+                        background-color="#ECF0F1" border="1pt solid #BDC3C7" border-radius="4pt">
+                <fo:bidi-override direction="rtl">שלום עולם</fo:bidi-override>
+              </fo:block>
+
+              <fo:block margin-bottom="8pt" font-size="11pt" color="#7F8C8D">
+                Translation: "Hello World" (Shalom Olam)
+              </fo:block>
+
+              <!-- Hebrew with numbers -->
+              <fo:block margin-bottom="8pt" font-size="11pt" color="#7F8C8D" font-style="italic"
+                        margin-top="16pt">
+                Hebrew with numbers (numbers remain left-to-right):
+              </fo:block>
+
+              <fo:block font-size="16pt" margin-bottom="12pt" padding="10pt"
+                        background-color="#ECF0F1" border="1pt solid #BDC3C7" border-radius="4pt">
+                <fo:bidi-override direction="rtl">ספר מספר 123 בעברית</fo:bidi-override>
+              </fo:block>
+
+              <fo:block margin-bottom="8pt" font-size="11pt" color="#7F8C8D">
+                Translation: "Book number 123 in Hebrew"
+              </fo:block>
+
+              <!-- Section 2: Arabic Examples -->
+              <fo:block font-size="18pt" font-weight="bold" color="#2C3E50"
+                        margin-top="24pt" margin-bottom="10pt" border-left="4pt solid #E74C3C"
+                        padding-left="8pt">
+                2. Arabic Text
+              </fo:block>
+
+              <fo:block margin-bottom="8pt" font-size="11pt" color="#7F8C8D" font-style="italic">
+                Arabic text with proper bidirectional reordering:
+              </fo:block>
+
+              <!-- Arabic: مرحبا بالعالم (Hello World) -->
+              <fo:block font-size="16pt" margin-bottom="12pt" padding="10pt"
+                        background-color="#FEF5E7" border="1pt solid #F39C12" border-radius="4pt">
+                <fo:bidi-override direction="rtl">مرحبا بالعالم</fo:bidi-override>
+              </fo:block>
+
+              <fo:block margin-bottom="8pt" font-size="11pt" color="#7F8C8D">
+                Translation: "Hello to the World" (Marhaba bil'alam)
+              </fo:block>
+
+              <!-- Arabic with European digits -->
+              <fo:block margin-bottom="8pt" font-size="11pt" color="#7F8C8D" font-style="italic"
+                        margin-top="16pt">
+                Arabic with European digits:
+              </fo:block>
+
+              <fo:block font-size="16pt" margin-bottom="12pt" padding="10pt"
+                        background-color="#FEF5E7" border="1pt solid #F39C12" border-radius="4pt">
+                <fo:bidi-override direction="rtl">السعر 2025 دولار</fo:bidi-override>
+              </fo:block>
+
+              <fo:block margin-bottom="8pt" font-size="11pt" color="#7F8C8D">
+                Translation: "The price is 2025 dollars"
+              </fo:block>
+
+              <!-- Section 3: Mixed LTR/RTL -->
+              <fo:block font-size="18pt" font-weight="bold" color="#2C3E50"
+                        margin-top="24pt" margin-bottom="10pt" border-left="4pt solid #27AE60"
+                        padding-left="8pt">
+                3. Mixed LTR/RTL Content
+              </fo:block>
+
+              <fo:block margin-bottom="8pt" font-size="11pt" color="#7F8C8D" font-style="italic">
+                Mixing English with Hebrew (LTR base direction):
+              </fo:block>
+
+              <fo:block font-size="14pt" margin-bottom="12pt" padding="10pt"
+                        background-color="#E8F8F5" border="1pt solid #16A085" border-radius="4pt">
+                Welcome to <fo:bidi-override direction="rtl">ישראל</fo:bidi-override> (Israel)
+              </fo:block>
+
+              <fo:block margin-bottom="8pt" font-size="11pt" color="#7F8C8D" font-style="italic"
+                        margin-top="16pt">
+                Mixing English with Arabic (LTR base direction):
+              </fo:block>
+
+              <fo:block font-size="14pt" margin-bottom="12pt" padding="10pt"
+                        background-color="#E8F8F5" border="1pt solid #16A085" border-radius="4pt">
+                Welcome to <fo:bidi-override direction="rtl">مصر</fo:bidi-override> (Egypt)
+              </fo:block>
+
+              <!-- Section 4: Complex Mixed Content -->
+              <fo:block font-size="18pt" font-weight="bold" color="#2C3E50"
+                        margin-top="24pt" margin-bottom="10pt" border-left="4pt solid #9B59B6"
+                        padding-left="8pt">
+                4. Complex Mixed Content
+              </fo:block>
+
+              <fo:block margin-bottom="8pt" font-size="11pt" color="#7F8C8D" font-style="italic">
+                RTL text with embedded English words and numbers:
+              </fo:block>
+
+              <fo:block font-size="14pt" margin-bottom="12pt" padding="10pt"
+                        background-color="#F4ECF7" border="1pt solid #8E44AD" border-radius="4pt">
+                <fo:bidi-override direction="rtl">כתבתי קוד ב-Python לפרויקט של 2025</fo:bidi-override>
+              </fo:block>
+
+              <fo:block margin-bottom="8pt" font-size="11pt" color="#7F8C8D">
+                Translation: "I wrote code in Python for the 2025 project"
+              </fo:block>
+
+              <!-- Section 5: Punctuation Handling -->
+              <fo:block font-size="18pt" font-weight="bold" color="#2C3E50"
+                        margin-top="24pt" margin-bottom="10pt" border-left="4pt solid #E67E22"
+                        padding-left="8pt">
+                5. Punctuation and Special Characters
+              </fo:block>
+
+              <fo:block margin-bottom="8pt" font-size="11pt" color="#7F8C8D" font-style="italic">
+                Proper handling of punctuation in RTL context:
+              </fo:block>
+
+              <!-- Hebrew with punctuation -->
+              <fo:block font-size="16pt" margin-bottom="12pt" padding="10pt"
+                        background-color="#FDF2E9" border="1pt solid #E67E22" border-radius="4pt">
+                <fo:bidi-override direction="rtl">שלום! איך קוראים לך?</fo:bidi-override>
+              </fo:block>
+
+              <fo:block margin-bottom="8pt" font-size="11pt" color="#7F8C8D">
+                Translation: "Hello! What is your name?"
+              </fo:block>
+
+              <!-- Arabic with punctuation -->
+              <fo:block font-size="16pt" margin-bottom="12pt" padding="10pt"
+                        background-color="#FDF2E9" border="1pt solid #E67E22" border-radius="4pt">
+                <fo:bidi-override direction="rtl">مرحبا! كيف حالك؟</fo:bidi-override>
+              </fo:block>
+
+              <fo:block margin-bottom="8pt" font-size="11pt" color="#7F8C8D">
+                Translation: "Hello! How are you?"
+              </fo:block>
+
+              <!-- Technical Details -->
+              <fo:block font-size="14pt" font-weight="bold" color="#2C3E50"
+                        margin-top="30pt" margin-bottom="10pt"
+                        border-top="2pt solid #34495E" padding-top="15pt">
+                Technical Implementation
+              </fo:block>
+
+              <fo:block font-size="11pt" margin-bottom="8pt" line-height="1.6">
+                This example demonstrates Folly's implementation of the Unicode Bidirectional
+                Algorithm (UAX#9), which provides:
+              </fo:block>
+
+              <fo:block font-size="11pt" margin-left="20pt" margin-bottom="6pt">
+                • <fo:inline font-weight="bold">Full UAX#9 compliance</fo:inline> - All phases (P1-P3, W1-W7, N0-N2, I1-I2, L1-L4)
+              </fo:block>
+
+              <fo:block font-size="11pt" margin-left="20pt" margin-bottom="6pt">
+                • <fo:inline font-weight="bold">Proper weak type resolution</fo:inline> - Numbers, separators, and terminators
+              </fo:block>
+
+              <fo:block font-size="11pt" margin-left="20pt" margin-bottom="6pt">
+                • <fo:inline font-weight="bold">Neutral type handling</fo:inline> - Whitespace, punctuation, and symbols
+              </fo:block>
+
+              <fo:block font-size="11pt" margin-left="20pt" margin-bottom="6pt">
+                • <fo:inline font-weight="bold">Mixed content support</fo:inline> - Seamless LTR/RTL text mixing
+              </fo:block>
+
+              <fo:block font-size="11pt" margin-left="20pt" margin-bottom="6pt">
+                • <fo:inline font-weight="bold">Zero dependencies</fo:inline> - Pure .NET implementation with embedded Unicode data
+              </fo:block>
+
+              <fo:block font-size="10pt" margin-top="20pt" text-align="center" color="#95A5A6">
+                Generated with Folly XSL-FO Processor • Full Unicode BiDi Support (UAX#9)
+              </fo:block>
+
             </fo:flow>
           </fo:page-sequence>
         </fo:root>
