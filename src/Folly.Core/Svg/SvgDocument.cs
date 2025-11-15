@@ -52,6 +52,12 @@ public sealed class SvgDocument
     public Dictionary<string, SvgElement> Definitions { get; init; } = new();
 
     /// <summary>
+    /// Gets the gradients dictionary (linear and radial gradients).
+    /// Keys are gradient IDs, values are gradient objects.
+    /// </summary>
+    public Dictionary<string, Gradients.SvgGradient> Gradients { get; init; } = new();
+
+    /// <summary>
     /// Parses an SVG document from a byte array.
     /// </summary>
     public static SvgDocument Parse(byte[] data)
