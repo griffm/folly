@@ -88,6 +88,12 @@ public sealed class SvgDocument
     public Dictionary<string, SvgFilter> Filters { get; init; } = new();
 
     /// <summary>
+    /// Gets the CSS rules from &lt;style&gt; tags.
+    /// These rules are applied to elements based on selector matching.
+    /// </summary>
+    public List<CssRule> CssRules { get; init; } = new();
+
+    /// <summary>
     /// Parses an SVG document from a byte array.
     /// </summary>
     public static SvgDocument Parse(byte[] data)
