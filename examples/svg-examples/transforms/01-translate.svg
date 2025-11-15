@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200">
+  <title>Transform - Translate</title>
+  <desc>Demonstrating translate transformation</desc>
+
+  <!-- Original rectangle -->
+  <rect x="20" y="20" width="60" height="40" fill="#3498DB" opacity="0.3"/>
+
+  <!-- Translated rectangle -->
+  <rect x="20" y="20" width="60" height="40" fill="#3498DB" transform="translate(80, 60)"/>
+
+  <!-- Labels -->
+  <text x="40" y="15" font-family="Arial, sans-serif" font-size="12" fill="#2C3E50">Original</text>
+  <text x="120" y="75" font-family="Arial, sans-serif" font-size="12" fill="#2C3E50">Translated</text>
+</svg>

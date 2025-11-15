@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <title>Basic Lines</title>
+  <desc>Multiple lines demonstrating line element</desc>
+
+  <!-- Diagonal line -->
+  <line x1="20" y1="20" x2="180" y2="180"
+        stroke="#3498DB"
+        stroke-width="4"/>
+
+  <!-- Horizontal line -->
+  <line x1="20" y1="100" x2="180" y2="100"
+        stroke="#E67E22"
+        stroke-width="3"
+        stroke-dasharray="5,5"/>
+
+  <!-- Vertical line -->
+  <line x1="100" y1="20" x2="100" y2="180"
+        stroke="#27AE60"
+        stroke-width="2"
+        stroke-dasharray="10,3"/>
+</svg>

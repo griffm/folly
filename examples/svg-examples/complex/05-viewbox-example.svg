@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="200" viewBox="0 0 100 50">
+  <title>ViewBox Scaling</title>
+  <desc>Demonstrating how viewBox scales content (viewBox: 0 0 100 50, actual size: 400x200)</desc>
+
+  <!-- Background to show the viewBox boundary -->
+  <rect x="0" y="0" width="100" height="50" fill="#ECF0F1" stroke="#95A5A6" stroke-width="0.5"/>
+
+  <!-- Content scaled by viewBox -->
+  <circle cx="25" cy="25" r="15" fill="#3498DB"/>
+  <rect x="45" y="10" width="20" height="30" fill="#E74C3C"/>
+  <polygon points="75,10 85,40 65,40" fill="#27AE60"/>
+
+  <!-- Text (also scaled) -->
+  <text x="50" y="48" font-family="Arial, sans-serif" font-size="4" fill="#2C3E50" text-anchor="middle">
+    ViewBox: 100×50, Rendered: 400×200
+  </text>
+</svg>

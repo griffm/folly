@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200">
+  <title>Arc Path</title>
+  <desc>Path using A (elliptical arc) command</desc>
+
+  <!-- Arc from left to right -->
+  <path d="M 50,100 A 100,50 0 0,1 250,100"
+        fill="none"
+        stroke="#F39C12"
+        stroke-width="4"/>
+
+  <!-- Second arc (larger sweep) -->
+  <path d="M 50,100 A 100,50 0 1,0 250,100"
+        fill="none"
+        stroke="#27AE60"
+        stroke-width="2"
+        stroke-dasharray="5,5"/>
+</svg>

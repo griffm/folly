@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200">
+  <title>Transform - Combined</title>
+  <desc>Multiple transformations combined</desc>
+
+  <!-- Original -->
+  <rect x="50" y="50" width="40" height="30" fill="#E67E22" opacity="0.3"/>
+
+  <!-- Translate, rotate, and scale combined -->
+  <rect x="50" y="50" width="40" height="30" fill="#E67E22"
+        transform="translate(100, 50) rotate(30) scale(1.3)"/>
+
+  <text x="150" y="170" font-family="Arial, sans-serif" font-size="12" fill="#2C3E50" text-anchor="middle">
+    Translate + Rotate + Scale
+  </text>
+</svg>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="150" viewBox="0 0 300 150">
+  <title>Basic Text</title>
+  <desc>Simple text element with various styling</desc>
+
+  <!-- Simple text -->
+  <text x="150" y="40" font-family="Arial, sans-serif" font-size="24" fill="#2C3E50" text-anchor="middle">
+    Hello, SVG!
+  </text>
+
+  <!-- Bold text -->
+  <text x="150" y="80" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#E74C3C" text-anchor="middle">
+    Bold Text
+  </text>
+
+  <!-- Italic text with stroke -->
+  <text x="150" y="120" font-family="Georgia, serif" font-size="20" font-style="italic" fill="none" stroke="#3498DB" stroke-width="1" text-anchor="middle">
+    Outlined Text
+  </text>
+</svg>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <title>Straight Path</title>
+  <desc>Path with straight line segments using M (moveto) and L (lineto)</desc>
+
+  <!-- Triangle using path -->
+  <path d="M 100,30 L 170,150 L 30,150 Z"
+        fill="#E74C3C"
+        stroke="#C0392B"
+        stroke-width="3"/>
+</svg>

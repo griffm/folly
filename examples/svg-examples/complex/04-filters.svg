@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="250" viewBox="0 0 400 250">
+  <title>Filters</title>
+  <desc>Demonstrating SVG filter effects</desc>
+
+  <defs>
+    <!-- Gaussian blur filter -->
+    <filter id="blur">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3"/>
+    </filter>
+
+    <!-- Drop shadow filter -->
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+      <feOffset dx="4" dy="4" result="offsetblur"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Glow filter -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Original (no filter) -->
+  <circle cx="70" cy="70" r="40" fill="#3498DB"/>
+  <text x="70" y="140" font-family="Arial, sans-serif" font-size="14" fill="#2C3E50" text-anchor="middle">No Filter</text>
+
+  <!-- Blurred -->
+  <circle cx="180" cy="70" r="40" fill="#E74C3C" filter="url(#blur)"/>
+  <text x="180" y="140" font-family="Arial, sans-serif" font-size="14" fill="#2C3E50" text-anchor="middle">Blur</text>
+
+  <!-- Drop shadow -->
+  <circle cx="290" cy="70" r="40" fill="#27AE60" filter="url(#shadow)"/>
+  <text x="290" y="140" font-family="Arial, sans-serif" font-size="14" fill="#2C3E50" text-anchor="middle">Shadow</text>
+
+  <!-- Glow effect -->
+  <circle cx="200" cy="190" r="40" fill="#F39C12" filter="url(#glow)"/>
+  <text x="200" y="160" font-family="Arial, sans-serif" font-size="14" fill="#2C3E50" text-anchor="middle">Glow</text>
+</svg>

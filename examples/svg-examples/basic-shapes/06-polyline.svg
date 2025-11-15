@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="150" viewBox="0 0 300 150">
+  <title>Polyline</title>
+  <desc>Connected line segments forming a wave pattern</desc>
+
+  <!-- Wave pattern using polyline -->
+  <polyline points="20,100 60,40 100,100 140,40 180,100 220,40 260,100"
+            fill="none"
+            stroke="#2980B9"
+            stroke-width="4"
+            stroke-linecap="round"
+            stroke-linejoin="round"/>
+</svg>
