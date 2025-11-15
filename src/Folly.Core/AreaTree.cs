@@ -30,6 +30,7 @@ public sealed class PageViewport
 {
     private readonly List<Area> _areas = new();
     private readonly List<LinkArea> _links = new();
+    private readonly List<AbsolutePositionedArea> _absoluteAreas = new();
 
     /// <summary>
     /// Gets or sets the page width in points.
@@ -47,9 +48,15 @@ public sealed class PageViewport
     public int PageNumber { get; set; }
 
     /// <summary>
-    /// Gets the areas on this page.
+    /// Gets the areas on this page (normal flow).
     /// </summary>
     public IReadOnlyList<Area> Areas => _areas;
+
+    /// <summary>
+    /// Gets the absolutely positioned areas on this page.
+    /// These are rendered after normal flow content, sorted by z-index.
+    /// </summary>
+    public IReadOnlyList<AbsolutePositionedArea> AbsoluteAreas => _absoluteAreas;
 
     /// <summary>
     /// Gets the link areas on this page for PDF annotations.
@@ -73,6 +80,16 @@ public sealed class PageViewport
     {
         ArgumentNullException.ThrowIfNull(area);
         _areas.Remove(area);
+    }
+
+    /// <summary>
+    /// Adds an absolutely positioned area to the page.
+    /// Absolutely positioned areas are rendered after normal flow content.
+    /// </summary>
+    internal void AddAbsoluteArea(AbsolutePositionedArea area)
+    {
+        ArgumentNullException.ThrowIfNull(area);
+        _absoluteAreas.Add(area);
     }
 
     /// <summary>
@@ -696,4 +713,142 @@ public sealed class LinkArea : Area
     /// Gets or sets the baseline offset for inline positioning.
     /// </summary>
     public double BaselineOffset { get; set; }
+}
+
+/// <summary>
+/// Represents an absolutely positioned area (from fo:block-container with absolute-position="absolute").
+/// Absolute positioned areas are positioned relative to the page, not the flow.
+/// They are rendered after normal flow content to appear on top.
+/// </summary>
+public sealed class AbsolutePositionedArea : Area
+{
+    private readonly List<Area> _children = new();
+
+    /// <summary>
+    /// Gets or sets the absolute position type ("absolute", "fixed").
+    /// "absolute" positions relative to the nearest positioned ancestor or page.
+    /// "fixed" positions relative to the page viewport.
+    /// </summary>
+    public string Position { get; set; } = "absolute";
+
+    /// <summary>
+    /// Gets or sets the z-index for stacking order.
+    /// Higher values are rendered on top of lower values.
+    /// Default is 0.
+    /// </summary>
+    public int ZIndex { get; set; } = 0;
+
+    /// <summary>
+    /// Gets or sets the background color.
+    /// </summary>
+    public string BackgroundColor { get; set; } = "transparent";
+
+    /// <summary>
+    /// Gets or sets padding top.
+    /// </summary>
+    public double PaddingTop { get; set; }
+
+    /// <summary>
+    /// Gets or sets padding bottom.
+    /// </summary>
+    public double PaddingBottom { get; set; }
+
+    /// <summary>
+    /// Gets or sets padding left.
+    /// </summary>
+    public double PaddingLeft { get; set; }
+
+    /// <summary>
+    /// Gets or sets padding right.
+    /// </summary>
+    public double PaddingRight { get; set; }
+
+    /// <summary>
+    /// Gets or sets border width.
+    /// </summary>
+    public double BorderWidth { get; set; }
+
+    /// <summary>
+    /// Gets or sets border color.
+    /// </summary>
+    public string BorderColor { get; set; } = "black";
+
+    /// <summary>
+    /// Gets or sets border style.
+    /// </summary>
+    public string BorderStyle { get; set; } = "none";
+
+    /// <summary>
+    /// Gets or sets top border width.
+    /// </summary>
+    public double BorderTopWidth { get; set; }
+
+    /// <summary>
+    /// Gets or sets bottom border width.
+    /// </summary>
+    public double BorderBottomWidth { get; set; }
+
+    /// <summary>
+    /// Gets or sets left border width.
+    /// </summary>
+    public double BorderLeftWidth { get; set; }
+
+    /// <summary>
+    /// Gets or sets right border width.
+    /// </summary>
+    public double BorderRightWidth { get; set; }
+
+    /// <summary>
+    /// Gets or sets top border style.
+    /// </summary>
+    public string BorderTopStyle { get; set; } = "none";
+
+    /// <summary>
+    /// Gets or sets bottom border style.
+    /// </summary>
+    public string BorderBottomStyle { get; set; } = "none";
+
+    /// <summary>
+    /// Gets or sets left border style.
+    /// </summary>
+    public string BorderLeftStyle { get; set; } = "none";
+
+    /// <summary>
+    /// Gets or sets right border style.
+    /// </summary>
+    public string BorderRightStyle { get; set; } = "none";
+
+    /// <summary>
+    /// Gets or sets top border color.
+    /// </summary>
+    public string BorderTopColor { get; set; } = "black";
+
+    /// <summary>
+    /// Gets or sets bottom border color.
+    /// </summary>
+    public string BorderBottomColor { get; set; } = "black";
+
+    /// <summary>
+    /// Gets or sets left border color.
+    /// </summary>
+    public string BorderLeftColor { get; set; } = "black";
+
+    /// <summary>
+    /// Gets or sets right border color.
+    /// </summary>
+    public string BorderRightColor { get; set; } = "black";
+
+    /// <summary>
+    /// Gets the child areas (blocks within the absolutely positioned container).
+    /// </summary>
+    public IReadOnlyList<Area> Children => _children;
+
+    /// <summary>
+    /// Adds a child area to the absolutely positioned container.
+    /// </summary>
+    internal void AddChild(Area area)
+    {
+        ArgumentNullException.ThrowIfNull(area);
+        _children.Add(area);
+    }
 }

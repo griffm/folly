@@ -78,6 +78,12 @@ public sealed class PdfRenderer : IDisposable
         foreach (var page in areaTree.Pages)
         {
             CollectFontsFromAreas(page.Areas, fonts, characterUsage);
+
+            // Collect fonts from absolutely positioned areas
+            foreach (var absoluteArea in page.AbsoluteAreas)
+            {
+                CollectFontsFromAbsoluteArea(absoluteArea, fonts, characterUsage);
+            }
         }
 
         return (fonts, characterUsage);
@@ -89,6 +95,12 @@ public sealed class PdfRenderer : IDisposable
         foreach (var page in areaTree.Pages)
         {
             CollectImagesFromAreas(page.Areas, images);
+
+            // Collect images from absolutely positioned areas
+            foreach (var absoluteArea in page.AbsoluteAreas)
+            {
+                CollectImagesFromAbsoluteArea(absoluteArea, images);
+            }
         }
         return images;
     }
@@ -205,6 +217,20 @@ public sealed class PdfRenderer : IDisposable
         }
     }
 
+    private void CollectFontsFromAbsoluteArea(AbsolutePositionedArea absoluteArea,
+        HashSet<string> fonts, Dictionary<string, HashSet<char>> characterUsage)
+    {
+        // Recursively collect fonts from child areas
+        CollectFontsFromAreas(absoluteArea.Children, fonts, characterUsage);
+    }
+
+    private void CollectImagesFromAbsoluteArea(AbsolutePositionedArea absoluteArea,
+        Dictionary<string, (byte[], string, int, int)> images)
+    {
+        // Recursively collect images from child areas
+        CollectImagesFromAreas(absoluteArea.Children, images);
+    }
+
     /// <summary>
     /// Loads TrueType fonts for kerning support.
     /// Fonts are cached for the lifetime of the renderer.
@@ -266,11 +292,22 @@ public sealed class PdfRenderer : IDisposable
         // Build content stream
         var content = new StringBuilder();
 
-        // Render all areas on the page
+        // Render all areas on the page (normal flow)
         // Pass page height for coordinate conversion (PDF uses bottom-up coordinates)
         foreach (var area in page.Areas)
         {
             RenderArea(area, content, fontIds, imageIds, page.Height);
+        }
+
+        // Render absolutely positioned areas (after normal flow, sorted by z-index)
+        // Lower z-index values are rendered first (appear behind higher z-index)
+        var sortedAbsoluteAreas = page.AbsoluteAreas
+            .OrderBy(a => a.ZIndex)
+            .ToList();
+
+        foreach (var absoluteArea in sortedAbsoluteAreas)
+        {
+            RenderAbsoluteArea(absoluteArea, content, fontIds, imageIds, page.Height);
         }
 
         return _writer.WritePage(page, content.ToString(), fontIds, imageIds, _options.CompressStreams);
@@ -515,6 +552,72 @@ public sealed class PdfRenderer : IDisposable
 
         // Restore graphics state
         content.AppendLine("Q");
+    }
+
+    private void RenderAbsoluteArea(AbsolutePositionedArea absoluteArea, StringBuilder content,
+        Dictionary<string, int> fontIds, Dictionary<string, int> imageIds, double pageHeight)
+    {
+        // Render background if specified
+        if (absoluteArea.BackgroundColor != "transparent" && !string.IsNullOrWhiteSpace(absoluteArea.BackgroundColor))
+        {
+            var (r, g, b) = ParseColor(absoluteArea.BackgroundColor);
+
+            // Convert from top-left origin to bottom-left origin
+            var pdfY = pageHeight - absoluteArea.Y - absoluteArea.Height;
+
+            content.AppendLine($"{r:F3} {g:F3} {b:F3} rg");
+            content.AppendLine($"{absoluteArea.X:F2} {pdfY:F2} {absoluteArea.Width:F2} {absoluteArea.Height:F2} re f");
+        }
+
+        // Render borders if specified
+        var hasDirectionalBorder = (absoluteArea.BorderTopStyle != "none" && absoluteArea.BorderTopWidth > 0) ||
+                                    (absoluteArea.BorderBottomStyle != "none" && absoluteArea.BorderBottomWidth > 0) ||
+                                    (absoluteArea.BorderLeftStyle != "none" && absoluteArea.BorderLeftWidth > 0) ||
+                                    (absoluteArea.BorderRightStyle != "none" && absoluteArea.BorderRightWidth > 0);
+
+        if (hasDirectionalBorder)
+        {
+            // Convert from top-left origin to bottom-left origin
+            var pdfY = pageHeight - absoluteArea.Y - absoluteArea.Height;
+
+            // Top border
+            if (absoluteArea.BorderTopStyle != "none" && absoluteArea.BorderTopWidth > 0)
+            {
+                RenderBorderSide(content, absoluteArea.BorderTopWidth, absoluteArea.BorderTopColor, absoluteArea.BorderTopStyle,
+                    absoluteArea.X, pdfY + absoluteArea.Height,
+                    absoluteArea.X + absoluteArea.Width, pdfY + absoluteArea.Height);
+            }
+
+            // Bottom border
+            if (absoluteArea.BorderBottomStyle != "none" && absoluteArea.BorderBottomWidth > 0)
+            {
+                RenderBorderSide(content, absoluteArea.BorderBottomWidth, absoluteArea.BorderBottomColor, absoluteArea.BorderBottomStyle,
+                    absoluteArea.X, pdfY,
+                    absoluteArea.X + absoluteArea.Width, pdfY);
+            }
+
+            // Left border
+            if (absoluteArea.BorderLeftStyle != "none" && absoluteArea.BorderLeftWidth > 0)
+            {
+                RenderBorderSide(content, absoluteArea.BorderLeftWidth, absoluteArea.BorderLeftColor, absoluteArea.BorderLeftStyle,
+                    absoluteArea.X, pdfY,
+                    absoluteArea.X, pdfY + absoluteArea.Height);
+            }
+
+            // Right border
+            if (absoluteArea.BorderRightStyle != "none" && absoluteArea.BorderRightWidth > 0)
+            {
+                RenderBorderSide(content, absoluteArea.BorderRightWidth, absoluteArea.BorderRightColor, absoluteArea.BorderRightStyle,
+                    absoluteArea.X + absoluteArea.Width, pdfY,
+                    absoluteArea.X + absoluteArea.Width, pdfY + absoluteArea.Height);
+            }
+        }
+
+        // Render child areas within the absolute container
+        foreach (var child in absoluteArea.Children)
+        {
+            RenderArea(child, content, fontIds, imageIds, pageHeight);
+        }
     }
 
     private void RenderBackground(BlockArea block, StringBuilder content, double pageHeight, double offsetX, double offsetY)

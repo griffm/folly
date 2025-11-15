@@ -945,14 +945,14 @@ private BlockArea? LayoutAbsoluteBlockContainer(
 ```
 
 **Deliverables:**
-- [ ] Implement `fo:block-container` with `absolute-position="absolute"`
-- [ ] Support `top`, `left`, `right`, `bottom` properties
-- [ ] Support `z-index` for layering
-- [ ] Render absolute elements after flow (correct z-order)
-- [ ] Add tests for overlapping content
-- [ ] Add examples: letterhead, watermark, form
+- [x] Implement `fo:block-container` with `absolute-position="absolute"` - Complete with LayoutBlockContainer method
+- [x] Support `top`, `left`, `right`, `bottom` properties - Implemented in CalculateAbsolutePosition
+- [x] Support `z-index` for layering - Implemented with z-index sorting in PDF renderer
+- [x] Render absolute elements after flow (correct z-order) - Complete with AbsoluteAreas collection and OrderBy z-index
+- [x] Add tests for overlapping content - Added 2 tests in LayoutEngineTests (basic positioning, z-index ordering)
+- [ ] Add examples: letterhead, watermark, form - (Deferred to future iteration)
 
-**Complexity:** High (4-5 weeks)
+**Complexity:** High (4-5 weeks) - 🚧 IN PROGRESS (Core implementation complete, examples pending)
 
 ### 5.2 Region Start/End (Left/Right Sidebars)
 
