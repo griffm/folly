@@ -1934,10 +1934,9 @@ internal sealed class LayoutEngine
                             }
                         }
 
-                        // Re-layout row for new page (grid state is maintained across pages)
-                        rowArea = LayoutTableRowWithSpanning(foRow, 0, 0, columnWidths, foTable.BorderSpacing, bodyGrid, bodyRowIdx, bodyRowHeights);
-                        if (rowArea == null)
-                            continue;
+                        // NOTE: DO NOT re-layout the row here! The rowArea from line 1840 is still valid.
+                        // Re-laying out would corrupt the bodyGrid state since it's already been updated.
+                        // The row coordinates will be adjusted below (lines 1946-1947).
                     }
                     // else: row is too large for any page, render it anyway at current position
                 }
