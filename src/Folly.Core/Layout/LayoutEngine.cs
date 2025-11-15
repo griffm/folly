@@ -998,8 +998,10 @@ internal sealed class LayoutEngine
                             Size = bidiFontSize
                         };
 
-                        // Apply text reordering for RTL direction
-                        var processedText = bidiDirection == "rtl" ? ReverseText(bidiText) : bidiText;
+                        // Apply full Unicode BiDi Algorithm (UAX#9)
+                        var baseDirection = bidiDirection == "rtl" ? 1 : 0;
+                        var bidiAlgorithm = new BiDi.UnicodeBidiAlgorithm();
+                        var processedText = bidiAlgorithm.ReorderText(bidiText, baseDirection);
 
                         var textWidth = bidiFontMetrics.MeasureWidth(processedText);
 
@@ -3258,20 +3260,6 @@ internal sealed class LayoutEngine
         _currentPageLinks.Clear();
     }
 
-    /// <summary>
-    /// Reverses text for RTL (right-to-left) rendering.
-    /// This is a simplified implementation that reverses character order.
-    /// For proper BiDi support, a full Unicode BiDi algorithm implementation would be needed.
-    /// </summary>
-    private string ReverseText(string text)
-    {
-        if (string.IsNullOrEmpty(text))
-            return text;
-
-        var chars = text.ToCharArray();
-        Array.Reverse(chars);
-        return new string(chars);
-    }
 
     /// <summary>
     /// Checks if adding a new page would exceed the maximum page limit.

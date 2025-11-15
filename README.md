@@ -157,6 +157,8 @@ This generates 33 example PDFs showcasing Folly's capabilities:
 - **Business Letterhead** - Absolute positioning demonstration
 - **Sidebars with Margin Notes** - Left and right side regions for annotations and supplementary content
 - **All Image Formats** - Comprehensive demonstration of BMP, GIF, and TIFF support with zero dependencies
+- **Rounded Corners** - Modern border-radius support with Bezier curves
+- **Unicode BiDi (RTL Languages)** - Full UAX#9 implementation demonstrating Arabic, Hebrew, and mixed LTR/RTL content
 
 See [examples/README.md](examples/README.md) for details.
 
@@ -222,7 +224,7 @@ The core rendering engine is fully operational with extensive feature support:
 - Links (fo:basic-link) for internal and external hyperlinks
 - Bookmarks (fo:bookmark-tree, fo:bookmark) for PDF outline navigation
 - Leaders (fo:leader) for generating dot patterns, rules, and spaces - commonly used in tables of contents
-- BiDi text support (fo:bidi-override) with text reordering for right-to-left text rendering
+- **Full Unicode BiDi Algorithm (UAX#9)** - Complete implementation for Arabic, Hebrew, and mixed LTR/RTL text with proper handling of numbers, punctuation, and weak/neutral types
 - Advanced formatting objects (fo:page-number-citation, fo:page-number-citation-last, fo:block-container, fo:inline-container, fo:wrapper, fo:character, fo:initial-property-set)
 - **Side regions** (fo:region-start, fo:region-end) for left and right sidebars - ideal for margin notes, glossaries, and supplementary content
 - **Absolute positioning** (fo:block-container with absolute-position) for letterheads, watermarks, and complex forms
@@ -275,10 +277,11 @@ The core rendering engine is fully operational with extensive feature support:
   - **Knuth-Plass line breaking tests** (optimal line breaking, TeX-quality typography, comparison with greedy)
   - **List page breaking tests** (multi-page lists, keep-together support, nested content)
   - **Font tests** (TrueType parsing, font subsetting, serialization, PDF embedding, ToUnicode CMaps, **font fallback**, **system font discovery**, **kerning support**)
+  - **BiDi tests** (UAX#9 algorithm, Hebrew, Arabic, mixed LTR/RTL, numbers, punctuation, character types, embedding levels)
   - PDF validation tests (structure, fonts, compression, metadata, links)
   - AreaTree snapshot tests (layout regression detection)
   - Fuzzing/stress tests (malformed input, extreme nesting, large tables)
-  - Working example PDFs (**TrueType font embedding**, **font fallback & system fonts**, **kerning demonstration**, **table row spanning**, **proportional column widths**, **content-based column sizing**, **footer repetition**, **absolute positioning letterhead**, **rounded corners**, multi-page tables, multi-page lists, keep-with-next/previous, emergency line breaking)
+  - Working example PDFs (**TrueType font embedding**, **font fallback & system fonts**, **kerning demonstration**, **table row spanning**, **proportional column widths**, **content-based column sizing**, **footer repetition**, **absolute positioning letterhead**, **rounded corners**, **Unicode BiDi (Arabic/Hebrew)**, multi-page tables, multi-page lists, keep-with-next/previous, emergency line breaking)
 - qpdf validation success (zero errors)
 - Verified with qpdf
 

@@ -28,12 +28,13 @@ This roadmap outlines Folly's evolution from a solid XSL-FO foundation (~70% spe
   - Phase 5.4 (Reference Orientation - Rotation) ✅ COMPLETE
   - Phase 5.5 (Display-Align - Vertical Alignment) ✅ COMPLETE
 - Phase 6 (Internationalization & Advanced Features) 🚧 IN PROGRESS
+  - Phase 6.1 (Full Unicode BiDi Algorithm UAX#9) ✅ COMPLETE (Example 35)
   - Phase 6.2 (Additional Image Formats) ✅ COMPLETE (Example 33)
   - Phase 6.5 (Rounded Corners / Border Radius) ✅ COMPLETE (Example 34)
 - Excellent performance (66x faster than target at ~150ms for 200 pages)
 - ~75% XSL-FO 1.1 compliance
-- 331 passing tests (99.4% success rate) - includes 85 font tests, 17 image format tests, 7 border-radius tests
-- 34 working examples including TrueType fonts, kerning, tables, positioning, sidebars, all image formats (BMP, GIF, TIFF), and rounded corners
+- 364 passing tests (99.5% success rate) - includes 85 font tests, 17 image format tests, 7 border-radius tests, 26 BiDi tests
+- 35 working examples including TrueType fonts, kerning, tables, positioning, sidebars, all image formats (BMP, GIF, TIFF), rounded corners, and full Unicode BiDi (Arabic, Hebrew)
 
 **Target:** Best-in-class layout engine with ~95% spec compliance, professional typography, zero runtime dependencies
 
@@ -1092,11 +1093,13 @@ Display-align controls vertical alignment of content within block containers. Th
 
 **Completion Criteria:** UAX#9 BiDi, SVG support, accessibility foundations
 
-### 6.1 Full Unicode BiDi Algorithm (UAX#9)
+### 6.1 Full Unicode BiDi Algorithm (UAX#9) ✅ COMPLETE
 
 **Impact:** Correct rendering of RTL languages (Arabic, Hebrew)
 
-**Zero-Deps Strategy:** Implement UAX#9 ourselves (substantial but doable)
+**Zero-Deps Strategy:** Implement UAX#9 ourselves ✅ Completed
+
+**Status:** ✅ **COMPLETE** - Full UAX#9 implementation with 26 passing tests and Example 35 demonstrating Hebrew, Arabic, and mixed LTR/RTL content.
 
 **Implementation:**
 ```csharp
@@ -1162,18 +1165,26 @@ namespace Folly.BiDi
 - No external dependencies
 
 **Deliverables:**
-- [ ] Implement UAX#9 algorithm phases 1-6 (pure .NET)
-- [ ] Embed Unicode BiDi character data as resources
-- [ ] Replace simple character reversal with proper algorithm
-- [ ] Support BiDi control characters (LRM, RLM, LRE, RLE, PDF, LRI, RLI, FSI, PDI)
-- [ ] Support block-level direction property
-- [ ] Support mixed LTR/RTL content
-- [ ] Handle numbers in RTL text correctly
-- [ ] Handle punctuation in RTL text correctly
-- [ ] Add comprehensive BiDi tests (Arabic, Hebrew, mixed)
-- [ ] Add examples with RTL documents
+- [x] Implement UAX#9 algorithm phases P1-P3, W1-W7, N0-N2, I1-I2, L1-L4 (pure .NET) - `UnicodeBidiAlgorithm.cs`
+- [x] Embed Unicode BiDi character data (zero dependencies) - `UnicodeBidiData.cs` with hardcoded ranges and .NET fallback
+- [x] Replace simple character reversal with proper algorithm - Integrated into `LayoutEngine.cs:1001-1004`
+- [x] Support BiDi control characters (LRE, RLE, PDF, LRO, RLO, LRI, RLI, FSI, PDI) - Full support in explicit level resolution
+- [x] Support block-level direction property via fo:bidi-override - Fully functional
+- [x] Support mixed LTR/RTL content - Seamless mixing of English/Hebrew/Arabic
+- [x] Handle numbers in RTL text correctly - European (EN) and Arabic-Indic (AN) digits properly handled
+- [x] Handle punctuation in RTL text correctly - Neutral type resolution working
+- [x] Add comprehensive BiDi tests (Arabic, Hebrew, mixed) - 26 passing tests in `BiDiTests.cs`
+- [x] Add examples with RTL documents - Example 35: Full BiDi demonstration
 
-**Complexity:** Very High (5-6 weeks)
+**Results:**
+- ✅ Full UAX#9 compliance with all algorithm phases
+- ✅ 26 comprehensive BiDi tests (100% passing)
+- ✅ Zero dependencies - pure .NET implementation
+- ✅ Example 35 demonstrates Hebrew, Arabic, and mixed LTR/RTL content
+- ✅ Proper handling of numbers, punctuation, and special characters
+- ✅ 364 total tests passing (up from 331)
+
+**Complexity:** Very High ✅ Completed
 
 **References:**
 - Unicode Standard Annex #9: https://www.unicode.org/reports/tr9/
