@@ -1047,8 +1047,8 @@ public sealed class PdfRenderer : IDisposable
                 {
                     // Convert font units to PDF units (1000ths of an em)
                     // Negative kerning values in the font mean characters should be closer
-                    // In PDF, negative values in the TJ array also mean closer, so we negate
-                    var pdfKerning = -kerning * 1000.0 / font.UnitsPerEm;
+                    // In PDF, negative values in the TJ array also mean closer, so no negation needed
+                    var pdfKerning = kerning * 1000.0 / font.UnitsPerEm;
                     array.Append($" {pdfKerning:F0}");
                 }
             }
@@ -1094,7 +1094,9 @@ public sealed class PdfRenderer : IDisposable
                 if (kerning != 0)
                 {
                     // Convert font units to PDF units (1000ths of an em)
-                    var pdfKerning = -kerning * 1000.0 / font.UnitsPerEm;
+                    // Negative kerning values in the font mean characters should be closer
+                    // In PDF, negative values in the TJ array also mean closer, so no negation needed
+                    var pdfKerning = kerning * 1000.0 / font.UnitsPerEm;
                     array.Append($" {pdfKerning:F0}");
                 }
             }
