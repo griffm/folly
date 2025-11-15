@@ -154,6 +154,10 @@ GenerateContentBasedSizingExample(Path.Combine(outputDir, "29-content-based-sizi
 Console.WriteLine("Generating Example 30: Table Footer Repetition...");
 GenerateFooterRepetitionExample(Path.Combine(outputDir, "30-footer-repetition.pdf"));
 
+// Example 31: Business Letterhead with Absolute Positioning
+Console.WriteLine("Generating Example 31: Business Letterhead...");
+GenerateLetterheadExample(Path.Combine(outputDir, "31-letterhead.pdf"));
+
 Console.WriteLine("\n✓ All examples generated successfully!");
 Console.WriteLine($"\nView PDFs in: {outputDir}");
 Console.WriteLine("\nValidate with qpdf:");
@@ -3479,6 +3483,138 @@ static void GenerateFooterRepetitionExample(string outputPath)
 
               <fo:block font-family="Helvetica" font-size="12pt" margin-top="24pt" padding="8pt" background-color="#F5F5F5">
                 Generated with Folly XSL-FO Processor - Phase 4.4 Complete: Table Footer Repetition!
+              </fo:block>
+            </fo:flow>
+          </fo:page-sequence>
+        </fo:root>
+        """;
+
+    using var doc = FoDocument.Load(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml)));
+    doc.SavePdf(outputPath);
+}
+
+static void GenerateLetterheadExample(string outputPath)
+{
+    var foXml = """
+        <?xml version="1.0"?>
+        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+          <fo:layout-master-set>
+            <fo:simple-page-master master-name="letterhead" page-width="8.5in" page-height="11in"
+              margin-top="0.5in" margin-bottom="0.5in" margin-left="0.75in" margin-right="0.75in">
+              <fo:region-body margin-top="1.25in" margin-bottom="1in"/>
+            </fo:simple-page-master>
+          </fo:layout-master-set>
+
+          <fo:page-sequence master-reference="letterhead">
+            <fo:flow flow-name="xsl-region-body">
+              <!-- Company Logo/Name - Absolutely Positioned Top Left -->
+              <fo:block-container absolute-position="absolute" top="0.5in" left="0.75in"
+                width="3in" height="0.75in">
+                <fo:block font-family="Helvetica" font-size="24pt" font-weight="bold" color="#1976D2">
+                  ACME Corporation
+                </fo:block>
+                <fo:block font-family="Helvetica" font-size="10pt" color="#666666" margin-top="2pt">
+                  Excellence in Innovation
+                </fo:block>
+              </fo:block-container>
+
+              <!-- Company Address - Absolutely Positioned Top Right -->
+              <fo:block-container absolute-position="absolute" top="0.5in" right="0.75in"
+                width="2.5in" height="0.75in">
+                <fo:block font-family="Helvetica" font-size="9pt" text-align="end" color="#333333">
+                  123 Business Ave, Suite 100
+                </fo:block>
+                <fo:block font-family="Helvetica" font-size="9pt" text-align="end" color="#333333">
+                  San Francisco, CA 94102
+                </fo:block>
+                <fo:block font-family="Helvetica" font-size="9pt" text-align="end" color="#333333" margin-top="4pt">
+                  Tel: (415) 555-0123
+                </fo:block>
+                <fo:block font-family="Helvetica" font-size="9pt" text-align="end" color="#1976D2">
+                  www.acmecorp.example
+                </fo:block>
+              </fo:block-container>
+
+              <!-- Decorative Header Line - Absolutely Positioned -->
+              <fo:block-container absolute-position="absolute" top="1.4in" left="0.75in"
+                width="7in" height="2pt" background-color="#1976D2"/>
+
+              <!-- Footer - Absolutely Positioned at Bottom -->
+              <fo:block-container absolute-position="absolute" bottom="0.5in" left="0.75in"
+                width="7in" height="0.5in" border-before-width="1pt" border-before-style="solid"
+                border-before-color="#CCCCCC" padding-before="8pt">
+                <fo:block font-family="Helvetica" font-size="8pt" text-align="center" color="#666666">
+                  ACME Corporation | Registered in Delaware | Company No. 12345678 | VAT No. US987654321
+                </fo:block>
+                <fo:block font-family="Helvetica" font-size="8pt" text-align="center" color="#666666" margin-top="2pt">
+                  This communication is confidential and may contain privileged information.
+                </fo:block>
+              </fo:block-container>
+
+              <!-- Letter Content - Normal Flow -->
+              <fo:block font-family="Helvetica" font-size="11pt" margin-bottom="12pt">
+                January 15, 2025
+              </fo:block>
+
+              <fo:block font-family="Helvetica" font-size="11pt" margin-bottom="18pt">
+                Mr. John Smith<fo:block/>
+                Director of Operations<fo:block/>
+                Global Industries Inc.<fo:block/>
+                456 Corporate Blvd<fo:block/>
+                New York, NY 10001
+              </fo:block>
+
+              <fo:block font-family="Helvetica" font-size="11pt" font-weight="bold" margin-bottom="12pt">
+                RE: Partnership Proposal for Q1 2025
+              </fo:block>
+
+              <fo:block font-family="Helvetica" font-size="11pt" margin-bottom="12pt">
+                Dear Mr. Smith,
+              </fo:block>
+
+              <fo:block font-family="Helvetica" font-size="11pt" margin-bottom="12pt" text-align="justify">
+                I am writing to express ACME Corporation's strong interest in establishing a strategic
+                partnership with Global Industries Inc. Our research indicates significant synergies
+                between our organizations, particularly in the areas of supply chain optimization and
+                sustainable manufacturing practices.
+              </fo:block>
+
+              <fo:block font-family="Helvetica" font-size="11pt" margin-bottom="12pt" text-align="justify">
+                ACME Corporation has been a leader in innovative business solutions for over 25 years.
+                We believe a partnership would create substantial value through joint development of
+                next-generation technologies, shared R&amp;D initiatives, and market expansion.
+              </fo:block>
+
+              <fo:block font-family="Helvetica" font-size="11pt" margin-bottom="12pt" text-align="justify">
+                I would welcome the opportunity to discuss this proposal. Please contact me at
+                john.doe@acmecorp.example or at the number above.
+              </fo:block>
+
+              <fo:block font-family="Helvetica" font-size="11pt" margin-bottom="12pt">
+                I look forward to hearing from you soon.
+              </fo:block>
+
+              <fo:block font-family="Helvetica" font-size="11pt" margin-bottom="6pt" margin-top="18pt">
+                Sincerely,
+              </fo:block>
+
+              <fo:block font-family="Helvetica" font-size="11pt" margin-top="36pt" font-weight="bold">
+                Jane Doe
+              </fo:block>
+              <fo:block font-family="Helvetica" font-size="11pt">
+                Chief Executive Officer
+              </fo:block>
+              <fo:block font-family="Helvetica" font-size="11pt" color="#1976D2">
+                ACME Corporation
+              </fo:block>
+
+              <!-- Demonstration info box -->
+              <fo:block font-family="Helvetica" font-size="10pt" margin-top="36pt" padding="12pt"
+                background-color="#E3F2FD" border="1pt solid #1976D2">
+                <fo:inline font-weight="bold">Absolute Positioning Demo:</fo:inline> This letterhead uses
+                fo:block-container with absolute-position="absolute" to place the company header, address,
+                decorative line, and footer at fixed positions on the page. The letter content flows normally
+                in the body area, unaffected by the absolutely positioned elements.
               </fo:block>
             </fo:flow>
           </fo:page-sequence>
