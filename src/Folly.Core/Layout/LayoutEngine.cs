@@ -2780,19 +2780,58 @@ internal sealed class LayoutEngine
 
     private (string Format, double Width, double Height) DetectImageFormat(byte[] data)
     {
-        // JPEG detection
-        if (data.Length > 2 && data[0] == 0xFF && data[1] == 0xD8)
-        {
-            var (width, height) = GetJpegDimensions(data);
-            return ("JPEG", width, height);
-        }
+        // Use new image parser infrastructure
+        var format = Images.ImageFormatDetector.Detect(data);
 
-        // PNG detection
-        if (data.Length > 8 &&
-            data[0] == 0x89 && data[1] == 0x50 && data[2] == 0x4E && data[3] == 0x47)
+        try
         {
-            var (width, height) = GetPngDimensions(data);
-            return ("PNG", width, height);
+            Images.ImageInfo? imageInfo = null;
+
+            switch (format)
+            {
+                case "JPEG":
+                    // For JPEG, use existing fast dimension detection (no full parse needed)
+                    var (jpegWidth, jpegHeight) = GetJpegDimensions(data);
+                    return ("JPEG", jpegWidth, jpegHeight);
+
+                case "PNG":
+                    // For PNG, use existing fast dimension detection
+                    var (pngWidth, pngHeight) = GetPngDimensions(data);
+                    return ("PNG", pngWidth, pngHeight);
+
+                case "BMP":
+                    {
+                        var parser = new Images.Parsers.BmpParser();
+                        imageInfo = parser.Parse(data);
+                        break;
+                    }
+
+                case "GIF":
+                    {
+                        var parser = new Images.Parsers.GifParser();
+                        imageInfo = parser.Parse(data);
+                        break;
+                    }
+
+                case "TIFF":
+                    {
+                        var parser = new Images.Parsers.TiffParser();
+                        imageInfo = parser.Parse(data);
+                        break;
+                    }
+
+                default:
+                    return ("UNKNOWN", 0, 0);
+            }
+
+            if (imageInfo != null)
+            {
+                return (imageInfo.Format, imageInfo.Width, imageInfo.Height);
+            }
+        }
+        catch
+        {
+            // Parser failed, return unknown
         }
 
         return ("UNKNOWN", 0, 0);
