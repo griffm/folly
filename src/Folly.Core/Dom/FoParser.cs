@@ -1365,6 +1365,40 @@ internal static class FoParser
                 props["padding-bottom"] = value;
         }
 
+        // Expand border shorthand (e.g., border="2pt solid black")
+        // Parse into border-width, border-style, and border-color
+        if (props.HasProperty("border") && !string.IsNullOrWhiteSpace(props["border"]))
+        {
+            var borderValue = props["border"]!.Trim();
+            var parts = borderValue.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+            // Parse border shorthand: can contain width, style, and/or color in any order
+            foreach (var part in parts)
+            {
+                // Check if it's a width (contains 'pt', 'px', 'mm', etc. or is a number)
+                if (part.Contains("pt") || part.Contains("px") || part.Contains("mm") ||
+                    part.Contains("cm") || part.Contains("in") || part.Contains("em") ||
+                    char.IsDigit(part[0]))
+                {
+                    if (!props.HasProperty("border-width"))
+                        props["border-width"] = part;
+                }
+                // Check if it's a style keyword
+                else if (part is "none" or "hidden" or "dotted" or "dashed" or "solid" or
+                         "double" or "groove" or "ridge" or "inset" or "outset")
+                {
+                    if (!props.HasProperty("border-style"))
+                        props["border-style"] = part;
+                }
+                // Otherwise assume it's a color
+                else
+                {
+                    if (!props.HasProperty("border-color"))
+                        props["border-color"] = part;
+                }
+            }
+        }
+
         // Expand border-width shorthand
         if (props.HasProperty("border-width") && !string.IsNullOrWhiteSpace(props["border-width"]))
         {
