@@ -1808,8 +1808,9 @@ internal sealed class LayoutEngine
                 var rowArea = LayoutTableRowWithSpanning(foRow, 0, 0, columnWidths, foTable.BorderSpacing, headerGrid, headerIdx, headerRowHeights);
                 if (rowArea != null)
                 {
-                    rowArea.X = tableX;
-                    rowArea.Y = currentY;
+                    // Header row coordinates should be relative to its wrapper table, not absolute
+                    rowArea.X = 0;
+                    rowArea.Y = 0;
 
                     var headerTableArea = new TableArea
                     {
@@ -1913,8 +1914,9 @@ internal sealed class LayoutEngine
                                 var headerRowArea = LayoutTableRowWithSpanning(headerRow, 0, 0, columnWidths, foTable.BorderSpacing, headerGrid, headerIdx, headerRowHeights);
                                 if (headerRowArea != null)
                                 {
-                                    headerRowArea.X = tableX;
-                                    headerRowArea.Y = currentY;
+                                    // Header row coordinates should be relative to its wrapper table, not absolute
+                                    headerRowArea.X = 0;
+                                    headerRowArea.Y = 0;
 
                                     var headerTableArea = new TableArea
                                     {
