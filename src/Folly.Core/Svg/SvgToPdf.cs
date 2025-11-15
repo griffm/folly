@@ -920,25 +920,319 @@ public sealed class SvgToPdfConverter
         if (!hasMarkerStart && !hasMarkerMid && !hasMarkerEnd)
             return; // No markers to render
 
-        // TODO: Implement marker rendering - this is complex and requires:
-        // 1. Parse path data to extract all vertices (start, mid-points, end)
-        // 2. Calculate the angle/direction at each vertex
-        // 3. For each marker position:
-        //    a. Save graphics state (q)
-        //    b. Translate to vertex position
-        //    c. Rotate to match path direction (if orient="auto")
-        //    d. Scale based on markerUnits (strokeWidth vs userSpaceOnUse)
-        //    e. Translate by -refX, -refY
-        //    f. Render marker content
-        //    g. Restore graphics state (Q)
-        //
-        // Key challenges:
-        // - Path vertices extraction (need to track M, L, C, Q, A endpoints)
-        // - Angle calculation (use atan2 of incoming/outgoing tangents)
-        // - Orient="auto" vs orient="auto-start-reverse" vs fixed angle
-        // - MarkerUnits="strokeWidth" requires multiplying by current stroke width
-        //
-        // For now, markers are parsed and stored but not yet rendered
+        // Extract path vertices with angles
+        var vertices = ExtractPathVertices(pathData);
+        if (vertices.Count == 0)
+            return;
+
+        // Render marker-start
+        if (hasMarkerStart && _document.Markers.TryGetValue(ExtractUrlId(style.MarkerStart!)!, out var markerStart))
+        {
+            var vertex = vertices[0];
+            RenderMarker(markerStart, vertex.x, vertex.y, vertex.outgoingAngle, style.StrokeWidth, isStart: true);
+        }
+
+        // Render marker-mid
+        if (hasMarkerMid && _document.Markers.TryGetValue(ExtractUrlId(style.MarkerMid!)!, out var markerMid))
+        {
+            for (int i = 1; i < vertices.Count - 1; i++)
+            {
+                var vertex = vertices[i];
+                // Use average of incoming and outgoing angles for mid markers
+                var avgAngle = (vertex.incomingAngle + vertex.outgoingAngle) / 2.0;
+                RenderMarker(markerMid, vertex.x, vertex.y, avgAngle, style.StrokeWidth, isStart: false);
+            }
+        }
+
+        // Render marker-end
+        if (hasMarkerEnd && _document.Markers.TryGetValue(ExtractUrlId(style.MarkerEnd!)!, out var markerEnd))
+        {
+            var vertex = vertices[^1];
+            RenderMarker(markerEnd, vertex.x, vertex.y, vertex.incomingAngle, style.StrokeWidth, isStart: false);
+        }
+    }
+
+    private List<(double x, double y, double incomingAngle, double outgoingAngle)> ExtractPathVertices(string pathData)
+    {
+        var vertices = new List<(double x, double y, double incomingAngle, double outgoingAngle)>();
+        var parser = new Svg.PathDataParser(pathData);
+
+        double currentX = 0, currentY = 0;
+        double startX = 0, startY = 0;
+        double lastX = 0, lastY = 0;
+        double prevX = 0, prevY = 0; // Track previous point for angle calculation
+
+        void AddVertex(double x, double y)
+        {
+            // Calculate incoming angle from previous point
+            var incomingAngle = 0.0;
+            if (vertices.Count > 0 || (prevX != x || prevY != y))
+            {
+                incomingAngle = Math.Atan2(y - prevY, x - prevX) * 180.0 / Math.PI;
+            }
+
+            // For now, outgoing angle is same as incoming (will be updated on next point)
+            vertices.Add((x, y, incomingAngle, incomingAngle));
+
+            // Update previous outgoing angle
+            if (vertices.Count > 1)
+            {
+                var prev = vertices[^2];
+                vertices[^2] = (prev.x, prev.y, prev.incomingAngle, incomingAngle);
+            }
+
+            prevX = x;
+            prevY = y;
+        }
+
+        while (parser.HasMore())
+        {
+            var command = parser.ReadCommand();
+            if (command == ' ') break;
+
+            var isRelative = char.IsLower(command);
+            var commandUpper = char.ToUpper(command);
+
+            switch (commandUpper)
+            {
+                case 'M': // Move to
+                {
+                    while (true)
+                    {
+                        if (!parser.TryReadNumber(out var x)) break;
+                        if (!parser.TryReadNumber(out var y)) break;
+
+                        if (isRelative)
+                        {
+                            x += currentX;
+                            y += currentY;
+                        }
+
+                        currentX = x;
+                        currentY = y;
+                        startX = x;
+                        startY = y;
+
+                        if (vertices.Count == 0)
+                        {
+                            AddVertex(x, y);
+                        }
+
+                        lastX = x;
+                        lastY = y;
+
+                        if (!parser.PeekNumber()) break;
+                    }
+                    break;
+                }
+
+                case 'L': // Line to
+                case 'H': // Horizontal line
+                case 'V': // Vertical line
+                {
+                    while (true)
+                    {
+                        double x = currentX, y = currentY;
+
+                        if (commandUpper == 'L')
+                        {
+                            if (!parser.TryReadNumber(out x)) break;
+                            if (!parser.TryReadNumber(out y)) break;
+                            if (isRelative) { x += currentX; y += currentY; }
+                        }
+                        else if (commandUpper == 'H')
+                        {
+                            if (!parser.TryReadNumber(out x)) break;
+                            if (isRelative) x += currentX;
+                            y = currentY;
+                        }
+                        else // 'V'
+                        {
+                            if (!parser.TryReadNumber(out y)) break;
+                            if (isRelative) y += currentY;
+                            x = currentX;
+                        }
+
+                        AddVertex(x, y);
+                        currentX = x;
+                        currentY = y;
+                        lastX = x;
+                        lastY = y;
+
+                        if (!parser.PeekNumber()) break;
+                    }
+                    break;
+                }
+
+                case 'C': // Cubic Bézier
+                {
+                    while (true)
+                    {
+                        if (!parser.TryReadNumber(out var x1)) break;
+                        if (!parser.TryReadNumber(out var y1)) break;
+                        if (!parser.TryReadNumber(out var x2)) break;
+                        if (!parser.TryReadNumber(out var y2)) break;
+                        if (!parser.TryReadNumber(out var x)) break;
+                        if (!parser.TryReadNumber(out var y)) break;
+
+                        if (isRelative)
+                        {
+                            x1 += currentX; y1 += currentY;
+                            x2 += currentX; y2 += currentY;
+                            x += currentX; y += currentY;
+                        }
+
+                        AddVertex(x, y);
+                        currentX = x;
+                        currentY = y;
+                        lastX = x;
+                        lastY = y;
+
+                        if (!parser.PeekNumber()) break;
+                    }
+                    break;
+                }
+
+                case 'S': // Smooth cubic Bézier
+                case 'Q': // Quadratic Bézier
+                case 'T': // Smooth quadratic Bézier
+                {
+                    while (true)
+                    {
+                        double x, y;
+
+                        if (commandUpper == 'S')
+                        {
+                            if (!parser.TryReadNumber(out var x2)) break;
+                            if (!parser.TryReadNumber(out var y2)) break;
+                            if (!parser.TryReadNumber(out x)) break;
+                            if (!parser.TryReadNumber(out y)) break;
+                            if (isRelative) { x += currentX; y += currentY; }
+                        }
+                        else if (commandUpper == 'Q')
+                        {
+                            if (!parser.TryReadNumber(out var x1)) break;
+                            if (!parser.TryReadNumber(out var y1)) break;
+                            if (!parser.TryReadNumber(out x)) break;
+                            if (!parser.TryReadNumber(out y)) break;
+                            if (isRelative) { x += currentX; y += currentY; }
+                        }
+                        else // 'T'
+                        {
+                            if (!parser.TryReadNumber(out x)) break;
+                            if (!parser.TryReadNumber(out y)) break;
+                            if (isRelative) { x += currentX; y += currentY; }
+                        }
+
+                        AddVertex(x, y);
+                        currentX = x;
+                        currentY = y;
+                        lastX = x;
+                        lastY = y;
+
+                        if (!parser.PeekNumber()) break;
+                    }
+                    break;
+                }
+
+                case 'A': // Elliptical arc
+                {
+                    while (true)
+                    {
+                        if (!parser.TryReadNumber(out var rx)) break;
+                        if (!parser.TryReadNumber(out var ry)) break;
+                        if (!parser.TryReadNumber(out var angle)) break;
+                        if (!parser.TryReadNumber(out var largeArcFlag)) break;
+                        if (!parser.TryReadNumber(out var sweepFlag)) break;
+                        if (!parser.TryReadNumber(out var x)) break;
+                        if (!parser.TryReadNumber(out var y)) break;
+
+                        if (isRelative)
+                        {
+                            x += currentX;
+                            y += currentY;
+                        }
+
+                        AddVertex(x, y);
+                        currentX = x;
+                        currentY = y;
+                        lastX = x;
+                        lastY = y;
+
+                        if (!parser.PeekNumber()) break;
+                    }
+                    break;
+                }
+
+                case 'Z': // Close path
+                {
+                    if (startX != currentX || startY != currentY)
+                    {
+                        AddVertex(startX, startY);
+                    }
+                    currentX = startX;
+                    currentY = startY;
+                    break;
+                }
+            }
+        }
+
+        return vertices;
+    }
+
+    private void RenderMarker(SvgMarker marker, double x, double y, double angle, double strokeWidth, bool isStart)
+    {
+        _contentStream.AppendLine("q"); // Save graphics state
+
+        // 1. Translate to vertex position
+        _contentStream.AppendLine($"1 0 0 1 {x} {y} cm");
+
+        // 2. Rotate if orient="auto" or orient="auto-start-reverse"
+        if (marker.Orient == "auto" || (marker.Orient == "auto-start-reverse" && isStart))
+        {
+            var rotationAngle = angle;
+            if (marker.Orient == "auto-start-reverse" && isStart)
+                rotationAngle += 180;
+
+            var radians = rotationAngle * Math.PI / 180.0;
+            var cos = Math.Cos(radians);
+            var sin = Math.Sin(radians);
+            _contentStream.AppendLine($"{cos} {sin} {-sin} {cos} 0 0 cm");
+        }
+        else if (double.TryParse(marker.Orient, out var fixedAngle))
+        {
+            // Fixed angle
+            var radians = fixedAngle * Math.PI / 180.0;
+            var cos = Math.Cos(radians);
+            var sin = Math.Sin(radians);
+            _contentStream.AppendLine($"{cos} {sin} {-sin} {cos} 0 0 cm");
+        }
+
+        // 3. Scale if markerUnits="strokeWidth"
+        if (marker.MarkerUnits == "strokeWidth")
+        {
+            var scale = strokeWidth;
+            _contentStream.AppendLine($"{scale} 0 0 {scale} 0 0 cm");
+        }
+
+        // 4. Apply viewBox transform if present
+        if (marker.ViewBox != null)
+        {
+            var scaleX = marker.MarkerWidth / marker.ViewBox.Width;
+            var scaleY = marker.MarkerHeight / marker.ViewBox.Height;
+            _contentStream.AppendLine($"{scaleX} 0 0 {scaleY} {-marker.ViewBox.MinX * scaleX} {-marker.ViewBox.MinY * scaleY} cm");
+        }
+
+        // 5. Translate by -refX, -refY
+        _contentStream.AppendLine($"1 0 0 1 {-marker.RefX} {-marker.RefY} cm");
+
+        // 6. Render marker content
+        foreach (var markerElement in marker.MarkerElements)
+        {
+            RenderElement(markerElement);
+        }
+
+        _contentStream.AppendLine("Q"); // Restore graphics state
     }
 
     /// <summary>
