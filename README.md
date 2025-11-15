@@ -123,7 +123,7 @@ cd examples
 dotnet run --project Folly.Examples
 ```
 
-This generates 30 example PDFs showcasing Folly's capabilities:
+This generates 32 example PDFs showcasing Folly's capabilities:
 - **Hello World** - Basic document with simple text
 - **Multiple Blocks** - Different fonts and sizes
 - **Text Alignment** - Start, center, and end alignment
@@ -147,6 +147,15 @@ This generates 30 example PDFs showcasing Folly's capabilities:
 - **BiDi Override** - Right-to-left text rendering
 - **PDF Metadata** - Document properties (title, author, subject, keywords)
 - **Emergency Line Breaking** - Character-level breaking for overflow words and wrap-option control
+- **TrueType Fonts** - Custom font embedding with subsetting
+- **Font Fallback** - System font discovery and fallback chains
+- **Kerning** - Professional typography with automatic kerning
+- **Table Row Spanning** - Complex table layouts with merged cells
+- **Proportional Column Widths** - Flexible, responsive table layouts
+- **Content-Based Column Sizing** - Auto columns sized to content
+- **Table Footer Repetition** - Footers at page breaks
+- **Business Letterhead** - Absolute positioning demonstration
+- **Sidebars with Margin Notes** - Left and right side regions for annotations and supplementary content
 
 See [examples/README.md](examples/README.md) for details.
 
@@ -214,7 +223,7 @@ The core rendering engine is fully operational with extensive feature support:
 - Leaders (fo:leader) for generating dot patterns, rules, and spaces - commonly used in tables of contents
 - BiDi text support (fo:bidi-override) with text reordering for right-to-left text rendering
 - Advanced formatting objects (fo:page-number-citation, fo:page-number-citation-last, fo:block-container, fo:inline-container, fo:wrapper, fo:character, fo:initial-property-set)
-- Side regions (fo:region-start, fo:region-end)
+- **Side regions** (fo:region-start, fo:region-end) for left and right sidebars - ideal for margin notes, glossaries, and supplementary content
 - **Absolute positioning** (fo:block-container with absolute-position) for letterheads, watermarks, and complex forms
 - **Z-index layering** for controlling stacking order of absolutely positioned elements
 

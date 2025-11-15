@@ -16,10 +16,19 @@ This roadmap outlines Folly's evolution from a solid XSL-FO foundation (~70% spe
   - Phase 3.2 (Font Embedding & Subsetting) ✅ COMPLETE (60 font tests, Example 24)
   - Phase 3.3 (Font Fallback & System Fonts) ✅ COMPLETE (79 font tests, Example 25)
   - Phase 3.4 (Basic Kerning) ✅ COMPLETE (85 font tests, Example 26)
+- Phase 4 (Advanced Table Features) ✅ COMPLETE
+  - Phase 4.1 (Table Row Spanning) ✅ COMPLETE (Example 27)
+  - Phase 4.2 (Proportional Column Widths) ✅ COMPLETE (Example 28)
+  - Phase 4.3 (Content-Based Column Sizing) ✅ COMPLETE (Example 29)
+  - Phase 4.4 (Table Footer Repetition) ✅ COMPLETE (Example 30)
+- Phase 5 (Advanced Layout & Positioning) 🚧 IN PROGRESS
+  - Phase 5.1 (Absolute Positioning) ✅ COMPLETE (Example 31)
+  - Phase 5.2 (Region Start/End Sidebars) ✅ COMPLETE (Example 32)
+  - Phase 5.3-5.5 (Background Images, Rotation, Display-Align) - NOT STARTED
 - Excellent performance (66x faster than target at ~150ms for 200 pages)
 - ~75% XSL-FO 1.1 compliance (up from ~70%)
-- 326+ passing tests (99%+ success rate) - includes 85 font tests (37 parsing + 13 subsetting + 10 embedding + 15 fallback + 4 integration + 6 kerning)
-- 26 working examples including TrueType font embedding, font fallback, and kerning demonstration
+- 314+ passing tests (99%+ success rate) - includes 85 font tests and 4 sidebar tests
+- 32 working examples including TrueType font embedding, font fallback, kerning, table features, absolute positioning, and sidebars
 
 **Target:** Best-in-class layout engine with ~95% spec compliance, professional typography, zero runtime dependencies
 
@@ -989,14 +998,14 @@ private void AddRegionStartContent(
 ```
 
 **Deliverables:**
-- [ ] Implement `fo:region-start` layout (already parsed)
-- [ ] Implement `fo:region-end` layout (already parsed)
-- [ ] Support `extent` property for region width
-- [ ] Layout static-content for xsl-region-start/end
-- [ ] Add tests for sidebars
-- [ ] Add examples with margin notes
+- [x] Implement `fo:region-start` layout (already parsed) - Complete with AddStaticContent method in LayoutEngine.cs:146
+- [x] Implement `fo:region-end` layout (already parsed) - Complete with AddStaticContent method in LayoutEngine.cs:187
+- [x] Support `extent` property for region width - Implemented for both region-start and region-end
+- [x] Layout static-content for xsl-region-start/end - Full support with marker retrieval
+- [x] Add tests for sidebars - 4 comprehensive tests added to LayoutEngineTests.cs
+- [x] Add examples with margin notes - Example 32 demonstrates both academic margin notes and magazine-style dual sidebars
 
-**Complexity:** Medium (2-3 weeks)
+**Complexity:** Medium (2-3 weeks) - ✅ COMPLETE
 
 ### 5.3 Background Images
 
