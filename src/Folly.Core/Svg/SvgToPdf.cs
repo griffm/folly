@@ -82,6 +82,22 @@ public sealed class SvgToPdfConverter
             _contentStream.AppendLine($"{t.A} {t.B} {t.C} {t.D} {t.E} {t.F} cm");
         }
 
+        // Apply clipping path if specified
+        if (!string.IsNullOrWhiteSpace(element.Style.ClipPath))
+        {
+            ApplyClippingPath(element.Style.ClipPath);
+        }
+
+        // Apply element opacity if needed
+        if (element.Style.Opacity < 1.0)
+        {
+            // TODO: For proper opacity groups, we should:
+            // 1. Create a transparency group (XObject with /Group dictionary)
+            // 2. Render element and children into the group
+            // 3. Paint the group with the specified opacity
+            // For now, we'll apply opacity to fills and strokes individually
+        }
+
         // Render based on element type
         switch (element.ElementType)
         {
@@ -387,9 +403,20 @@ public sealed class SvgToPdfConverter
 
         if (!hasFill && !hasStroke) return;
 
-        // Set fill color
-        if (hasFill)
+        // Check if fill/stroke is a URL reference (gradient or pattern)
+        var fillIsUrl = hasFill && IsUrlReference(style.Fill!);
+        var strokeIsUrl = hasStroke && IsUrlReference(style.Stroke!);
+
+        // Determine if URL references are gradients or patterns
+        var fillIsGradient = fillIsUrl && IsGradientReference(style.Fill!);
+        var strokeIsGradient = strokeIsUrl && IsGradientReference(style.Stroke!);
+        var fillIsPattern = fillIsUrl && !fillIsGradient;
+        var strokeIsPattern = strokeIsUrl && !strokeIsGradient;
+
+        // Set fill color, gradient, or pattern
+        if (hasFill && !fillIsPattern && !fillIsGradient)
         {
+            // Solid color fill
             var fillColor = ParseColor(style.Fill!);
             if (fillColor != null)
             {
@@ -404,9 +431,18 @@ public sealed class SvgToPdfConverter
                 // TODO: Set CA (fill opacity) in graphics state
             }
         }
+        else if (fillIsGradient)
+        {
+            // TODO: Apply gradient fill - requires:
+            // 1. Calculate bounding box of the current path
+            // 2. Generate PDF shading dictionary using SvgGradientToPdf
+            // 3. Add shading to PDF resources
+            // 4. Use 'sh' operator to paint with shading
+            // For now, gradients are parsed but not yet rendered
+        }
 
         // Set stroke color and width
-        if (hasStroke)
+        if (hasStroke && !strokeIsPattern && !strokeIsGradient)
         {
             var strokeColor = ParseColor(style.Stroke!);
             if (strokeColor != null)
@@ -447,6 +483,17 @@ public sealed class SvgToPdfConverter
         }
 
         // Draw path
+        // TODO: Pattern fills/strokes require creating PDF pattern resources and using /Pattern color space
+        // For now, we'll render the path with solid colors only
+        if (fillIsPattern || strokeIsPattern)
+        {
+            // TODO: Implement pattern fill/stroke using PDF tiling patterns (Type 1)
+            // This requires: 1) Creating XObject Form for pattern tile
+            //                2) Setting /Pattern color space
+            //                3) Using scn/SCN operators with pattern name
+            // For now, fall back to basic rendering
+        }
+
         if (hasFill && hasStroke)
         {
             var fillRule = style.FillRule == "evenodd" ? "*" : "";
@@ -513,5 +560,129 @@ public sealed class SvgToPdfConverter
         }
 
         return result.ToArray();
+    }
+
+    /// <summary>
+    /// Checks if a string is a URL reference like "url(#id)".
+    /// </summary>
+    private bool IsUrlReference(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return false;
+
+        var trimmed = value.Trim();
+        return trimmed.StartsWith("url(", StringComparison.OrdinalIgnoreCase) && trimmed.EndsWith(")");
+    }
+
+    /// <summary>
+    /// Extracts the ID from a URL reference like "url(#id)" -> "id".
+    /// </summary>
+    private string? ExtractUrlId(string urlReference)
+    {
+        if (!IsUrlReference(urlReference))
+            return null;
+
+        // Extract content between "url(" and ")"
+        var start = urlReference.IndexOf('(') + 1;
+        var end = urlReference.LastIndexOf(')');
+        if (start >= end)
+            return null;
+
+        var id = urlReference.Substring(start, end - start).Trim();
+
+        // Remove leading # if present
+        if (id.StartsWith('#'))
+            id = id.Substring(1);
+
+        return id;
+    }
+
+    /// <summary>
+    /// Checks if a URL reference points to a gradient definition.
+    /// </summary>
+    private bool IsGradientReference(string urlReference)
+    {
+        var id = ExtractUrlId(urlReference);
+        if (string.IsNullOrWhiteSpace(id))
+            return false;
+
+        return _document.Gradients.ContainsKey(id);
+    }
+
+    /// <summary>
+    /// Applies a clipping path from the ClipPaths dictionary.
+    /// </summary>
+    private void ApplyClippingPath(string clipPathReference)
+    {
+        var id = ExtractUrlId(clipPathReference);
+        if (string.IsNullOrWhiteSpace(id))
+            return;
+
+        if (!_document.ClipPaths.TryGetValue(id, out var clipPath))
+            return; // Clipping path not found
+
+        // TODO: Handle clipPathUnits (userSpaceOnUse vs objectBoundingBox)
+        // For objectBoundingBox, we'd need to scale the clip path to the element's bounding box
+
+        // Render all clipping path elements to create the clipping region
+        foreach (var clipElement in clipPath.ClipElements)
+        {
+            // Build the clipping path geometry
+            switch (clipElement.ElementType)
+            {
+                case "rect":
+                    {
+                        var x = clipElement.GetDoubleAttribute("x", 0);
+                        var y = clipElement.GetDoubleAttribute("y", 0);
+                        var width = clipElement.GetDoubleAttribute("width", 0);
+                        var height = clipElement.GetDoubleAttribute("height", 0);
+                        if (width > 0 && height > 0)
+                            _contentStream.AppendLine($"{x} {y} {width} {height} re");
+                    }
+                    break;
+
+                case "circle":
+                    {
+                        var cx = clipElement.GetDoubleAttribute("cx", 0);
+                        var cy = clipElement.GetDoubleAttribute("cy", 0);
+                        var r = clipElement.GetDoubleAttribute("r", 0);
+                        if (r > 0)
+                            DrawEllipse(cx, cy, r, r);
+                    }
+                    break;
+
+                case "ellipse":
+                    {
+                        var cx = clipElement.GetDoubleAttribute("cx", 0);
+                        var cy = clipElement.GetDoubleAttribute("cy", 0);
+                        var rx = clipElement.GetDoubleAttribute("rx", 0);
+                        var ry = clipElement.GetDoubleAttribute("ry", 0);
+                        if (rx > 0 && ry > 0)
+                            DrawEllipse(cx, cy, rx, ry);
+                    }
+                    break;
+
+                case "path":
+                    {
+                        var d = clipElement.GetAttribute("d");
+                        if (!string.IsNullOrWhiteSpace(d))
+                        {
+                            var pathCommands = SvgPathParser.Parse(d);
+                            foreach (var command in pathCommands)
+                            {
+                                _contentStream.AppendLine(command);
+                            }
+                        }
+                    }
+                    break;
+
+                // TODO: Support more clipping shapes (polygon, polyline, etc.)
+            }
+        }
+
+        // Apply the clipping path using the appropriate fill rule
+        var clipRule = clipPath.ClipRule == "evenodd" ? "W*" : "W";
+        _contentStream.AppendLine(clipRule); // Set clipping path
+        _contentStream.AppendLine("n"); // End path without filling/stroking
     }
 }
