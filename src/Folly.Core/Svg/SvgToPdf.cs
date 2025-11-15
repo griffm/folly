@@ -118,6 +118,17 @@ public sealed class SvgToPdfConverter
             ApplyClippingPath(element.Style.ClipPath);
         }
 
+        // Apply drop shadow if filter specified
+        // NOTE: This is a simplified implementation without blur - just offset + opacity
+        if (!string.IsNullOrWhiteSpace(element.Style.Filter) && IsUrlReference(element.Style.Filter))
+        {
+            var filterId = ExtractUrlId(element.Style.Filter);
+            if (!string.IsNullOrWhiteSpace(filterId) && _document.Filters.TryGetValue(filterId, out var filter))
+            {
+                ApplySimpleDropShadow(element, filter);
+            }
+        }
+
         // Apply element opacity if needed
         if (element.Style.Opacity < 1.0)
         {
@@ -1012,6 +1023,76 @@ public sealed class SvgToPdfConverter
         var clipRule = clipPath.ClipRule == "evenodd" ? "W*" : "W";
         _contentStream.AppendLine(clipRule); // Set clipping path
         _contentStream.AppendLine("n"); // End path without filling/stroking
+    }
+
+    /// <summary>
+    /// Applies a simple drop shadow effect to an element.
+    /// NOTE: This is a simplified implementation - renders shadow as offset copy with opacity.
+    /// Full SVG feGaussianBlur is not implemented (would require PDF transparency groups).
+    /// </summary>
+    /// <param name="element">The element to apply shadow to.</param>
+    /// <param name="filter">The filter definition.</param>
+    private void ApplySimpleDropShadow(SvgElement element, SvgFilter filter)
+    {
+        // Look for feDropShadow primitive
+        var dropShadow = filter.Primitives.OfType<SvgDropShadow>().FirstOrDefault();
+        if (dropShadow == null)
+            return; // No drop shadow found
+
+        // Save state for shadow rendering
+        _contentStream.AppendLine("q");
+
+        // Apply shadow offset
+        _contentStream.AppendLine($"1 0 0 1 {dropShadow.Dx} {dropShadow.Dy} cm");
+
+        // Apply shadow opacity
+        if (dropShadow.FloodOpacity < 1.0)
+        {
+            var gsName = AddOpacityGraphicsState(dropShadow.FloodOpacity, dropShadow.FloodOpacity);
+            _contentStream.AppendLine($"/{gsName} gs");
+        }
+
+        // Apply shadow color to fill
+        var shadowColor = ParseColor(dropShadow.FloodColor);
+        if (shadowColor != null)
+        {
+            var (r, g, b) = shadowColor.Value;
+            _contentStream.AppendLine($"{r} {g} {b} rg"); // Fill color
+            _contentStream.AppendLine($"{r} {g} {b} RG"); // Stroke color
+        }
+
+        // Render shadow copy of element (simplified - just render the element type)
+        // NOTE: This doesn't handle all edge cases, but provides basic drop shadow
+        switch (element.ElementType)
+        {
+            case "rect":
+                RenderRect(element);
+                break;
+            case "circle":
+                RenderCircle(element);
+                break;
+            case "ellipse":
+                RenderEllipse(element);
+                break;
+            case "line":
+                RenderLine(element);
+                break;
+            case "polyline":
+                RenderPolyline(element);
+                break;
+            case "polygon":
+                RenderPolygon(element);
+                break;
+            case "path":
+                RenderPath(element);
+                break;
+            // NOTE: Text and other elements not supported for shadows yet
+        }
+
+        // Restore state after shadow
+        _contentStream.AppendLine("Q");
+
+        // Original element will be rendered normally after this method returns
     }
 
     /// <summary>
