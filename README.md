@@ -240,21 +240,21 @@ The core rendering engine is fully operational with extensive feature support:
 - PDF outline/bookmarks for document navigation
 
 **Quality Assurance:**
-- 283+ passing unit tests (99%+ success rate)
-  - 21 XSL-FO conformance tests (formatting object parsing, including repeatable-page-master-reference)
-  - 25 property inheritance tests (50+ inheritable properties)
-  - 62+ layout engine tests (line breaking, page breaking, tables, footnotes, text justification, **multi-page tables**, **table row spanning**, **proportional column widths**, **content-based column sizing**, **footer repetition**, **multi-page lists**, **keep-with-next/previous**, **widow/orphan control**, **emergency line breaking**, **absolute positioning**)
-  - **19 hyphenation tests** (Liang's algorithm, multi-language support, configurable constraints)
-  - **5 emergency line breaking tests** (character-level breaking, wrap-option support, narrow columns)
-  - **7 Knuth-Plass line breaking tests** (optimal line breaking, TeX-quality typography, comparison with greedy)
-  - **5 list page breaking tests** (multi-page lists, keep-together support, nested content)
-  - **85 font tests** (TrueType parsing, font subsetting, serialization, PDF embedding, ToUnicode CMaps, **font fallback**, **system font discovery**, **kerning support**)
-  - 14 PDF validation tests (structure, fonts, compression, metadata, links)
-  - 9 AreaTree snapshot tests (layout regression detection)
-  - 13 fuzzing/stress tests (malformed input, extreme nesting, large tables)
-  - 30 working example PDFs (including **TrueType font embedding**, **font fallback & system fonts**, **kerning demonstration**, **table row spanning**, **proportional column widths**, **content-based column sizing**, **footer repetition**, multi-page tables, multi-page lists, keep-with-next/previous, emergency line breaking)
-- 100% qpdf validation success (zero errors)
-- Verified with qpdf 11.9.0
+- Comprehensive test suite with high success rate
+  - XSL-FO conformance tests (formatting object parsing, repeatable-page-master-reference)
+  - Property inheritance tests (comprehensive coverage of inheritable properties)
+  - Layout engine tests (line breaking, page breaking, tables, footnotes, text justification, **multi-page tables**, **table row spanning**, **proportional column widths**, **content-based column sizing**, **footer repetition**, **multi-page lists**, **keep-with-next/previous**, **widow/orphan control**, **emergency line breaking**, **absolute positioning**)
+  - **Hyphenation tests** (Liang's algorithm, multi-language support, configurable constraints)
+  - **Emergency line breaking tests** (character-level breaking, wrap-option support, narrow columns)
+  - **Knuth-Plass line breaking tests** (optimal line breaking, TeX-quality typography, comparison with greedy)
+  - **List page breaking tests** (multi-page lists, keep-together support, nested content)
+  - **Font tests** (TrueType parsing, font subsetting, serialization, PDF embedding, ToUnicode CMaps, **font fallback**, **system font discovery**, **kerning support**)
+  - PDF validation tests (structure, fonts, compression, metadata, links)
+  - AreaTree snapshot tests (layout regression detection)
+  - Fuzzing/stress tests (malformed input, extreme nesting, large tables)
+  - Working example PDFs (**TrueType font embedding**, **font fallback & system fonts**, **kerning demonstration**, **table row spanning**, **proportional column widths**, **content-based column sizing**, **footer repetition**, **absolute positioning letterhead**, multi-page tables, multi-page lists, keep-with-next/previous, emergency line breaking)
+- qpdf validation success (zero errors)
+- Verified with qpdf
 
 **Performance:**
 - **Throughput**: ~1,333 pages/second for complex documents

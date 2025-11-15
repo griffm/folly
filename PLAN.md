@@ -949,10 +949,10 @@ private BlockArea? LayoutAbsoluteBlockContainer(
 - [x] Support `top`, `left`, `right`, `bottom` properties - Implemented in CalculateAbsolutePosition
 - [x] Support `z-index` for layering - Implemented with z-index sorting in PDF renderer
 - [x] Render absolute elements after flow (correct z-order) - Complete with AbsoluteAreas collection and OrderBy z-index
-- [x] Add tests for overlapping content - Added 2 tests in LayoutEngineTests (basic positioning, z-index ordering)
-- [ ] Add examples: letterhead, watermark, form - (Deferred to future iteration)
+- [x] Add tests for overlapping content - Added tests in LayoutEngineTests (basic positioning, z-index ordering)
+- [x] Add examples: letterhead, watermark, form - Example 31 demonstrates professional letterhead
 
-**Complexity:** High (4-5 weeks) - 🚧 IN PROGRESS (Core implementation complete, examples pending)
+**Complexity:** High (4-5 weeks) - ✅ COMPLETE
 
 ### 5.2 Region Start/End (Left/Right Sidebars)
 
