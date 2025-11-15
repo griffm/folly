@@ -109,6 +109,16 @@ public static class SvgParser
         var filters = new Dictionary<string, SvgFilter>();
         CollectFilters(root, filters);
 
+        // Parse CSS from <style> tags
+        var cssRules = new List<CssRule>();
+        CollectCssRules(root, cssRules);
+
+        // Apply CSS rules to all elements
+        if (cssRules.Count > 0)
+        {
+            ApplyCssRulesToElement(rootElement, cssRules);
+        }
+
         return new SvgDocument
         {
             Root = rootElement,
@@ -124,7 +134,8 @@ public static class SvgParser
             Patterns = patterns,
             Masks = masks,
             Markers = markers,
-            Filters = filters
+            Filters = filters,
+            CssRules = cssRules
         };
     }
 
@@ -779,6 +790,35 @@ public static class SvgParser
             }
 
             filters[id] = filter;
+        }
+    }
+
+    private static void CollectCssRules(XElement root, List<CssRule> cssRules)
+    {
+        // Find all <style> elements
+        var styleElements = root.Descendants().Where(e => e.Name.LocalName == "style");
+
+        foreach (var elem in styleElements)
+        {
+            var cssContent = elem.Value;
+            if (string.IsNullOrWhiteSpace(cssContent))
+                continue;
+
+            // Parse CSS stylesheet
+            var rules = SvgCssParser.ParseStylesheet(cssContent);
+            cssRules.AddRange(rules);
+        }
+    }
+
+    private static void ApplyCssRulesToElement(SvgElement element, List<CssRule> cssRules)
+    {
+        // Apply CSS rules to this element
+        SvgCssParser.ApplyCssRules(element, cssRules);
+
+        // Recursively apply to children
+        foreach (var child in element.Children)
+        {
+            ApplyCssRulesToElement(child, cssRules);
         }
     }
 }
