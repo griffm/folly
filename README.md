@@ -247,6 +247,12 @@ The core rendering engine is fully operational with extensive feature support:
 - Border rendering (solid, dashed, dotted)
 - Background colors (named and hex formats)
 - **Background image rendering** with tiling (repeat, repeat-x, repeat-y, no-repeat) and positioning (keywords, percentages, lengths)
+- **Rounded corners** (border-radius) - Smooth, rounded borders using Bezier curves for modern, polished design
+  - Uniform radius for all corners (border-radius)
+  - Individual corner control (border-top-left-radius, border-top-right-radius, border-bottom-right-radius, border-bottom-left-radius)
+  - Works with solid, dashed, and dotted border styles
+  - Automatic radius clamping to prevent overlap
+  - Full support for absolutely positioned elements
 - Graphics state management
 - **Rotation transformations** using PDF transformation matrices for rotated content (0°, 90°, 180°, 270°)
 - **Image embedding** with zero dependencies
@@ -272,7 +278,7 @@ The core rendering engine is fully operational with extensive feature support:
   - PDF validation tests (structure, fonts, compression, metadata, links)
   - AreaTree snapshot tests (layout regression detection)
   - Fuzzing/stress tests (malformed input, extreme nesting, large tables)
-  - Working example PDFs (**TrueType font embedding**, **font fallback & system fonts**, **kerning demonstration**, **table row spanning**, **proportional column widths**, **content-based column sizing**, **footer repetition**, **absolute positioning letterhead**, multi-page tables, multi-page lists, keep-with-next/previous, emergency line breaking)
+  - Working example PDFs (**TrueType font embedding**, **font fallback & system fonts**, **kerning demonstration**, **table row spanning**, **proportional column widths**, **content-based column sizing**, **footer repetition**, **absolute positioning letterhead**, **rounded corners**, multi-page tables, multi-page lists, keep-with-next/previous, emergency line breaking)
 - qpdf validation success (zero errors)
 - Verified with qpdf
 

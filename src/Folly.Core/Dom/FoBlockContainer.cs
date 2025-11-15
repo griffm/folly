@@ -218,6 +218,32 @@ public sealed class FoBlockContainer : FoElement
     public string BorderRightColor => GetDirectionalString("border-end-color", "border-right-color", BorderColor);
 
     /// <summary>
+    /// Gets the border radius (uniform for all corners) in points.
+    /// Note: border-radius is not part of XSL-FO 1.1 spec but commonly used as an extension.
+    /// </summary>
+    public double BorderRadius => Properties.GetLength("border-radius", 0);
+
+    /// <summary>
+    /// Gets the top-left border radius in points.
+    /// </summary>
+    public double BorderTopLeftRadius => Properties.GetLength("border-top-left-radius", BorderRadius);
+
+    /// <summary>
+    /// Gets the top-right border radius in points.
+    /// </summary>
+    public double BorderTopRightRadius => Properties.GetLength("border-top-right-radius", BorderRadius);
+
+    /// <summary>
+    /// Gets the bottom-left border radius in points.
+    /// </summary>
+    public double BorderBottomLeftRadius => Properties.GetLength("border-bottom-left-radius", BorderRadius);
+
+    /// <summary>
+    /// Gets the bottom-right border radius in points.
+    /// </summary>
+    public double BorderBottomRightRadius => Properties.GetLength("border-bottom-right-radius", BorderRadius);
+
+    /// <summary>
     /// Gets the padding-before.
     /// </summary>
     public double PaddingBefore => Properties.GetLength("padding-before", 0);

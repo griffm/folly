@@ -321,6 +321,26 @@ public sealed class BlockArea : Area
     public string BorderRightColor { get; set; } = "black";
 
     /// <summary>
+    /// Gets or sets the top-left border radius in points.
+    /// </summary>
+    public double BorderTopLeftRadius { get; set; }
+
+    /// <summary>
+    /// Gets or sets the top-right border radius in points.
+    /// </summary>
+    public double BorderTopRightRadius { get; set; }
+
+    /// <summary>
+    /// Gets or sets the bottom-left border radius in points.
+    /// </summary>
+    public double BorderBottomLeftRadius { get; set; }
+
+    /// <summary>
+    /// Gets or sets the bottom-right border radius in points.
+    /// </summary>
+    public double BorderBottomRightRadius { get; set; }
+
+    /// <summary>
     /// Gets the child areas (typically line areas).
     /// </summary>
     public IReadOnlyList<Area> Children => _children;
@@ -931,6 +951,26 @@ public sealed class AbsolutePositionedArea : Area
     /// Gets or sets right border color.
     /// </summary>
     public string BorderRightColor { get; set; } = "black";
+
+    /// <summary>
+    /// Gets or sets the top-left border radius in points.
+    /// </summary>
+    public double BorderTopLeftRadius { get; set; }
+
+    /// <summary>
+    /// Gets or sets the top-right border radius in points.
+    /// </summary>
+    public double BorderTopRightRadius { get; set; }
+
+    /// <summary>
+    /// Gets or sets the bottom-left border radius in points.
+    /// </summary>
+    public double BorderBottomLeftRadius { get; set; }
+
+    /// <summary>
+    /// Gets or sets the bottom-right border radius in points.
+    /// </summary>
+    public double BorderBottomRightRadius { get; set; }
 
     /// <summary>
     /// Gets the child areas (blocks within the absolutely positioned container).

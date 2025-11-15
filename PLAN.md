@@ -29,10 +29,11 @@ This roadmap outlines Folly's evolution from a solid XSL-FO foundation (~70% spe
   - Phase 5.5 (Display-Align - Vertical Alignment) ✅ COMPLETE
 - Phase 6 (Internationalization & Advanced Features) 🚧 IN PROGRESS
   - Phase 6.2 (Additional Image Formats) ✅ COMPLETE (Example 33)
+  - Phase 6.5 (Rounded Corners / Border Radius) ✅ COMPLETE (Example 34)
 - Excellent performance (66x faster than target at ~150ms for 200 pages)
 - ~75% XSL-FO 1.1 compliance
-- 331 passing tests (99.4% success rate) - includes 85 font tests, 17 image format tests
-- 33 working examples including TrueType fonts, kerning, tables, positioning, sidebars, and all image formats (BMP, GIF, TIFF)
+- 331 passing tests (99.4% success rate) - includes 85 font tests, 17 image format tests, 7 border-radius tests
+- 34 working examples including TrueType fonts, kerning, tables, positioning, sidebars, all image formats (BMP, GIF, TIFF), and rounded corners
 
 **Target:** Best-in-class layout engine with ~95% spec compliance, professional typography, zero runtime dependencies
 
@@ -1208,6 +1209,42 @@ namespace Folly.BiDi
 **Complexity:** Medium (completed in ~4 hours with AI assistance)
 
 **Note:** Achieved zero dependencies by implementing custom parsers - no System.Drawing required!
+
+### 6.5 Rounded Corners (Border Radius) ✅ COMPLETE
+
+**Impact:** Modern, polished visual design with smooth rounded corners
+
+**Strategy:** Implement border-radius using PDF Bezier curves (zero dependencies)
+
+**Deliverables:**
+- [x] Add border-radius properties to DOM model (FoBlock, FoBlockContainer, BlockArea, AbsolutePositionedArea)
+- [x] Implement rounded rectangle rendering in PDF using Bezier curves (curveto operator)
+- [x] Support uniform radius (border-radius property)
+- [x] Support individual corner radii (border-top-left-radius, border-top-right-radius, border-bottom-right-radius, border-bottom-left-radius)
+- [x] Automatic radius clamping to prevent overlap (max: half of box dimension)
+- [x] Support for solid, dashed, and dotted border styles with rounded corners
+- [x] Integration with BlockArea borders
+- [x] Integration with AbsolutePositionedArea borders
+- [x] Create comprehensive tests (7 tests for various scenarios)
+- [x] Create Example 34 demonstrating rounded corners
+- [x] Update documentation (README.md, PLAN.md)
+
+**Implementation Details:**
+- **Bezier Curves:** Uses cubic Bezier curves with kappa = 0.552284749831 (4/3 * (sqrt(2) - 1)) to approximate quarter circles
+- **RenderRoundedBorder():** New method in PdfRenderer that constructs rounded rectangle path using moveto, lineto, and curveto PDF operators
+- **Radius Clamping:** Automatically limits radii to half the smaller dimension to prevent geometric impossibilities
+- **Border Style Support:** Works with existing solid, dashed, and dotted border styles
+- **Zero Dependencies:** Pure PDF path operators, no external graphics libraries required
+
+**Test Coverage:**
+- 7 border-radius tests (uniform radius, individual corners, border styles, absolute positioning, radius clamping, zero radius, partial corners)
+
+**Example:**
+- Example 34: Comprehensive demonstration of border-radius with various use cases (uniform radii, individual corners, different border styles, absolutely positioned elements, practical UI patterns)
+
+**Complexity:** Low to Medium (completed in ~3 hours)
+
+**Note:** Implementation uses standard PDF graphics operators (m, l, c, S) for maximum compatibility. Rounded corners are not part of XSL-FO 1.1 spec but are a common extension.
 
 ### 6.3 Basic SVG Support
 

@@ -784,7 +784,11 @@ internal sealed class LayoutEngine
             BorderTopColor = foBlock.BorderTopColor,
             BorderBottomColor = foBlock.BorderBottomColor,
             BorderLeftColor = foBlock.BorderLeftColor,
-            BorderRightColor = foBlock.BorderRightColor
+            BorderRightColor = foBlock.BorderRightColor,
+            BorderTopLeftRadius = foBlock.BorderTopLeftRadius,
+            BorderTopRightRadius = foBlock.BorderTopRightRadius,
+            BorderBottomLeftRadius = foBlock.BorderBottomLeftRadius,
+            BorderBottomRightRadius = foBlock.BorderBottomRightRadius
         };
 
         // Load background image if specified
@@ -3429,7 +3433,11 @@ internal sealed class LayoutEngine
             BorderRightStyle = originalBlock.BorderRightStyle,
             BorderTopColor = originalBlock.BorderTopColor,
             BorderLeftColor = originalBlock.BorderLeftColor,
-            BorderRightColor = originalBlock.BorderRightColor
+            BorderRightColor = originalBlock.BorderRightColor,
+            BorderTopLeftRadius = originalBlock.BorderTopLeftRadius,
+            BorderTopRightRadius = originalBlock.BorderTopRightRadius,
+            BorderBottomLeftRadius = 0, // No bottom radius on split first part
+            BorderBottomRightRadius = 0 // No bottom radius on split first part
         };
 
         var currentY = firstBlock.PaddingTop;
@@ -3502,7 +3510,11 @@ internal sealed class LayoutEngine
             BorderRightStyle = originalBlock.BorderRightStyle,
             BorderBottomColor = originalBlock.BorderBottomColor,
             BorderLeftColor = originalBlock.BorderLeftColor,
-            BorderRightColor = originalBlock.BorderRightColor
+            BorderRightColor = originalBlock.BorderRightColor,
+            BorderTopLeftRadius = 0, // No top radius on split second part
+            BorderTopRightRadius = 0, // No top radius on split second part
+            BorderBottomLeftRadius = originalBlock.BorderBottomLeftRadius,
+            BorderBottomRightRadius = originalBlock.BorderBottomRightRadius
         };
 
         currentY = 0; // No top padding on split part
@@ -3619,7 +3631,11 @@ internal sealed class LayoutEngine
             BorderTopColor = blockContainer.BorderTopColor,
             BorderBottomColor = blockContainer.BorderBottomColor,
             BorderLeftColor = blockContainer.BorderLeftColor,
-            BorderRightColor = blockContainer.BorderRightColor
+            BorderRightColor = blockContainer.BorderRightColor,
+            BorderTopLeftRadius = blockContainer.BorderTopLeftRadius,
+            BorderTopRightRadius = blockContainer.BorderTopRightRadius,
+            BorderBottomLeftRadius = blockContainer.BorderBottomLeftRadius,
+            BorderBottomRightRadius = blockContainer.BorderBottomRightRadius
         };
 
         // Load background image if specified
