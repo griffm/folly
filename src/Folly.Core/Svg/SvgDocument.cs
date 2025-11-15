@@ -58,6 +58,24 @@ public sealed class SvgDocument
     public Dictionary<string, Gradients.SvgGradient> Gradients { get; init; } = new();
 
     /// <summary>
+    /// Gets the clipping paths dictionary.
+    /// Keys are clipPath IDs, values are clipPath objects.
+    /// </summary>
+    public Dictionary<string, SvgClipPath> ClipPaths { get; init; } = new();
+
+    /// <summary>
+    /// Gets the patterns dictionary (repeating fills/strokes).
+    /// Keys are pattern IDs, values are pattern objects.
+    /// </summary>
+    public Dictionary<string, SvgPattern> Patterns { get; init; } = new();
+
+    /// <summary>
+    /// Gets the masks dictionary (alpha/luminance masking).
+    /// Keys are mask IDs, values are mask objects.
+    /// </summary>
+    public Dictionary<string, SvgMask> Masks { get; init; } = new();
+
+    /// <summary>
     /// Parses an SVG document from a byte array.
     /// </summary>
     public static SvgDocument Parse(byte[] data)

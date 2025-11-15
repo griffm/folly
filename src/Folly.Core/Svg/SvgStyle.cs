@@ -123,6 +123,18 @@ public sealed class SvgStyle
     /// </summary>
     public string Color { get; set; } = "black";
 
+    // Clipping and Masking
+
+    /// <summary>
+    /// Gets or sets the clip-path reference (e.g., "url(#clipPath1)").
+    /// </summary>
+    public string? ClipPath { get; set; }
+
+    /// <summary>
+    /// Gets or sets the mask reference (e.g., "url(#mask1)").
+    /// </summary>
+    public string? Mask { get; set; }
+
     /// <summary>
     /// Creates a copy of this style.
     /// </summary>
@@ -150,7 +162,9 @@ public sealed class SvgStyle
             FontStyle = FontStyle,
             TextAnchor = TextAnchor,
             TextDecoration = TextDecoration,
-            Color = Color
+            Color = Color,
+            ClipPath = ClipPath,
+            Mask = Mask
         };
     }
 

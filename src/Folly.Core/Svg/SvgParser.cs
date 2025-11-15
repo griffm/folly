@@ -89,6 +89,18 @@ public static class SvgParser
         var gradients = new Dictionary<string, Gradients.SvgGradient>();
         CollectGradients(root, gradients);
 
+        // Parse clip paths
+        var clipPaths = new Dictionary<string, SvgClipPath>();
+        CollectClipPaths(root, clipPaths);
+
+        // Parse patterns
+        var patterns = new Dictionary<string, SvgPattern>();
+        CollectPatterns(root, patterns);
+
+        // Parse masks
+        var masks = new Dictionary<string, SvgMask>();
+        CollectMasks(root, masks);
+
         return new SvgDocument
         {
             Root = rootElement,
@@ -99,7 +111,10 @@ public static class SvgParser
             EffectiveHeightPt = effectiveHeightPt,
             PreserveAspectRatio = preserveAspectRatio,
             Definitions = definitions,
-            Gradients = gradients
+            Gradients = gradients,
+            ClipPaths = clipPaths,
+            Patterns = patterns,
+            Masks = masks
         };
     }
 
@@ -181,6 +196,7 @@ public static class SvgParser
         ApplyPresentationAttribute(element, style, "text-anchor");
         ApplyPresentationAttribute(element, style, "text-decoration");
         ApplyPresentationAttribute(element, style, "color");
+        ApplyPresentationAttribute(element, style, "clip-path");
 
         // Apply style attribute (higher priority)
         var styleAttr = element.GetAttribute("style");
@@ -266,6 +282,12 @@ public static class SvgParser
                 break;
             case "color":
                 style.Color = value;
+                break;
+            case "clip-path":
+                style.ClipPath = value;
+                break;
+            case "mask":
+                style.Mask = value;
                 break;
         }
     }
@@ -497,5 +519,125 @@ public static class SvgParser
             return result;
 
         return defaultValue;
+    }
+
+    private static void CollectClipPaths(XElement root, Dictionary<string, SvgClipPath> clipPaths)
+    {
+        // Find all clipPath elements
+        var clipPathElements = root.Descendants().Where(e => e.Name.LocalName == "clipPath");
+
+        foreach (var elem in clipPathElements)
+        {
+            var id = elem.Attribute("id")?.Value;
+            if (string.IsNullOrWhiteSpace(id)) continue;
+
+            var clipPath = new SvgClipPath
+            {
+                Id = id,
+                ClipPathUnits = elem.Attribute("clipPathUnits")?.Value ?? "userSpaceOnUse",
+                ClipRule = elem.Attribute("clip-rule")?.Value ?? "nonzero"
+            };
+
+            // Parse child elements (shapes that define the clip region)
+            foreach (var child in elem.Elements())
+            {
+                var clipElement = ParseElement(child, null, new SvgStyle());
+                clipPath.ClipElements.Add(clipElement);
+            }
+
+            clipPaths[id] = clipPath;
+        }
+    }
+
+    private static void CollectPatterns(XElement root, Dictionary<string, SvgPattern> patterns)
+    {
+        // Find all pattern elements
+        var patternElements = root.Descendants().Where(e => e.Name.LocalName == "pattern");
+
+        foreach (var elem in patternElements)
+        {
+            var id = elem.Attribute("id")?.Value;
+            if (string.IsNullOrWhiteSpace(id)) continue;
+
+            var viewBoxStr = elem.Attribute("viewBox")?.Value;
+            SvgViewBox? viewBox = null;
+            if (!string.IsNullOrWhiteSpace(viewBoxStr))
+            {
+                var parts = SvgLengthParser.ParseList(viewBoxStr, 4);
+                if (parts.Length == 4)
+                {
+                    viewBox = new SvgViewBox
+                    {
+                        MinX = parts[0],
+                        MinY = parts[1],
+                        Width = parts[2],
+                        Height = parts[3]
+                    };
+                }
+            }
+
+            var pattern = new SvgPattern
+            {
+                Id = id,
+                X = ParseDoubleAttr(elem, "x", 0),
+                Y = ParseDoubleAttr(elem, "y", 0),
+                Width = ParseDoubleAttr(elem, "width", 0),
+                Height = ParseDoubleAttr(elem, "height", 0),
+                PatternUnits = elem.Attribute("patternUnits")?.Value ?? "objectBoundingBox",
+                PatternContentUnits = elem.Attribute("patternContentUnits")?.Value ?? "userSpaceOnUse",
+                ViewBox = viewBox,
+                PreserveAspectRatio = elem.Attribute("preserveAspectRatio")?.Value,
+                Href = elem.Attribute(XName.Get("href", "http://www.w3.org/1999/xlink"))?.Value
+            };
+
+            // Parse patternTransform
+            var transformAttr = elem.Attribute("patternTransform")?.Value;
+            if (!string.IsNullOrWhiteSpace(transformAttr))
+            {
+                pattern.PatternTransform = SvgTransformParser.Parse(transformAttr);
+            }
+
+            // Parse child elements (pattern content)
+            foreach (var child in elem.Elements())
+            {
+                var patternElement = ParseElement(child, null, new SvgStyle());
+                pattern.PatternElements.Add(patternElement);
+            }
+
+            patterns[id] = pattern;
+        }
+    }
+
+    private static void CollectMasks(XElement root, Dictionary<string, SvgMask> masks)
+    {
+        // Find all mask elements
+        var maskElements = root.Descendants().Where(e => e.Name.LocalName == "mask");
+
+        foreach (var elem in maskElements)
+        {
+            var id = elem.Attribute("id")?.Value;
+            if (string.IsNullOrWhiteSpace(id)) continue;
+
+            var mask = new SvgMask
+            {
+                Id = id,
+                X = ParseDoubleAttr(elem, "x", -0.1),
+                Y = ParseDoubleAttr(elem, "y", -0.1),
+                Width = ParseDoubleAttr(elem, "width", 1.2),
+                Height = ParseDoubleAttr(elem, "height", 1.2),
+                MaskUnits = elem.Attribute("maskUnits")?.Value ?? "objectBoundingBox",
+                MaskContentUnits = elem.Attribute("maskContentUnits")?.Value ?? "userSpaceOnUse",
+                MaskType = elem.Attribute("mask-type")?.Value ?? "luminance"
+            };
+
+            // Parse child elements (mask content)
+            foreach (var child in elem.Elements())
+            {
+                var maskElement = ParseElement(child, null, new SvgStyle());
+                mask.MaskElements.Add(maskElement);
+            }
+
+            masks[id] = mask;
+        }
     }
 }
