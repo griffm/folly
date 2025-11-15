@@ -101,6 +101,10 @@ public static class SvgParser
         var masks = new Dictionary<string, SvgMask>();
         CollectMasks(root, masks);
 
+        // Parse markers
+        var markers = new Dictionary<string, SvgMarker>();
+        CollectMarkers(root, markers);
+
         return new SvgDocument
         {
             Root = rootElement,
@@ -114,7 +118,8 @@ public static class SvgParser
             Gradients = gradients,
             ClipPaths = clipPaths,
             Patterns = patterns,
-            Masks = masks
+            Masks = masks,
+            Markers = markers
         };
     }
 
@@ -288,6 +293,15 @@ public static class SvgParser
                 break;
             case "mask":
                 style.Mask = value;
+                break;
+            case "marker-start":
+                style.MarkerStart = value;
+                break;
+            case "marker-mid":
+                style.MarkerMid = value;
+                break;
+            case "marker-end":
+                style.MarkerEnd = value;
                 break;
         }
     }
@@ -638,6 +652,58 @@ public static class SvgParser
             }
 
             masks[id] = mask;
+        }
+    }
+
+    private static void CollectMarkers(XElement root, Dictionary<string, SvgMarker> markers)
+    {
+        // Find all marker elements
+        var markerElements = root.Descendants().Where(e => e.Name.LocalName == "marker");
+
+        foreach (var elem in markerElements)
+        {
+            var id = elem.Attribute("id")?.Value;
+            if (string.IsNullOrWhiteSpace(id)) continue;
+
+            // Parse viewBox if present
+            var viewBoxStr = elem.Attribute("viewBox")?.Value;
+            SvgViewBox? viewBox = null;
+            if (!string.IsNullOrWhiteSpace(viewBoxStr))
+            {
+                var parts = SvgLengthParser.ParseList(viewBoxStr, 4);
+                if (parts.Length == 4)
+                {
+                    viewBox = new SvgViewBox
+                    {
+                        MinX = parts[0],
+                        MinY = parts[1],
+                        Width = parts[2],
+                        Height = parts[3]
+                    };
+                }
+            }
+
+            var marker = new SvgMarker
+            {
+                Id = id,
+                RefX = ParseDoubleAttr(elem, "refX", 0),
+                RefY = ParseDoubleAttr(elem, "refY", 0),
+                MarkerWidth = ParseDoubleAttr(elem, "markerWidth", 3),
+                MarkerHeight = ParseDoubleAttr(elem, "markerHeight", 3),
+                MarkerUnits = elem.Attribute("markerUnits")?.Value ?? "strokeWidth",
+                Orient = elem.Attribute("orient")?.Value ?? "auto",
+                ViewBox = viewBox,
+                PreserveAspectRatio = elem.Attribute("preserveAspectRatio")?.Value
+            };
+
+            // Parse child elements (marker content)
+            foreach (var child in elem.Elements())
+            {
+                var markerElement = ParseElement(child, null, new SvgStyle());
+                marker.MarkerElements.Add(markerElement);
+            }
+
+            markers[id] = marker;
         }
     }
 }

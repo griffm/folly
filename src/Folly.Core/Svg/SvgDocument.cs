@@ -76,6 +76,12 @@ public sealed class SvgDocument
     public Dictionary<string, SvgMask> Masks { get; init; } = new();
 
     /// <summary>
+    /// Gets the markers dictionary (arrow heads, endpoints, path decorations).
+    /// Keys are marker IDs, values are marker objects.
+    /// </summary>
+    public Dictionary<string, SvgMarker> Markers { get; init; } = new();
+
+    /// <summary>
     /// Parses an SVG document from a byte array.
     /// </summary>
     public static SvgDocument Parse(byte[] data)

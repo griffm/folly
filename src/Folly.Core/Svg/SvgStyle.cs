@@ -135,6 +135,23 @@ public sealed class SvgStyle
     /// </summary>
     public string? Mask { get; set; }
 
+    // Markers
+
+    /// <summary>
+    /// Gets or sets the marker-start reference (marker at path start, e.g., "url(#arrowStart)").
+    /// </summary>
+    public string? MarkerStart { get; set; }
+
+    /// <summary>
+    /// Gets or sets the marker-mid reference (marker at path mid-points, e.g., "url(#dot)").
+    /// </summary>
+    public string? MarkerMid { get; set; }
+
+    /// <summary>
+    /// Gets or sets the marker-end reference (marker at path end, e.g., "url(#arrowEnd)").
+    /// </summary>
+    public string? MarkerEnd { get; set; }
+
     /// <summary>
     /// Creates a copy of this style.
     /// </summary>
@@ -164,7 +181,10 @@ public sealed class SvgStyle
             TextDecoration = TextDecoration,
             Color = Color,
             ClipPath = ClipPath,
-            Mask = Mask
+            Mask = Mask,
+            MarkerStart = MarkerStart,
+            MarkerMid = MarkerMid,
+            MarkerEnd = MarkerEnd
         };
     }
 
