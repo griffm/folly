@@ -471,11 +471,28 @@ public sealed class SvgToPdfConverter
 
         // Handle textLength attribute (scale text to fit specific width)
         double horizontalScale = 100.0; // Default 100% (no scaling)
+        double charSpacing = 0.0; // Default no extra spacing
         var textLength = element.GetDoubleAttribute("textLength", 0);
+        var lengthAdjust = element.GetAttribute("lengthAdjust") ?? "spacingAndGlyphs";
+
         if (textLength > 0 && estimatedWidth > 0)
         {
-            // Calculate scale factor to fit text to specified length
-            horizontalScale = (textLength / estimatedWidth) * 100.0;
+            if (lengthAdjust == "spacing")
+            {
+                // Adjust spacing between characters, not glyph width
+                // Calculate extra space needed per character gap
+                var charCount = textContent.Length;
+                if (charCount > 1)
+                {
+                    var extraSpaceNeeded = textLength - estimatedWidth;
+                    charSpacing = extraSpaceNeeded / (charCount - 1);
+                }
+            }
+            else // "spacingAndGlyphs" (default)
+            {
+                // Scale both spacing and glyphs uniformly
+                horizontalScale = (textLength / estimatedWidth) * 100.0;
+            }
         }
 
         // Handle text-anchor alignment (start, middle, end)
@@ -501,10 +518,16 @@ public sealed class SvgToPdfConverter
         // Set font and size
         _contentStream.AppendLine($"/{pdfFont} {fontSize} Tf");
 
-        // Apply horizontal scaling if textLength specified
+        // Apply horizontal scaling if textLength with spacingAndGlyphs
         if (horizontalScale != 100.0)
         {
             _contentStream.AppendLine($"{horizontalScale} Tz");
+        }
+
+        // Apply character spacing if textLength with spacing
+        if (charSpacing != 0.0)
+        {
+            _contentStream.AppendLine($"{charSpacing} Tc");
         }
 
         // Set text position
