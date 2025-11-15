@@ -445,6 +445,14 @@ public sealed class SvgToPdfConverter
         var y = element.GetDoubleAttribute("y", 0);
         var style = element.Style;
 
+        // Check for vertical text (writing-mode)
+        var writingMode = element.GetAttribute("writing-mode") ?? "horizontal-tb";
+        if (writingMode == "vertical-rl" || writingMode == "vertical-lr" || writingMode == "tb" || writingMode == "tb-rl")
+        {
+            RenderVerticalText(element, x, y, style, writingMode);
+            return;
+        }
+
         // Check if element has textPath children
         var textPathChild = element.Children.FirstOrDefault(c => c.ElementType == "textPath");
         if (textPathChild != null)
@@ -1824,6 +1832,95 @@ public sealed class SvgToPdfConverter
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Renders vertical text (writing-mode: vertical-rl, vertical-lr).
+    /// Characters are stacked vertically from top to bottom.
+    /// </summary>
+    private void RenderVerticalText(SvgElement element, double x, double y, SvgStyle style, string writingMode)
+    {
+        var textContent = GetTextContent(element);
+        if (string.IsNullOrWhiteSpace(textContent)) return;
+
+        // Map SVG font to PDF font
+        var pdfFont = MapSvgFontToPdf(style.FontFamily, style.FontWeight, style.FontStyle);
+        var fontSize = style.FontSize;
+
+        // Get text-orientation (controls character rotation within vertical text)
+        // "upright" = characters stay upright (0 degrees)
+        // "sideways" = characters rotated 90 degrees (default for vertical text)
+        var textOrientation = element.GetAttribute("text-orientation") ?? "mixed";
+        bool rotateCharacters = textOrientation == "sideways" || textOrientation == "sideways-right";
+
+        // Current vertical position
+        double currentY = y;
+
+        // Render each character
+        foreach (var c in textContent)
+        {
+            var charText = c.ToString();
+
+            // Save state for this character
+            _contentStream.AppendLine("q");
+
+            // For vertical-rl (right-to-left), characters flow top-to-bottom
+            // For vertical-lr (left-to-right), also top-to-bottom but different column ordering
+            if (rotateCharacters)
+            {
+                // Rotate character 90 degrees clockwise for sideways orientation
+                // Translate to position, then rotate
+                _contentStream.AppendLine($"1 0 0 1 {x} {currentY} cm");
+                _contentStream.AppendLine("0 1 -1 0 0 0 cm"); // Rotate 90 degrees clockwise
+            }
+            else
+            {
+                // Upright characters - just translate
+                _contentStream.AppendLine($"1 0 0 1 {x} {currentY} cm");
+            }
+
+            // Begin text object
+            _contentStream.AppendLine("BT");
+
+            // Set font and size
+            _contentStream.AppendLine($"/{pdfFont} {fontSize} Tf");
+
+            // Set text color (use fill color)
+            if (style.Fill != null && style.Fill != "none")
+            {
+                var fillColor = ParseColor(style.Fill);
+                if (fillColor != null)
+                {
+                    var (r, g, b) = fillColor.Value;
+                    _contentStream.AppendLine($"{r} {g} {b} rg");
+                }
+            }
+
+            // Set text opacity if needed
+            if (style.FillOpacity < 1.0 || style.Opacity < 1.0)
+            {
+                var textOpacity = style.FillOpacity * style.Opacity;
+                var gsName = AddOpacityGraphicsState(textOpacity, textOpacity);
+                _contentStream.AppendLine($"/{gsName} gs");
+            }
+
+            // Position at origin (since we've already translated)
+            _contentStream.AppendLine("0 0 Td");
+
+            // Render character
+            var escapedChar = EscapePdfString(charText);
+            _contentStream.AppendLine($"({escapedChar}) Tj");
+
+            // End text object
+            _contentStream.AppendLine("ET");
+
+            // Restore state
+            _contentStream.AppendLine("Q");
+
+            // Advance vertically (characters stack from top to bottom)
+            // Use fontSize as vertical spacing (characters are stacked with their height)
+            currentY -= fontSize;
+        }
     }
 
     /// <summary>
