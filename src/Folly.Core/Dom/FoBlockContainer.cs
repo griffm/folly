@@ -91,6 +91,26 @@ public sealed class FoBlockContainer : FoElement
     public string BackgroundColor => Properties.GetString("background-color", "");
 
     /// <summary>
+    /// Gets the background image URI.
+    /// </summary>
+    public string BackgroundImage => Properties.GetString("background-image", "");
+
+    /// <summary>
+    /// Gets the background repeat mode (repeat, repeat-x, repeat-y, no-repeat).
+    /// </summary>
+    public string BackgroundRepeat => Properties.GetString("background-repeat", "repeat");
+
+    /// <summary>
+    /// Gets the background horizontal position (left, center, right, or length/percentage).
+    /// </summary>
+    public string BackgroundPositionHorizontal => Properties.GetString("background-position-horizontal", "0%");
+
+    /// <summary>
+    /// Gets the background vertical position (top, center, bottom, or length/percentage).
+    /// </summary>
+    public string BackgroundPositionVertical => Properties.GetString("background-position-vertical", "0%");
+
+    /// <summary>
     /// Gets the border width (base value for all sides).
     /// </summary>
     public double BorderWidth => Properties.GetLength("border-width", 0);

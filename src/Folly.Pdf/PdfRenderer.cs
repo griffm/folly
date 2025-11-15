@@ -202,6 +202,21 @@ public sealed class PdfRenderer : IDisposable
             }
             else if (area is BlockArea blockArea)
             {
+                // Collect background image if present
+                if (blockArea.BackgroundImageData != null && !string.IsNullOrEmpty(blockArea.BackgroundImage))
+                {
+                    var imageKey = $"{blockArea.BackgroundImage}_{blockArea.BackgroundImageData.GetHashCode()}";
+                    if (!images.ContainsKey(imageKey))
+                    {
+                        images[imageKey] = (
+                            blockArea.BackgroundImageData,
+                            blockArea.BackgroundImageFormat ?? "UNKNOWN",
+                            (int)blockArea.BackgroundImageWidth,
+                            (int)blockArea.BackgroundImageHeight
+                        );
+                    }
+                }
+
                 CollectImagesFromAreas(blockArea.Children, images);
             }
             else if (area is TableArea tableArea)
@@ -227,6 +242,21 @@ public sealed class PdfRenderer : IDisposable
     private void CollectImagesFromAbsoluteArea(AbsolutePositionedArea absoluteArea,
         Dictionary<string, (byte[], string, int, int)> images)
     {
+        // Collect background image if present
+        if (absoluteArea.BackgroundImageData != null && !string.IsNullOrEmpty(absoluteArea.BackgroundImage))
+        {
+            var imageKey = $"{absoluteArea.BackgroundImage}_{absoluteArea.BackgroundImageData.GetHashCode()}";
+            if (!images.ContainsKey(imageKey))
+            {
+                images[imageKey] = (
+                    absoluteArea.BackgroundImageData,
+                    absoluteArea.BackgroundImageFormat ?? "UNKNOWN",
+                    (int)absoluteArea.BackgroundImageWidth,
+                    (int)absoluteArea.BackgroundImageHeight
+                );
+            }
+        }
+
         // Recursively collect images from child areas
         CollectImagesFromAreas(absoluteArea.Children, images);
     }
@@ -329,10 +359,16 @@ public sealed class PdfRenderer : IDisposable
         }
         else if (area is BlockArea blockArea)
         {
-            // Render background
+            // Render background color
             if (blockArea.BackgroundColor != "transparent" && !string.IsNullOrWhiteSpace(blockArea.BackgroundColor))
             {
                 RenderBackground(blockArea, content, pageHeight, offsetX, offsetY);
+            }
+
+            // Render background image
+            if (blockArea.BackgroundImageData != null && !string.IsNullOrWhiteSpace(blockArea.BackgroundImageFormat))
+            {
+                RenderBackgroundImage(blockArea, content, imageIds, pageHeight, offsetX, offsetY);
             }
 
             // Render borders (check both generic and directional borders)
@@ -557,7 +593,7 @@ public sealed class PdfRenderer : IDisposable
     private void RenderAbsoluteArea(AbsolutePositionedArea absoluteArea, StringBuilder content,
         Dictionary<string, int> fontIds, Dictionary<string, int> imageIds, double pageHeight)
     {
-        // Render background if specified
+        // Render background color if specified
         if (absoluteArea.BackgroundColor != "transparent" && !string.IsNullOrWhiteSpace(absoluteArea.BackgroundColor))
         {
             var (r, g, b) = ParseColor(absoluteArea.BackgroundColor);
@@ -567,6 +603,12 @@ public sealed class PdfRenderer : IDisposable
 
             content.AppendLine($"{r:F3} {g:F3} {b:F3} rg");
             content.AppendLine($"{absoluteArea.X:F2} {pdfY:F2} {absoluteArea.Width:F2} {absoluteArea.Height:F2} re f");
+        }
+
+        // Render background image if specified
+        if (absoluteArea.BackgroundImageData != null && !string.IsNullOrWhiteSpace(absoluteArea.BackgroundImageFormat))
+        {
+            RenderBackgroundImageForAbsoluteArea(absoluteArea, content, imageIds, pageHeight);
         }
 
         // Render borders if specified
@@ -641,6 +683,235 @@ public sealed class PdfRenderer : IDisposable
         // Draw filled rectangle
         content.AppendLine($"{x:F2} {pdfY:F2} {block.Width:F2} {block.Height:F2} re");
         content.AppendLine("f");
+
+        // Restore graphics state
+        content.AppendLine("Q");
+    }
+
+    private void RenderBackgroundImage(BlockArea block, StringBuilder content, Dictionary<string, int> imageIds, double pageHeight, double offsetX, double offsetY)
+    {
+        if (block.BackgroundImageData == null || string.IsNullOrEmpty(block.BackgroundImageFormat))
+            return;
+
+        // Register image and get image ID
+        var imageKey = $"{block.BackgroundImage}_{block.BackgroundImageData.GetHashCode()}";
+        if (!imageIds.ContainsKey(imageKey))
+        {
+            imageIds[imageKey] = imageIds.Count + 1;
+        }
+        var imageId = imageIds[imageKey];
+
+        // Calculate absolute position
+        var blockX = offsetX + block.X;
+        var blockY = offsetY + block.Y;
+
+        // Calculate background position
+        var (bgX, bgY) = CalculateBackgroundPosition(
+            block.BackgroundPositionHorizontal,
+            block.BackgroundPositionVertical,
+            blockX, blockY,
+            block.Width, block.Height,
+            block.BackgroundImageWidth, block.BackgroundImageHeight);
+
+        // Render based on repeat mode
+        RenderBackgroundImageTiles(
+            content, imageId, pageHeight,
+            blockX, blockY, block.Width, block.Height,
+            bgX, bgY,
+            block.BackgroundImageWidth, block.BackgroundImageHeight,
+            block.BackgroundRepeat);
+    }
+
+    private void RenderBackgroundImageForAbsoluteArea(AbsolutePositionedArea area, StringBuilder content, Dictionary<string, int> imageIds, double pageHeight)
+    {
+        if (area.BackgroundImageData == null || string.IsNullOrEmpty(area.BackgroundImageFormat))
+            return;
+
+        // Register image and get image ID
+        var imageKey = $"{area.BackgroundImage}_{area.BackgroundImageData.GetHashCode()}";
+        if (!imageIds.ContainsKey(imageKey))
+        {
+            imageIds[imageKey] = imageIds.Count + 1;
+        }
+        var imageId = imageIds[imageKey];
+
+        // Calculate background position
+        var (bgX, bgY) = CalculateBackgroundPosition(
+            area.BackgroundPositionHorizontal,
+            area.BackgroundPositionVertical,
+            area.X, area.Y,
+            area.Width, area.Height,
+            area.BackgroundImageWidth, area.BackgroundImageHeight);
+
+        // Render based on repeat mode
+        RenderBackgroundImageTiles(
+            content, imageId, pageHeight,
+            area.X, area.Y, area.Width, area.Height,
+            bgX, bgY,
+            area.BackgroundImageWidth, area.BackgroundImageHeight,
+            area.BackgroundRepeat);
+    }
+
+    private (double X, double Y) CalculateBackgroundPosition(
+        string positionHorizontal, string positionVertical,
+        double containerX, double containerY,
+        double containerWidth, double containerHeight,
+        double imageWidth, double imageHeight)
+    {
+        // Calculate horizontal position
+        double bgX = containerX;
+        if (positionHorizontal.EndsWith("%"))
+        {
+            var percent = double.Parse(positionHorizontal.TrimEnd('%')) / 100.0;
+            bgX = containerX + ((containerWidth - imageWidth) * percent);
+        }
+        else if (positionHorizontal == "left")
+        {
+            bgX = containerX;
+        }
+        else if (positionHorizontal == "center")
+        {
+            bgX = containerX + (containerWidth - imageWidth) / 2.0;
+        }
+        else if (positionHorizontal == "right")
+        {
+            bgX = containerX + containerWidth - imageWidth;
+        }
+        else
+        {
+            // Try to parse as length
+            bgX = containerX + ParseSimpleLength(positionHorizontal);
+        }
+
+        // Calculate vertical position
+        double bgY = containerY;
+        if (positionVertical.EndsWith("%"))
+        {
+            var percent = double.Parse(positionVertical.TrimEnd('%')) / 100.0;
+            bgY = containerY + ((containerHeight - imageHeight) * percent);
+        }
+        else if (positionVertical == "top")
+        {
+            bgY = containerY;
+        }
+        else if (positionVertical == "center")
+        {
+            bgY = containerY + (containerHeight - imageHeight) / 2.0;
+        }
+        else if (positionVertical == "bottom")
+        {
+            bgY = containerY + containerHeight - imageHeight;
+        }
+        else
+        {
+            // Try to parse as length
+            bgY = containerY + ParseSimpleLength(positionVertical);
+        }
+
+        return (bgX, bgY);
+    }
+
+    /// <summary>
+    /// Parses simple length values like "10pt", "5mm", "2in".
+    /// </summary>
+    private static double ParseSimpleLength(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return 0;
+
+        value = value.Trim().ToLowerInvariant();
+
+        // Try to extract number and unit
+        var numberPart = "";
+        var unitPart = "";
+
+        for (int i = 0; i < value.Length; i++)
+        {
+            char c = value[i];
+            if (char.IsDigit(c) || c == '.' || c == '-')
+            {
+                numberPart += c;
+            }
+            else
+            {
+                unitPart = value.Substring(i);
+                break;
+            }
+        }
+
+        if (!double.TryParse(numberPart, out var number))
+            return 0;
+
+        // Convert to points based on unit
+        return unitPart switch
+        {
+            "pt" => number,
+            "px" => number, // Assume 72 DPI (1 px = 1 pt)
+            "in" => number * 72,
+            "cm" => number * 72 / 2.54,
+            "mm" => number * 72 / 25.4,
+            "pc" => number * 12, // pica = 12 points
+            "em" => number * 12, // Assume 12pt font (simplified)
+            _ => number // Default to points if no unit
+        };
+    }
+
+    private void RenderBackgroundImageTiles(
+        StringBuilder content, int imageId, double pageHeight,
+        double containerX, double containerY, double containerWidth, double containerHeight,
+        double startX, double startY,
+        double imageWidth, double imageHeight,
+        string repeatMode)
+    {
+        // Save graphics state
+        content.AppendLine("q");
+
+        // Set clipping rectangle to container bounds
+        var clipPdfY = pageHeight - containerY - containerHeight;
+        content.AppendLine($"{containerX:F2} {clipPdfY:F2} {containerWidth:F2} {containerHeight:F2} re W n");
+
+        // Determine tiling dimensions based on repeat mode
+        bool repeatX = repeatMode == "repeat" || repeatMode == "repeat-x";
+        bool repeatY = repeatMode == "repeat" || repeatMode == "repeat-y";
+
+        // Calculate tiling bounds
+        double minX = repeatX ? containerX : startX;
+        double maxX = repeatX ? containerX + containerWidth : startX + imageWidth;
+        double minY = repeatY ? containerY : startY;
+        double maxY = repeatY ? containerY + containerHeight : startY + imageHeight;
+
+        // Adjust start positions for repeat modes
+        if (repeatX && startX > containerX)
+        {
+            // Move startX back to before container start
+            var offset = (int)Math.Ceiling((startX - containerX) / imageWidth);
+            startX -= offset * imageWidth;
+        }
+        if (repeatY && startY > containerY)
+        {
+            // Move startY back to before container start
+            var offset = (int)Math.Ceiling((startY - containerY) / imageHeight);
+            startY -= offset * imageHeight;
+        }
+
+        // Render tiles
+        for (double y = startY; y < maxY; y += imageHeight)
+        {
+            for (double x = startX; x < maxX; x += imageWidth)
+            {
+                // Convert Y coordinate from top-down to PDF's bottom-up
+                var pdfY = pageHeight - y - imageHeight;
+
+                // Render image using Do operator
+                content.AppendLine($"q");  // Save state
+                content.AppendLine($"{imageWidth:F2} 0 0 {imageHeight:F2} {x:F2} {pdfY:F2} cm");  // Transform matrix
+                content.AppendLine($"/Im{imageId} Do");  // Draw image
+                content.AppendLine($"Q");  // Restore state
+
+                if (!repeatX) break;  // Only one tile horizontally
+            }
+            if (!repeatY) break;  // Only one tile vertically
+        }
 
         // Restore graphics state
         content.AppendLine("Q");

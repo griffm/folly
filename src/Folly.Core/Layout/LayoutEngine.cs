@@ -767,6 +767,9 @@ internal sealed class LayoutEngine
             PaddingLeft = foBlock.PaddingLeft,
             PaddingRight = foBlock.PaddingRight,
             BackgroundColor = foBlock.BackgroundColor,
+            BackgroundRepeat = foBlock.BackgroundRepeat,
+            BackgroundPositionHorizontal = foBlock.BackgroundPositionHorizontal,
+            BackgroundPositionVertical = foBlock.BackgroundPositionVertical,
             BorderWidth = foBlock.BorderWidth,
             BorderColor = foBlock.BorderColor,
             BorderStyle = foBlock.BorderStyle,
@@ -783,6 +786,9 @@ internal sealed class LayoutEngine
             BorderLeftColor = foBlock.BorderLeftColor,
             BorderRightColor = foBlock.BorderRightColor
         };
+
+        // Load background image if specified
+        LoadBackgroundImage(blockArea, foBlock.BackgroundImage);
 
         // Calculate content width (available width minus margins and padding)
         var contentWidth = availableWidth - foBlock.MarginLeft - foBlock.MarginRight - foBlock.PaddingLeft - foBlock.PaddingRight;
@@ -2842,6 +2848,122 @@ internal sealed class LayoutEngine
         return (width, height);
     }
 
+    /// <summary>
+    /// Loads a background image and attaches it to a BlockArea.
+    /// </summary>
+    private void LoadBackgroundImage(BlockArea blockArea, string backgroundImageUri)
+    {
+        if (string.IsNullOrWhiteSpace(backgroundImageUri))
+            return;
+
+        // Resolve relative paths and url() syntax
+        var imagePath = backgroundImageUri;
+        if (backgroundImageUri.StartsWith("url(") && backgroundImageUri.EndsWith(")"))
+        {
+            imagePath = backgroundImageUri.Substring(4, backgroundImageUri.Length - 5).Trim('\'', '"');
+        }
+
+        // Security: Validate image path to prevent path traversal attacks
+        if (!ValidateImagePath(imagePath))
+        {
+            // Path validation failed - reject the image
+            return;
+        }
+
+        // Load image data
+        try
+        {
+            if (File.Exists(imagePath))
+            {
+                var fileInfo = new FileInfo(imagePath);
+
+                // Security: Check image size limit to prevent DoS
+                if (_options.MaxImageSizeBytes > 0 && fileInfo.Length > _options.MaxImageSizeBytes)
+                {
+                    // Image exceeds size limit
+                    return;
+                }
+
+                var imageData = File.ReadAllBytes(imagePath);
+
+                // Detect format and dimensions
+                var imageInfo = DetectImageFormat(imageData);
+
+                if (imageInfo.Format != "UNKNOWN" && imageInfo.Width > 0 && imageInfo.Height > 0)
+                {
+                    blockArea.BackgroundImage = imagePath;
+                    blockArea.BackgroundImageData = imageData;
+                    blockArea.BackgroundImageFormat = imageInfo.Format;
+                    blockArea.BackgroundImageWidth = imageInfo.Width;
+                    blockArea.BackgroundImageHeight = imageInfo.Height;
+                }
+            }
+        }
+        catch
+        {
+            // Image not found or couldn't be loaded - silently ignore
+            // Background images are optional and shouldn't break rendering
+        }
+    }
+
+    /// <summary>
+    /// Loads a background image and attaches it to an AbsolutePositionedArea.
+    /// </summary>
+    private void LoadBackgroundImage(AbsolutePositionedArea area, string backgroundImageUri)
+    {
+        if (string.IsNullOrWhiteSpace(backgroundImageUri))
+            return;
+
+        // Resolve relative paths and url() syntax
+        var imagePath = backgroundImageUri;
+        if (backgroundImageUri.StartsWith("url(") && backgroundImageUri.EndsWith(")"))
+        {
+            imagePath = backgroundImageUri.Substring(4, backgroundImageUri.Length - 5).Trim('\'', '"');
+        }
+
+        // Security: Validate image path to prevent path traversal attacks
+        if (!ValidateImagePath(imagePath))
+        {
+            // Path validation failed - reject the image
+            return;
+        }
+
+        // Load image data
+        try
+        {
+            if (File.Exists(imagePath))
+            {
+                var fileInfo = new FileInfo(imagePath);
+
+                // Security: Check image size limit to prevent DoS
+                if (_options.MaxImageSizeBytes > 0 && fileInfo.Length > _options.MaxImageSizeBytes)
+                {
+                    // Image exceeds size limit
+                    return;
+                }
+
+                var imageData = File.ReadAllBytes(imagePath);
+
+                // Detect format and dimensions
+                var imageInfo = DetectImageFormat(imageData);
+
+                if (imageInfo.Format != "UNKNOWN" && imageInfo.Width > 0 && imageInfo.Height > 0)
+                {
+                    area.BackgroundImage = imagePath;
+                    area.BackgroundImageData = imageData;
+                    area.BackgroundImageFormat = imageInfo.Format;
+                    area.BackgroundImageWidth = imageInfo.Width;
+                    area.BackgroundImageHeight = imageInfo.Height;
+                }
+            }
+        }
+        catch
+        {
+            // Image not found or couldn't be loaded - silently ignore
+            // Background images are optional and shouldn't break rendering
+        }
+    }
+
     private (double Width, double Height) CalculateImageDimensions(
         Dom.FoExternalGraphic graphic,
         double intrinsicWidth,
@@ -3438,6 +3560,9 @@ internal sealed class LayoutEngine
             Position = blockContainer.AbsolutePosition,
             ZIndex = ParseZIndex(blockContainer.ZIndex),
             BackgroundColor = blockContainer.BackgroundColor,
+            BackgroundRepeat = blockContainer.BackgroundRepeat,
+            BackgroundPositionHorizontal = blockContainer.BackgroundPositionHorizontal,
+            BackgroundPositionVertical = blockContainer.BackgroundPositionVertical,
             PaddingTop = blockContainer.PaddingBefore,
             PaddingBottom = blockContainer.PaddingAfter,
             PaddingLeft = blockContainer.PaddingStart,
@@ -3455,6 +3580,9 @@ internal sealed class LayoutEngine
             BorderLeftColor = blockContainer.BorderLeftColor,
             BorderRightColor = blockContainer.BorderRightColor
         };
+
+        // Load background image if specified
+        LoadBackgroundImage(absoluteArea, blockContainer.BackgroundImage);
 
         // Calculate content area (subtract padding and borders)
         var contentX = posX + blockContainer.PaddingStart + blockContainer.BorderStartWidth;
