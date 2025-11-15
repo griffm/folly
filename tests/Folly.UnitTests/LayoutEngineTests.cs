@@ -3049,4 +3049,103 @@ public class LayoutEngineTests
     }
 
     #endregion
+
+    #region Absolute Positioning Tests
+
+    [Fact]
+    public void AbsolutePosition_BasicPositioning_LayoutsCorrectly()
+    {
+        // Arrange
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="210mm" page-height="297mm"
+                  margin-top="1in" margin-bottom="1in" margin-left="1in" margin-right="1in">
+                  <fo:region-body margin="0"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:block>Normal flow content</fo:block>
+                  <fo:block-container absolute-position="absolute" top="100pt" left="50pt"
+                    width="200pt" height="100pt" background-color="lightgray"
+                    border-before-width="2pt" border-before-style="solid" border-before-color="black"
+                    border-after-width="2pt" border-after-style="solid" border-after-color="black"
+                    border-start-width="2pt" border-start-style="solid" border-start-color="black"
+                    border-end-width="2pt" border-end-style="solid" border-end-color="black">
+                    <fo:block>Absolutely positioned content</fo:block>
+                  </fo:block-container>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+        var areaTree = doc.BuildAreaTree();
+
+        // Assert
+        Assert.NotNull(areaTree);
+        Assert.Single(areaTree.Pages);
+
+        var page = areaTree.Pages[0];
+
+        // Should have one absolute area
+        Assert.Single(page.AbsoluteAreas);
+
+        var absoluteArea = page.AbsoluteAreas[0];
+        Assert.Equal(50, absoluteArea.X); // left="50pt"
+        Assert.Equal(100, absoluteArea.Y); // top="100pt"
+        Assert.Equal(200, absoluteArea.Width); // width="200pt"
+        Assert.Equal(100, absoluteArea.Height); // height="100pt"
+        Assert.Equal("lightgray", absoluteArea.BackgroundColor);
+        Assert.True(absoluteArea.BorderTopWidth > 0); // Has border
+    }
+
+    [Fact]
+    public void AbsolutePosition_ZIndexOrdering_RendersInCorrectOrder()
+    {
+        // Arrange
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="210mm" page-height="297mm"
+                  margin-top="1in" margin-bottom="1in" margin-left="1in" margin-right="1in">
+                  <fo:region-body margin="0"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:block-container absolute-position="absolute" top="100pt" left="50pt"
+                    width="100pt" height="100pt" z-index="10">
+                    <fo:block>Higher z-index (10)</fo:block>
+                  </fo:block-container>
+                  <fo:block-container absolute-position="absolute" top="120pt" left="70pt"
+                    width="100pt" height="100pt" z-index="5">
+                    <fo:block>Lower z-index (5)</fo:block>
+                  </fo:block-container>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+        var areaTree = doc.BuildAreaTree();
+
+        // Assert
+        Assert.NotNull(areaTree);
+        Assert.Single(areaTree.Pages);
+
+        var page = areaTree.Pages[0];
+        Assert.Equal(2, page.AbsoluteAreas.Count);
+
+        // Check z-index values
+        Assert.Equal(10, page.AbsoluteAreas[0].ZIndex);
+        Assert.Equal(5, page.AbsoluteAreas[1].ZIndex);
+    }
+
+    #endregion
 }

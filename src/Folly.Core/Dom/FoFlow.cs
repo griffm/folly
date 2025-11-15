@@ -27,4 +27,9 @@ public sealed class FoFlow : FoElement
     /// Gets the list block children.
     /// </summary>
     public IReadOnlyList<FoListBlock> Lists { get; init; } = Array.Empty<FoListBlock>();
+
+    /// <summary>
+    /// Gets the block container children.
+    /// </summary>
+    public IReadOnlyList<FoBlockContainer> BlockContainers { get; init; } = Array.Empty<FoBlockContainer>();
 }

@@ -215,6 +215,8 @@ The core rendering engine is fully operational with extensive feature support:
 - BiDi text support (fo:bidi-override) with text reordering for right-to-left text rendering
 - Advanced formatting objects (fo:page-number-citation, fo:page-number-citation-last, fo:block-container, fo:inline-container, fo:wrapper, fo:character, fo:initial-property-set)
 - Side regions (fo:region-start, fo:region-end)
+- **Absolute positioning** (fo:block-container with absolute-position) for letterheads, watermarks, and complex forms
+- **Z-index layering** for controlling stacking order of absolutely positioned elements
 
 **PDF Rendering:**
 - PDF 1.7 output with correct structure
@@ -238,10 +240,10 @@ The core rendering engine is fully operational with extensive feature support:
 - PDF outline/bookmarks for document navigation
 
 **Quality Assurance:**
-- 281+ passing unit tests (99%+ success rate)
+- 283+ passing unit tests (99%+ success rate)
   - 21 XSL-FO conformance tests (formatting object parsing, including repeatable-page-master-reference)
   - 25 property inheritance tests (50+ inheritable properties)
-  - 60+ layout engine tests (line breaking, page breaking, tables, footnotes, text justification, **multi-page tables**, **table row spanning**, **proportional column widths**, **content-based column sizing**, **footer repetition**, **multi-page lists**, **keep-with-next/previous**, **widow/orphan control**, **emergency line breaking**)
+  - 62+ layout engine tests (line breaking, page breaking, tables, footnotes, text justification, **multi-page tables**, **table row spanning**, **proportional column widths**, **content-based column sizing**, **footer repetition**, **multi-page lists**, **keep-with-next/previous**, **widow/orphan control**, **emergency line breaking**, **absolute positioning**)
   - **19 hyphenation tests** (Liang's algorithm, multi-language support, configurable constraints)
   - **5 emergency line breaking tests** (character-level breaking, wrap-option support, narrow columns)
   - **7 Knuth-Plass line breaking tests** (optimal line breaking, TeX-quality typography, comparison with greedy)

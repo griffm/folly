@@ -639,6 +639,24 @@ internal sealed class LayoutEngine
             currentColumn = 0;  // Reset to first column after list
         }
 
+        // Layout absolutely positioned block containers
+        // These are positioned relative to the page, not the flow
+        // Note: We add them to all pages - in the future we could track which page they belong to
+        foreach (var blockContainer in flow.BlockContainers)
+        {
+            // Only handle absolute positioning for now
+            if (blockContainer.AbsolutePosition == "absolute")
+            {
+                var absoluteArea = LayoutBlockContainer(blockContainer, currentPageMaster, pageNumber);
+                if (absoluteArea != null)
+                {
+                    // Add to the current page
+                    // TODO: In the future, support page-specific positioning
+                    currentPage.AddAbsoluteArea(absoluteArea);
+                }
+            }
+        }
+
         // Add the last page
         RenderFloats(currentPage, currentPageMaster, bodyMarginTop);
         RenderFootnotes(currentPage, currentPageMaster, pageSequence);
@@ -3304,6 +3322,196 @@ internal sealed class LayoutEngine
             // Clamp to valid range
             return Math.Max(1, Math.Min(999, strength));
         }
+
+        return 0;
+    }
+
+    /// <summary>
+    /// Lays out a block container, handling both normal flow and absolute positioning.
+    /// </summary>
+    private AbsolutePositionedArea? LayoutBlockContainer(
+        Dom.FoBlockContainer blockContainer,
+        Dom.FoSimplePageMaster pageMaster,
+        int pageNumber)
+    {
+        // Only handle absolute positioning for now
+        if (blockContainer.AbsolutePosition != "absolute")
+        {
+            // TODO: Implement normal flow block containers
+            return null;
+        }
+
+        // Calculate absolute position relative to page
+        var (posX, posY, containerWidth, containerHeight) = CalculateAbsolutePosition(
+            blockContainer, pageMaster);
+
+        // Create the absolutely positioned area
+        var absoluteArea = new AbsolutePositionedArea
+        {
+            X = posX,
+            Y = posY,
+            Width = containerWidth,
+            Height = containerHeight,
+            Position = blockContainer.AbsolutePosition,
+            ZIndex = ParseZIndex(blockContainer.ZIndex),
+            BackgroundColor = blockContainer.BackgroundColor,
+            PaddingTop = blockContainer.PaddingBefore,
+            PaddingBottom = blockContainer.PaddingAfter,
+            PaddingLeft = blockContainer.PaddingStart,
+            PaddingRight = blockContainer.PaddingEnd,
+            BorderWidth = (blockContainer.BorderBeforeWidth + blockContainer.BorderAfterWidth +
+                          blockContainer.BorderStartWidth + blockContainer.BorderEndWidth) / 4.0,
+            BorderTopWidth = blockContainer.BorderBeforeWidth,
+            BorderBottomWidth = blockContainer.BorderAfterWidth,
+            BorderLeftWidth = blockContainer.BorderStartWidth,
+            BorderRightWidth = blockContainer.BorderEndWidth
+        };
+
+        // Calculate content area (subtract padding)
+        var contentX = posX + blockContainer.PaddingStart + blockContainer.BorderStartWidth;
+        var contentY = posY + blockContainer.PaddingBefore + blockContainer.BorderBeforeWidth;
+        var contentWidth = containerWidth - blockContainer.PaddingStart - blockContainer.PaddingEnd -
+                           blockContainer.BorderStartWidth - blockContainer.BorderEndWidth;
+        var contentHeight = containerHeight - blockContainer.PaddingBefore - blockContainer.PaddingAfter -
+                            blockContainer.BorderBeforeWidth - blockContainer.BorderAfterWidth;
+
+        // Layout children within the absolute container
+        var currentY = contentY;
+        foreach (var child in blockContainer.Children)
+        {
+            Area? childArea = null;
+
+            if (child is Dom.FoBlock foBlock)
+            {
+                childArea = LayoutBlock(foBlock, contentX, currentY, contentWidth, pageNumber);
+            }
+            else if (child is Dom.FoTable foTable)
+            {
+                childArea = LayoutTable(foTable, contentX, currentY, contentWidth);
+            }
+            else if (child is Dom.FoListBlock foList)
+            {
+                childArea = LayoutListBlock(foList, contentX, currentY, contentWidth);
+            }
+            else if (child is Dom.FoBlockContainer nestedContainer)
+            {
+                // Nested absolute containers are positioned relative to parent
+                var nestedArea = LayoutBlockContainer(nestedContainer, pageMaster, pageNumber);
+                if (nestedArea != null)
+                {
+                    childArea = nestedArea;
+                }
+            }
+
+            if (childArea != null)
+            {
+                absoluteArea.AddChild(childArea);
+                currentY += childArea.Height;
+
+                // Add margins if it's a block area
+                if (childArea is BlockArea blockArea)
+                {
+                    currentY += blockArea.MarginTop + blockArea.MarginBottom +
+                                blockArea.SpaceBefore + blockArea.SpaceAfter;
+                }
+            }
+        }
+
+        // Update the container height based on content if height was "auto"
+        if (blockContainer.Height == "auto")
+        {
+            absoluteArea.Height = currentY - posY;
+        }
+
+        return absoluteArea;
+    }
+
+    /// <summary>
+    /// Calculates the absolute position and dimensions of a block container.
+    /// </summary>
+    private (double x, double y, double width, double height) CalculateAbsolutePosition(
+        Dom.FoBlockContainer blockContainer,
+        Dom.FoSimplePageMaster pageMaster)
+    {
+        var pageWidth = pageMaster.PageWidth;
+        var pageHeight = pageMaster.PageHeight;
+
+        // Calculate X position (left takes precedence over right)
+        double x;
+        if (blockContainer.Left != "auto")
+        {
+            x = ParseLengthOrPercentage(blockContainer.Left, pageWidth);
+        }
+        else if (blockContainer.Right != "auto")
+        {
+            var rightOffset = ParseLengthOrPercentage(blockContainer.Right, pageWidth);
+            var width = ParseLengthOrPercentage(blockContainer.Width, pageWidth);
+            x = pageWidth - rightOffset - width;
+        }
+        else
+        {
+            x = 0; // Default to left edge
+        }
+
+        // Calculate Y position (top takes precedence over bottom)
+        double y;
+        if (blockContainer.Top != "auto")
+        {
+            y = ParseLengthOrPercentage(blockContainer.Top, pageHeight);
+        }
+        else if (blockContainer.Bottom != "auto")
+        {
+            var bottomOffset = ParseLengthOrPercentage(blockContainer.Bottom, pageHeight);
+            var height = ParseLengthOrPercentage(blockContainer.Height, pageHeight);
+            y = pageHeight - bottomOffset - height;
+        }
+        else
+        {
+            y = 0; // Default to top edge
+        }
+
+        // Calculate width
+        var containerWidth = blockContainer.Width != "auto"
+            ? ParseLengthOrPercentage(blockContainer.Width, pageWidth)
+            : pageWidth; // Default to full width
+
+        // Calculate height
+        var containerHeight = blockContainer.Height != "auto"
+            ? ParseLengthOrPercentage(blockContainer.Height, pageHeight)
+            : pageHeight; // Default to full height (but will be adjusted based on content)
+
+        return (x, y, containerWidth, containerHeight);
+    }
+
+    /// <summary>
+    /// Parses a length or percentage value.
+    /// </summary>
+    private double ParseLengthOrPercentage(string value, double referenceValue)
+    {
+        if (string.IsNullOrEmpty(value) || value == "auto")
+            return 0;
+
+        if (value.EndsWith("%"))
+        {
+            if (double.TryParse(value.TrimEnd('%'), out var percentage))
+            {
+                return (percentage / 100.0) * referenceValue;
+            }
+        }
+
+        return Dom.LengthParser.Parse(value);
+    }
+
+    /// <summary>
+    /// Parses the z-index value.
+    /// </summary>
+    private int ParseZIndex(string zIndex)
+    {
+        if (string.IsNullOrEmpty(zIndex) || zIndex == "auto")
+            return 0;
+
+        if (int.TryParse(zIndex, out var value))
+            return value;
 
         return 0;
     }
