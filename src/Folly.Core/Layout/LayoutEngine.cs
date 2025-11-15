@@ -143,6 +143,88 @@ internal sealed class LayoutEngine
                     }
                 }
             }
+            else if (flowName == "xsl-region-start" && pageMaster.RegionStart != null)
+            {
+                // Layout content in left sidebar region
+                var extent = (pageMaster.RegionStart as Dom.FoRegionStart)?.Extent ?? 36;
+                var regionBeforeExtent = pageMaster.RegionBefore != null ?
+                    ((pageMaster.RegionBefore as Dom.FoRegionBefore)?.Extent ?? 36) : 0;
+                var regionAfterExtent = pageMaster.RegionAfter != null ?
+                    ((pageMaster.RegionAfter as Dom.FoRegionAfter)?.Extent ?? 36) : 0;
+
+                var x = pageMaster.MarginLeft + pageMaster.RegionStart.MarginLeft;
+                var y = pageMaster.MarginTop + regionBeforeExtent + pageMaster.RegionStart.MarginTop;
+                var width = extent - pageMaster.RegionStart.MarginLeft - pageMaster.RegionStart.MarginRight;
+                var availableHeight = pageMaster.PageHeight - pageMaster.MarginTop - pageMaster.MarginBottom -
+                                    regionBeforeExtent - regionAfterExtent -
+                                    pageMaster.RegionStart.MarginTop - pageMaster.RegionStart.MarginBottom;
+
+                foreach (var block in staticContent.Blocks)
+                {
+                    var blockArea = LayoutBlock(block, x, y, width, pageNumber);
+                    if (blockArea != null)
+                    {
+                        page.AddArea(blockArea);
+                        y += blockArea.Height + blockArea.MarginTop + blockArea.MarginBottom;
+                    }
+                }
+
+                // Handle retrieve-marker elements
+                foreach (var retrieveMarker in staticContent.RetrieveMarkers)
+                {
+                    var markerBlocks = RetrieveMarkerContent(retrieveMarker, pageNumber);
+                    foreach (var block in markerBlocks)
+                    {
+                        var blockArea = LayoutBlock(block, x, y, width, pageNumber);
+                        if (blockArea != null)
+                        {
+                            page.AddArea(blockArea);
+                            y += blockArea.Height + blockArea.MarginTop + blockArea.MarginBottom;
+                        }
+                    }
+                }
+            }
+            else if (flowName == "xsl-region-end" && pageMaster.RegionEnd != null)
+            {
+                // Layout content in right sidebar region
+                var extent = (pageMaster.RegionEnd as Dom.FoRegionEnd)?.Extent ?? 36;
+                var regionBeforeExtent = pageMaster.RegionBefore != null ?
+                    ((pageMaster.RegionBefore as Dom.FoRegionBefore)?.Extent ?? 36) : 0;
+                var regionAfterExtent = pageMaster.RegionAfter != null ?
+                    ((pageMaster.RegionAfter as Dom.FoRegionAfter)?.Extent ?? 36) : 0;
+
+                var x = pageMaster.PageWidth - pageMaster.MarginRight - extent + pageMaster.RegionEnd.MarginLeft;
+                var y = pageMaster.MarginTop + regionBeforeExtent + pageMaster.RegionEnd.MarginTop;
+                var width = extent - pageMaster.RegionEnd.MarginLeft - pageMaster.RegionEnd.MarginRight;
+                var availableHeight = pageMaster.PageHeight - pageMaster.MarginTop - pageMaster.MarginBottom -
+                                    regionBeforeExtent - regionAfterExtent -
+                                    pageMaster.RegionEnd.MarginTop - pageMaster.RegionEnd.MarginBottom;
+
+                foreach (var block in staticContent.Blocks)
+                {
+                    var blockArea = LayoutBlock(block, x, y, width, pageNumber);
+                    if (blockArea != null)
+                    {
+                        page.AddArea(blockArea);
+                        y += blockArea.Height + blockArea.MarginTop + blockArea.MarginBottom;
+                    }
+                }
+
+                // Handle retrieve-marker elements
+                foreach (var retrieveMarker in staticContent.RetrieveMarkers)
+                {
+                    var markerBlocks = RetrieveMarkerContent(retrieveMarker, pageNumber);
+                    foreach (var block in markerBlocks)
+                    {
+                        var blockArea = LayoutBlock(block, x, y, width, pageNumber);
+                        if (blockArea != null)
+                        {
+                            page.AddArea(blockArea);
+                            y += blockArea.Height + blockArea.MarginTop + blockArea.MarginBottom;
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -283,15 +365,17 @@ internal sealed class LayoutEngine
             // Calculate region extents
             var regionBeforeExtent = (pageMaster.RegionBefore as Dom.FoRegionBefore)?.Extent ?? 0;
             var regionAfterExtent = (pageMaster.RegionAfter as Dom.FoRegionAfter)?.Extent ?? 0;
+            var regionStartExtent = (pageMaster.RegionStart as Dom.FoRegionStart)?.Extent ?? 0;
+            var regionEndExtent = (pageMaster.RegionEnd as Dom.FoRegionEnd)?.Extent ?? 0;
 
             // Body position and dimensions must account for:
             // - Page margins (from simple-page-master)
-            // - Region extents (from region-before/after)
+            // - Region extents (from region-before/after/start/end)
             // - Region-body margins
             marginTop = pageMaster.MarginTop + regionBeforeExtent + regionBodyMarginTop;
             marginBottom = pageMaster.MarginBottom + regionAfterExtent + regionBodyMarginBottom;
-            marginLeft = pageMaster.MarginLeft + regionBodyMarginLeft;
-            marginRight = pageMaster.MarginRight + regionBodyMarginRight;
+            marginLeft = pageMaster.MarginLeft + regionStartExtent + regionBodyMarginLeft;
+            marginRight = pageMaster.MarginRight + regionEndExtent + regionBodyMarginRight;
 
             width = pageMaster.PageWidth - marginLeft - marginRight;
             height = pageMaster.PageHeight - marginTop - marginBottom;

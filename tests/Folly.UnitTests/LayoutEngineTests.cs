@@ -3148,4 +3148,216 @@ public class LayoutEngineTests
     }
 
     #endregion
+
+    #region Region Start/End (Sidebars) Tests
+
+    [Fact]
+    public void RegionStart_RendersLeftSidebar()
+    {
+        // Arrange
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="210mm" page-height="297mm"
+                  margin-top="1in" margin-bottom="1in" margin-left="1in" margin-right="1in">
+                  <fo:region-body margin-left="72pt"/>
+                  <fo:region-start extent="72pt"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:static-content flow-name="xsl-region-start">
+                  <fo:block font-size="10pt">Sidebar Note 1</fo:block>
+                  <fo:block font-size="10pt">Sidebar Note 2</fo:block>
+                </fo:static-content>
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:block>Main content</fo:block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+        var areaTree = doc.BuildAreaTree();
+
+        // Assert
+        Assert.NotNull(areaTree);
+        Assert.Single(areaTree.Pages);
+
+        var page = areaTree.Pages[0];
+
+        // Should have blocks from both region-start and region-body
+        var allBlocks = page.Areas.OfType<BlockArea>().ToList();
+        Assert.True(allBlocks.Count >= 3); // At least 2 sidebar blocks + 1 main content block
+
+        // Find sidebar blocks (they should be on the left side)
+        var sidebarBlocks = allBlocks
+            .Where(b => b.X < 200) // Left side of page (72pt extent + 72pt margin = 144pt)
+            .ToList();
+
+        Assert.True(sidebarBlocks.Count >= 2, "Should have at least 2 sidebar blocks");
+    }
+
+    [Fact]
+    public void RegionEnd_RendersRightSidebar()
+    {
+        // Arrange
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="210mm" page-height="297mm"
+                  margin-top="1in" margin-bottom="1in" margin-left="1in" margin-right="1in">
+                  <fo:region-body margin-right="72pt"/>
+                  <fo:region-end extent="72pt"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:static-content flow-name="xsl-region-end">
+                  <fo:block font-size="10pt">Right Note 1</fo:block>
+                  <fo:block font-size="10pt">Right Note 2</fo:block>
+                </fo:static-content>
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:block>Main content</fo:block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+        var areaTree = doc.BuildAreaTree();
+
+        // Assert
+        Assert.NotNull(areaTree);
+        Assert.Single(areaTree.Pages);
+
+        var page = areaTree.Pages[0];
+
+        // Should have blocks from both region-end and region-body
+        var allBlocks = page.Areas.OfType<BlockArea>().ToList();
+        Assert.True(allBlocks.Count >= 3); // At least 2 sidebar blocks + 1 main content block
+
+        // Find right sidebar blocks (they should be on the right side)
+        var rightSidebarBlocks = allBlocks
+            .Where(b => b.X > 400) // Right side of page
+            .ToList();
+
+        Assert.True(rightSidebarBlocks.Count >= 2, "Should have at least 2 right sidebar blocks");
+    }
+
+    [Fact]
+    public void RegionStartAndEnd_BothSidebarsRenderTogether()
+    {
+        // Arrange
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="210mm" page-height="297mm"
+                  margin-top="1in" margin-bottom="1in" margin-left="1in" margin-right="1in">
+                  <fo:region-body margin-left="72pt" margin-right="72pt"/>
+                  <fo:region-start extent="72pt"/>
+                  <fo:region-end extent="72pt"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:static-content flow-name="xsl-region-start">
+                  <fo:block font-size="10pt">Left Note</fo:block>
+                </fo:static-content>
+                <fo:static-content flow-name="xsl-region-end">
+                  <fo:block font-size="10pt">Right Note</fo:block>
+                </fo:static-content>
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:block>Main content in center</fo:block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+        var areaTree = doc.BuildAreaTree();
+
+        // Assert
+        Assert.NotNull(areaTree);
+        Assert.Single(areaTree.Pages);
+
+        var page = areaTree.Pages[0];
+
+        // Should have blocks from all three regions
+        var allBlocks = page.Areas.OfType<BlockArea>().ToList();
+        Assert.True(allBlocks.Count >= 3); // Left sidebar + right sidebar + main content
+
+        // Check that blocks are positioned correctly
+        var leftBlocks = allBlocks.Where(b => b.X < 200).ToList();
+        var rightBlocks = allBlocks.Where(b => b.X > 400).ToList();
+        var centerBlocks = allBlocks.Where(b => b.X >= 200 && b.X <= 400).ToList();
+
+        Assert.True(leftBlocks.Count >= 1, "Should have left sidebar blocks");
+        Assert.True(rightBlocks.Count >= 1, "Should have right sidebar blocks");
+        Assert.True(centerBlocks.Count >= 1, "Should have center body blocks");
+    }
+
+    [Fact]
+    public void RegionStart_WithMarginNotes_RendersCorrectly()
+    {
+        // Arrange
+        var foXml = """
+            <?xml version="1.0"?>
+            <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+              <fo:layout-master-set>
+                <fo:simple-page-master master-name="A4" page-width="210mm" page-height="297mm"
+                  margin-top="1in" margin-bottom="1in" margin-left="0.5in" margin-right="1in">
+                  <fo:region-body margin-left="2in"/>
+                  <fo:region-start extent="1.5in"/>
+                </fo:simple-page-master>
+              </fo:layout-master-set>
+              <fo:page-sequence master-reference="A4">
+                <fo:static-content flow-name="xsl-region-start">
+                  <fo:block font-size="8pt" font-style="italic" margin-bottom="12pt">
+                    Margin note: This is an important point to remember.
+                  </fo:block>
+                  <fo:block font-size="8pt" font-style="italic">
+                    Another note: See chapter 5 for details.
+                  </fo:block>
+                </fo:static-content>
+                <fo:flow flow-name="xsl-region-body">
+                  <fo:block font-size="12pt">
+                    Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                    Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+                  </fo:block>
+                </fo:flow>
+              </fo:page-sequence>
+            </fo:root>
+            """;
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml));
+        using var doc = FoDocument.Load(stream);
+        var areaTree = doc.BuildAreaTree();
+
+        // Assert
+        Assert.NotNull(areaTree);
+        Assert.Single(areaTree.Pages);
+
+        var page = areaTree.Pages[0];
+        var allBlocks = page.Areas.OfType<BlockArea>().ToList();
+
+        // Should have both margin notes and main content
+        Assert.True(allBlocks.Count >= 3);
+
+        // Verify that sidebar has smaller font size
+        var sidebarBlocks = allBlocks.Where(b => b.X < 200).ToList();
+        Assert.True(sidebarBlocks.Count >= 2, "Should have margin note blocks");
+
+        // Each margin note should have some content
+        foreach (var block in sidebarBlocks)
+        {
+            var lines = block.Children.OfType<LineArea>().ToList();
+            Assert.NotEmpty(lines);
+        }
+    }
+
+    #endregion
 }

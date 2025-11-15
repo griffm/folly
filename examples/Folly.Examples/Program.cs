@@ -158,6 +158,10 @@ GenerateFooterRepetitionExample(Path.Combine(outputDir, "30-footer-repetition.pd
 Console.WriteLine("Generating Example 31: Business Letterhead...");
 GenerateLetterheadExample(Path.Combine(outputDir, "31-letterhead.pdf"));
 
+// Example 32: Sidebars with Margin Notes
+Console.WriteLine("Generating Example 32: Sidebars with Margin Notes...");
+GenerateSidebarsExample(Path.Combine(outputDir, "32-sidebars.pdf"));
+
 Console.WriteLine("\n✓ All examples generated successfully!");
 Console.WriteLine($"\nView PDFs in: {outputDir}");
 Console.WriteLine("\nValidate with qpdf:");
@@ -3631,6 +3635,245 @@ static void GenerateLetterheadExample(string outputPath)
                 fo:block-container with absolute-position="absolute" to place the company header, address,
                 decorative line, and footer at fixed positions on the page. The letter content flows normally
                 in the body area, unaffected by the absolutely positioned elements.
+              </fo:block>
+            </fo:flow>
+          </fo:page-sequence>
+        </fo:root>
+        """;
+
+    using var doc = FoDocument.Load(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml)));
+    doc.SavePdf(outputPath);
+}
+
+static void GenerateSidebarsExample(string outputPath)
+{
+    var foXml = """
+        <?xml version="1.0"?>
+        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+          <!-- Layout Master Set with side regions -->
+          <fo:layout-master-set>
+            <fo:simple-page-master master-name="left-margin-notes" page-width="8.5in" page-height="11in"
+              margin-top="0.75in" margin-bottom="0.75in" margin-left="0.5in" margin-right="1in">
+              <!-- Body region with left margin for sidebar -->
+              <fo:region-body margin-left="2.5in" margin-right="0.5in"/>
+              <!-- Left sidebar for margin notes -->
+              <fo:region-start extent="2in"/>
+              <!-- Header and footer -->
+              <fo:region-before extent="0.5in"/>
+              <fo:region-after extent="0.5in"/>
+            </fo:simple-page-master>
+
+            <fo:simple-page-master master-name="both-sidebars" page-width="8.5in" page-height="11in"
+              margin-top="0.75in" margin-bottom="0.75in" margin-left="0.5in" margin-right="0.5in">
+              <!-- Body region with both side margins -->
+              <fo:region-body margin-left="1.5in" margin-right="1.5in"/>
+              <!-- Left sidebar -->
+              <fo:region-start extent="1.25in"/>
+              <!-- Right sidebar -->
+              <fo:region-end extent="1.25in"/>
+              <!-- Header and footer -->
+              <fo:region-before extent="0.5in"/>
+              <fo:region-after extent="0.5in"/>
+            </fo:simple-page-master>
+          </fo:layout-master-set>
+
+          <!-- Page Sequence 1: Left margin notes (academic style) -->
+          <fo:page-sequence master-reference="left-margin-notes">
+            <fo:static-content flow-name="xsl-region-before">
+              <fo:block font-size="10pt" text-align="center" border-bottom="0.5pt solid black" padding-bottom="6pt">
+                Academic Paper with Margin Notes
+              </fo:block>
+            </fo:static-content>
+
+            <fo:static-content flow-name="xsl-region-after">
+              <fo:block font-size="9pt" text-align="center" border-top="0.5pt solid black" padding-top="6pt">
+                Page <fo:page-number/>
+              </fo:block>
+            </fo:static-content>
+
+            <fo:static-content flow-name="xsl-region-start">
+              <!-- Margin note 1 -->
+              <fo:block font-size="8pt" font-style="italic" color="#666666"
+                margin-bottom="18pt" space-after="12pt">
+                <fo:inline font-weight="bold" color="#000000">Definition:</fo:inline>
+                The term "region-start" refers to the left sidebar in left-to-right writing modes,
+                or the right sidebar in right-to-left modes.
+              </fo:block>
+
+              <!-- Margin note 2 -->
+              <fo:block font-size="8pt" font-style="italic" color="#666666"
+                margin-bottom="18pt" space-after="12pt">
+                <fo:inline font-weight="bold" color="#000000">Historical Note:</fo:inline>
+                XSL-FO was developed by the W3C and became a recommendation in 2001.
+                It provides precise control over page layout for print and PDF output.
+              </fo:block>
+
+              <!-- Margin note 3 -->
+              <fo:block font-size="8pt" font-style="italic" color="#666666"
+                margin-bottom="18pt" space-after="12pt">
+                <fo:inline font-weight="bold" color="#000000">See Also:</fo:inline>
+                Chapter 5 discusses multi-column layouts and how they interact with side regions.
+              </fo:block>
+
+              <!-- Margin note 4 -->
+              <fo:block font-size="8pt" font-style="italic" color="#666666">
+                <fo:inline font-weight="bold" color="#000000">Important:</fo:inline>
+                Side regions are ideal for annotations, glossary terms, cross-references,
+                and supplementary information that shouldn't interrupt the main text flow.
+              </fo:block>
+            </fo:static-content>
+
+            <fo:flow flow-name="xsl-region-body">
+              <fo:block font-size="18pt" font-weight="bold" space-after="12pt">
+                Understanding XSL-FO Side Regions
+              </fo:block>
+
+              <fo:block font-size="12pt" text-align="justify" space-after="12pt">
+                XSL-FO provides powerful layout capabilities through its region model. In addition to
+                the standard region-before (header), region-after (footer), and region-body (main content),
+                XSL-FO supports region-start and region-end for left and right sidebars respectively.
+              </fo:block>
+
+              <fo:block font-size="12pt" text-align="justify" space-after="12pt">
+                These side regions are particularly useful in academic papers, technical documentation,
+                and annotated texts where supplementary information needs to be visible alongside the
+                main content without interrupting the reading flow.
+              </fo:block>
+
+              <fo:block font-size="12pt" text-align="justify" space-after="12pt">
+                The key advantage of using side regions over other layout techniques is that they
+                maintain a clean separation between the main content and supplementary material. The
+                region-body automatically adjusts its width to accommodate the side regions, ensuring
+                proper text flow and preventing overlap.
+              </fo:block>
+
+              <fo:block font-size="14pt" font-weight="bold" space-before="18pt" space-after="12pt">
+                Implementation Details
+              </fo:block>
+
+              <fo:block font-size="12pt" text-align="justify" space-after="12pt">
+                To implement side regions, you need to configure three components: the simple-page-master
+                with region-start and/or region-end elements, the region-body with appropriate margins,
+                and static-content sections that target the xsl-region-start and xsl-region-end flow names.
+              </fo:block>
+
+              <fo:block font-size="12pt" text-align="justify" space-after="12pt">
+                The extent attribute on region-start and region-end specifies the width of each sidebar.
+                The region-body's margin-left and margin-right should account for these extents plus any
+                desired spacing between the regions.
+              </fo:block>
+
+              <fo:block font-size="12pt" text-align="justify">
+                This flexibility allows for a wide range of layout designs, from minimal margin notes
+                to full-width sidebars containing complex content like tables, lists, or images.
+              </fo:block>
+            </fo:flow>
+          </fo:page-sequence>
+
+          <!-- Page Sequence 2: Both sidebars (magazine style) -->
+          <fo:page-sequence master-reference="both-sidebars">
+            <fo:static-content flow-name="xsl-region-before">
+              <fo:block font-size="10pt" text-align="center" border-bottom="0.5pt solid black" padding-bottom="6pt">
+                Magazine Layout with Both Sidebars
+              </fo:block>
+            </fo:static-content>
+
+            <fo:static-content flow-name="xsl-region-after">
+              <fo:block font-size="9pt" text-align="center" border-top="0.5pt solid black" padding-top="6pt">
+                Page <fo:page-number/>
+              </fo:block>
+            </fo:static-content>
+
+            <fo:static-content flow-name="xsl-region-start">
+              <!-- Left sidebar content -->
+              <fo:block font-size="9pt" font-weight="bold" color="#003366"
+                border="1pt solid #003366" padding="6pt" background-color="#E6F2FF"
+                margin-bottom="12pt">
+                Quick Facts
+              </fo:block>
+
+              <fo:block font-size="8pt" margin-bottom="12pt">
+                <fo:block font-weight="bold" space-after="3pt">• Year Established</fo:block>
+                <fo:block margin-left="12pt">2001 (W3C Recommendation)</fo:block>
+              </fo:block>
+
+              <fo:block font-size="8pt" margin-bottom="12pt">
+                <fo:block font-weight="bold" space-after="3pt">• Current Version</fo:block>
+                <fo:block margin-left="12pt">XSL-FO 1.1</fo:block>
+              </fo:block>
+
+              <fo:block font-size="8pt">
+                <fo:block font-weight="bold" space-after="3pt">• Primary Use</fo:block>
+                <fo:block margin-left="12pt">Professional document formatting and PDF generation</fo:block>
+              </fo:block>
+            </fo:static-content>
+
+            <fo:static-content flow-name="xsl-region-end">
+              <!-- Right sidebar content -->
+              <fo:block font-size="9pt" font-weight="bold" color="#006633"
+                border="1pt solid #006633" padding="6pt" background-color="#E6FFE6"
+                margin-bottom="12pt">
+                Related Topics
+              </fo:block>
+
+              <fo:block font-size="8pt" margin-bottom="8pt">
+                → Multi-column layouts
+              </fo:block>
+
+              <fo:block font-size="8pt" margin-bottom="8pt">
+                → Absolute positioning
+              </fo:block>
+
+              <fo:block font-size="8pt" margin-bottom="8pt">
+                → Conditional page masters
+              </fo:block>
+
+              <fo:block font-size="8pt" margin-bottom="12pt">
+                → Flow mapping
+              </fo:block>
+
+              <fo:block font-size="8pt" font-style="italic" color="#666666"
+                border-top="0.5pt solid #CCCCCC" padding-top="6pt">
+                For more information, consult the XSL-FO 1.1 specification from the W3C.
+              </fo:block>
+            </fo:static-content>
+
+            <fo:flow flow-name="xsl-region-body">
+              <fo:block font-size="16pt" font-weight="bold" space-after="12pt" text-align="center">
+                Advanced Page Layout with Side Regions
+              </fo:block>
+
+              <fo:block font-size="11pt" text-align="justify" space-after="10pt">
+                This page demonstrates the use of both region-start (left sidebar) and region-end
+                (right sidebar) simultaneously. This layout pattern is commonly seen in magazines,
+                textbooks, and reference materials where supplementary information is displayed
+                in the margins on both sides of the main text.
+              </fo:block>
+
+              <fo:block font-size="11pt" text-align="justify" space-after="10pt">
+                The left sidebar typically contains quick reference information, definitions, or
+                key facts, while the right sidebar often includes related topics, cross-references,
+                or callout boxes. The main content flows naturally in the center column.
+              </fo:block>
+
+              <fo:block font-size="11pt" text-align="justify" space-after="10pt">
+                Each sidebar can contain any valid XSL-FO content, including styled blocks, lists,
+                tables, images, and borders. The styling is independent from the main body,
+                allowing for visual distinction through different fonts, colors, or backgrounds.
+              </fo:block>
+
+              <fo:block font-size="11pt" text-align="justify" space-after="10pt">
+                This three-column layout (left sidebar, main body, right sidebar) creates a
+                professional appearance and maximizes the use of page space while maintaining
+                excellent readability. The main content remains focused and uncluttered, while
+                the sidebars provide context and additional depth.
+              </fo:block>
+
+              <fo:block font-size="11pt" text-align="justify">
+                Side regions are static-content, meaning they remain consistent across pages
+                (unless you use conditional page masters). This makes them ideal for persistent
+                navigation aids, glossaries, or supplementary information that should appear
+                on every page of a section.
               </fo:block>
             </fo:flow>
           </fo:page-sequence>
