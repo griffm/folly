@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- W3C SVG 1.1 Test Suite Style: Rotation Transform Test -->
+<svg version="1.1" baseProfile="full" width="400" height="400"
+     xmlns="http://www.w3.org/2000/svg">
+  <title>Rotation Transform Test</title>
+  <desc>Tests rotation transforms on various shapes</desc>
+
+  <!-- Original rectangle (no rotation) -->
+  <rect x="180" y="180" width="40" height="40" fill="lightgray" stroke="black"/>
+
+  <!-- Rotated rectangles around center -->
+  <rect x="180" y="180" width="40" height="40" fill="red"
+        transform="rotate(45 200 200)"/>
+  <rect x="180" y="180" width="40" height="40" fill="blue"
+        transform="rotate(90 200 200)"/>
+  <rect x="180" y="180" width="40" height="40" fill="green"
+        transform="rotate(135 200 200)"/>
+  <rect x="180" y="180" width="40" height="40" fill="yellow"
+        transform="rotate(180 200 200)"/>
+
+  <!-- Center point -->
+  <circle cx="200" cy="200" r="3" fill="black"/>
+</svg>

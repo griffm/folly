@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- W3C SVG 1.1 Test Suite Style: Basic Text Test -->
+<svg version="1.1" baseProfile="full" width="400" height="300"
+     xmlns="http://www.w3.org/2000/svg">
+  <title>Basic Text Test</title>
+  <desc>Tests basic text rendering with various attributes</desc>
+
+  <text x="10" y="30" font-family="Verdana" font-size="20" fill="black">
+    Basic SVG Text
+  </text>
+
+  <text x="10" y="70" font-family="serif" font-size="24" fill="blue" font-weight="bold">
+    Bold Blue Text
+  </text>
+
+  <text x="10" y="110" font-family="monospace" font-size="18" fill="red" font-style="italic">
+    Italic Monospace
+  </text>
+
+  <text x="200" y="150" font-size="16" text-anchor="middle" fill="green">
+    Centered Text
+  </text>
+
+  <text x="10" y="200" font-size="14" fill="purple">
+    <tspan x="10" dy="0">Multi-line text using</tspan>
+    <tspan x="10" dy="20">tspan elements with</tspan>
+    <tspan x="10" dy="20">different positioning</tspan>
+  </text>
+</svg>
