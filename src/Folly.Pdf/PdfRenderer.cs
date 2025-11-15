@@ -912,7 +912,8 @@ public sealed class PdfRenderer : IDisposable
             }
             else
             {
-                RenderArea(child, content, fontIds, imageIds, pageHeight);
+                // Pass the absolute position offsets for non-BlockArea children
+                RenderArea(child, content, fontIds, imageIds, pageHeight, absoluteX, absoluteY);
             }
         }
     }
