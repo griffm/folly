@@ -115,61 +115,74 @@ public class MultiPageTableInspectionTest
         using var doc = FoDocument.Load(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml)));
         var areaTree = doc.BuildAreaTree();
 
-        // Inspect page 2 specifically (where the corrupted text appears)
+        // Inspect ALL pages to check spacing and footer issues
         var output = new System.Text.StringBuilder();
-        output.AppendLine("=== PAGE 2 INSPECTION ===");
+        output.AppendLine("=== MULTI-PAGE TABLE LAYOUT INSPECTION ===");
         output.AppendLine($"Total pages: {areaTree.Pages.Count}");
 
-        if (areaTree.Pages.Count >= 2)
+        for (int pageIdx = 0; pageIdx < Math.Min(4, areaTree.Pages.Count); pageIdx++)
         {
-            var page2 = areaTree.Pages[1]; // 0-indexed
-            output.AppendLine($"\nPage 2 dimensions: {page2.Width} x {page2.Height}");
-            output.AppendLine($"Page 2 area count: {page2.Areas.Count}");
+            var page = areaTree.Pages[pageIdx];
+            output.AppendLine($"\n=== PAGE {pageIdx + 1} ===");
+            output.AppendLine($"Page dimensions: {page.Width} x {page.Height}");
+            output.AppendLine($"Total areas: {page.Areas.Count}");
 
-            // Use the query API to inspect the first table on page 2
-            var query = areaTree.Query().Page(1);
-            var tables = page2.Areas.OfType<TableArea>().ToList();
+            // Group areas by type
+            var tables = page.Areas.OfType<TableArea>().ToList();
+            var blocks = page.Areas.OfType<BlockArea>().ToList();
 
-            output.AppendLine($"\nTables on page 2: {tables.Count}");
+            output.AppendLine($"  Tables: {tables.Count}");
+            output.AppendLine($"  Blocks: {blocks.Count}");
 
+            // Check the first few areas to see their positions
+            output.AppendLine("\n  First 5 areas:");
+            for (int i = 0; i < Math.Min(5, page.Areas.Count); i++)
+            {
+                var area = page.Areas[i];
+                var areaType = area.GetType().Name;
+                output.AppendLine($"    {i}: {areaType} at Y={area.Y:F2}, Height={area.Height:F2}");
+            }
+
+            // Check if there's a large gap before the first table
             if (tables.Count > 0)
             {
                 var firstTable = tables[0];
-                output.AppendLine($"\nFirst table: {firstTable.Rows.Count} rows");
+                output.AppendLine($"\n  First table position: Y={firstTable.Y:F2}");
+                output.AppendLine($"  Body margin top (expected): 72pt (header) + margins");
+            }
 
-                // Look at the first few rows in detail
-                for (int rowIdx = 0; rowIdx < Math.Min(3, firstTable.Rows.Count); rowIdx++)
+            // Check the last area to see if it overlaps the footer region
+            if (page.Areas.Count > 0)
+            {
+                // Find the footer BlockArea (should be at Y=806 for region-after extent=36pt)
+                var footerBlock = page.Areas.OfType<BlockArea>().FirstOrDefault(b => b.Y > 800);
+                var footerTop = footerBlock?.Y ?? (page.Height - 36); // Default to page height - region-after extent
+
+                // Find the last content area (excluding header/footer)
+                var lastContentArea = page.Areas
+                    .Where(a => a.Y > 50 && a.Y < footerTop) // Exclude header (near Y=0) and footer
+                    .OrderByDescending(a => a.Y + a.Height)
+                    .FirstOrDefault();
+
+                if (lastContentArea != null)
                 {
-                    var row = firstTable.Rows[rowIdx];
-                    output.AppendLine($"\n  Row {rowIdx}: {row.Cells.Count} cells, Height={row.Height:F2}");
+                    var lastAreaBottom = lastContentArea.Y + lastContentArea.Height;
+                    var availableBodyHeight = footerTop - 108; // Body starts at Y=108
 
-                    // Check each cell
-                    for (int cellIdx = 0; cellIdx < row.Cells.Count; cellIdx++)
+                    output.AppendLine($"\n  Last content area: {lastContentArea.GetType().Name}");
+                    output.AppendLine($"    Y={lastContentArea.Y:F2}, Height={lastContentArea.Height:F2}");
+                    output.AppendLine($"    Bottom at: {lastAreaBottom:F2}");
+                    output.AppendLine($"  Footer region starts at: {footerTop:F2}");
+                    output.AppendLine($"  Available body height: {availableBodyHeight:F2}");
+
+                    var gapToFooter = footerTop - lastAreaBottom;
+                    if (gapToFooter < 0)
                     {
-                        var cell = row.Cells[cellIdx];
-                        output.AppendLine($"    Cell {cellIdx}: {cell.Children.Count} children");
-
-                        // Look for blocks and their lines
-                        foreach (var child in cell.Children)
-                        {
-                            if (child is BlockArea block)
-                            {
-                                output.AppendLine($"      Block: {block.Children.Count} children (lines)");
-
-                                foreach (var lineChild in block.Children)
-                                {
-                                    if (lineChild is LineArea line)
-                                    {
-                                        output.AppendLine($"        Line: {line.Inlines.Count} inlines, Y={line.Y:F2}");
-
-                                        foreach (var inline in line.Inlines)
-                                        {
-                                            output.AppendLine($"          Inline: '{inline.Text}' at Y={inline.Y:F2}");
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        output.AppendLine($"  ⚠ OVERFLOW: Content extends {-gapToFooter:F2}pt into footer region!");
+                    }
+                    else
+                    {
+                        output.AppendLine($"  Gap to footer: {gapToFooter:F2}pt");
                     }
                 }
             }
