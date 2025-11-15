@@ -93,12 +93,13 @@ Stroke properties:
 **ACTUALLY RENDERS TO PDF!**
 **Production Ready:** YES
 
-### 7. **Text Rendering** - 98% Complete ✅ **ENHANCED!**
+### 7. **Text Rendering** - 99% Complete ✅ **ENHANCED!**
 WORKS NOW:
 - `<text>` element rendering
 - Basic positioning (x, y)
 - **text-anchor (start, middle, end)** - Text alignment!
 - **text-decoration (underline, overline, line-through)** - Complete!
+- **textLength** - Scales text to fit exact width with PDF Tz operator!
 - **Opacity support** - Text transparency with fillOpacity!
 - Font family mapping to PDF standard fonts:
   * Serif → Times-Roman family
@@ -115,8 +116,9 @@ WORKS NOW:
 NOT YET:
 - textPath (text on curves)
 - Advanced tspan positioning (dx, dy, rotate)
+- lengthAdjust (spacing vs glyphs)
 
-**Production Ready:** YES for text with alignment, decorations, and opacity
+**Production Ready:** YES for text with alignment, decorations, opacity, and width control
 
 ### 8. **Gradients** - 100% Complete ✅ **ENHANCED!**
 WORKS NOW:
@@ -304,17 +306,18 @@ These have **excellent infrastructure** but need rendering integration:
 **Effort:** 15-20 hours for full implementation
 **Production Blocker:** NO (basic shadows work)
 
-### 19. **Advanced Text Features** - 40% Complete ⚠️
+### 19. **Advanced Text Features** - 55% Complete ⚠️
 - ✅ text-anchor (start, middle, end) - **DONE!**
 - ✅ text-decoration (underline, overline, line-through) - **DONE!**
+- ✅ textLength (width scaling) - **DONE!**
+- ❌ lengthAdjust (spacing vs scaling)
 - ❌ `<textPath>` for text on curves
 - ❌ Advanced `<tspan>` positioning (dx, dy, rotate)
-- ❌ textLength/lengthAdjust
 - ❌ Vertical text (writing-mode)
 
 **Impact:** MEDIUM
-**Effort:** 3-4 hours remaining
-**Production Blocker:** NO (basic text with alignment and decorations works)
+**Effort:** 2-3 hours remaining
+**Production Blocker:** NO (basic text with alignment, decorations, and width control works)
 
 ---
 
@@ -328,7 +331,7 @@ These have **excellent infrastructure** but need rendering integration:
 | Colors (solid) | 100% | 100% | ✅ YES |
 | Stroke/Fill (solid) | 100% | 100% | ✅ YES |
 | Clipping | 100% | 100% | ✅ YES |
-| **Text (basic)** | 100% | **98%** | ✅ **YES** |
+| **Text (basic)** | 100% | **99%** | ✅ **YES** |
 | Element Reuse | 100% | 100% | ✅ YES |
 | **Gradients** | 100% | **100%** | ✅ **YES** |
 | **Images (data URI)** | 100% | 60% | ✅ **YES** |
@@ -568,6 +571,7 @@ The SVG implementation is **PRODUCTION-READY** for:
 - **Drop shadows** - Basic shadows with offset and opacity!
 - **Opacity support** - Fill, stroke, and text transparency on ALL elements!
 - **text-decoration** - Underline, overline, line-through rendering!
+- **textLength** - Precise text width control with PDF Tz operator!
 - Working clipping paths
 - Working images (data URI)
 - **CSS class support** - Web-generated SVGs work!
