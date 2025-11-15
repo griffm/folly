@@ -174,6 +174,30 @@ GenerateRoundedCornersExample(Path.Combine(outputDir, "34-rounded-corners.pdf"))
 Console.WriteLine("Generating Example 35: Unicode BiDi (RTL Languages)...");
 GenerateBiDiExample(Path.Combine(outputDir, "35-bidi-rtl.pdf"));
 
+// Example 36: SVG Examples - Basic Shapes
+Console.WriteLine("Generating Example 36: SVG Basic Shapes...");
+GenerateSvgBasicShapesExample(Path.Combine(outputDir, "36-svg-basic-shapes.pdf"), examplesDir);
+
+// Example 37: SVG Examples - Paths and Curves
+Console.WriteLine("Generating Example 37: SVG Paths and Curves...");
+GenerateSvgPathsExample(Path.Combine(outputDir, "37-svg-paths.pdf"), examplesDir);
+
+// Example 38: SVG Examples - Text Rendering
+Console.WriteLine("Generating Example 38: SVG Text Rendering...");
+GenerateSvgTextExample(Path.Combine(outputDir, "38-svg-text.pdf"), examplesDir);
+
+// Example 39: SVG Examples - Gradients
+Console.WriteLine("Generating Example 39: SVG Gradients...");
+GenerateSvgGradientsExample(Path.Combine(outputDir, "39-svg-gradients.pdf"), examplesDir);
+
+// Example 40: SVG Examples - Transforms
+Console.WriteLine("Generating Example 40: SVG Transforms...");
+GenerateSvgTransformsExample(Path.Combine(outputDir, "40-svg-transforms.pdf"), examplesDir);
+
+// Example 41: SVG Examples - Complex Features
+Console.WriteLine("Generating Example 41: SVG Complex Features...");
+GenerateSvgComplexExample(Path.Combine(outputDir, "41-svg-complex.pdf"), examplesDir);
+
 Console.WriteLine("\n✓ All examples generated successfully!");
 Console.WriteLine($"\nView PDFs in: {outputDir}");
 Console.WriteLine("\nValidate with qpdf:");
@@ -4426,3 +4450,211 @@ static void GenerateBiDiExample(string outputPath)
     using var output = File.Create(outputPath);
     doc.SavePdf(output);
 }
+
+// SVG Examples
+static void GenerateSvgBasicShapesExample(string outputPath, string examplesDir)
+{
+    var svgDir = Path.Combine(examplesDir, "svg-examples", "basic-shapes");
+    var svgFiles = new[]
+    {
+        "01-rectangle.svg",
+        "02-circle.svg",
+        "03-ellipse.svg",
+        "04-line.svg",
+        "05-polygon.svg",
+        "06-polyline.svg",
+        "07-rounded-rectangle.svg"
+    };
+    RenderSvgFilesToPdf(outputPath, svgDir, svgFiles, "SVG Basic Shapes");
+}
+
+static void GenerateSvgPathsExample(string outputPath, string examplesDir)
+{
+    var svgDir = Path.Combine(examplesDir, "svg-examples", "paths");
+    var svgFiles = new[]
+    {
+        "01-straight-path.svg",
+        "02-curved-path.svg",
+        "03-cubic-bezier.svg",
+        "04-arc.svg",
+        "05-complex-path.svg"
+    };
+    RenderSvgFilesToPdf(outputPath, svgDir, svgFiles, "SVG Paths and Curves");
+}
+
+static void GenerateSvgTextExample(string outputPath, string examplesDir)
+{
+    var svgDir = Path.Combine(examplesDir, "svg-examples", "text");
+    var svgFiles = new[]
+    {
+        "01-basic-text.svg",
+        "02-text-path.svg",
+        "03-multiline-text.svg"
+    };
+    RenderSvgFilesToPdf(outputPath, svgDir, svgFiles, "SVG Text Rendering");
+}
+
+static void GenerateSvgGradientsExample(string outputPath, string examplesDir)
+{
+    var svgDir = Path.Combine(examplesDir, "svg-examples", "gradients");
+    var svgFiles = new[]
+    {
+        "01-linear-gradient.svg",
+        "02-radial-gradient.svg"
+    };
+    RenderSvgFilesToPdf(outputPath, svgDir, svgFiles, "SVG Gradients");
+}
+
+static void GenerateSvgTransformsExample(string outputPath, string examplesDir)
+{
+    var svgDir = Path.Combine(examplesDir, "svg-examples", "transforms");
+    var svgFiles = new[]
+    {
+        "01-translate.svg",
+        "02-rotate.svg",
+        "03-scale.svg",
+        "04-combined.svg"
+    };
+    RenderSvgFilesToPdf(outputPath, svgDir, svgFiles, "SVG Transforms");
+}
+
+static void GenerateSvgComplexExample(string outputPath, string examplesDir)
+{
+    var svgDir = Path.Combine(examplesDir, "svg-examples", "complex");
+    var svgFiles = new[]
+    {
+        "01-grouped-elements.svg",
+        "02-clipping-masking.svg",
+        "03-patterns.svg",
+        "05-viewbox-example.svg"
+    };
+    RenderSvgFilesToPdf(outputPath, svgDir, svgFiles, "SVG Complex Features");
+}
+
+static void RenderSvgFilesToPdf(string outputPath, string svgDir, string[] svgFiles, string title)
+{
+    using var pdfStream = File.Create(outputPath);
+    using var writer = new StreamWriter(pdfStream, System.Text.Encoding.ASCII);
+
+    writer.WriteLine("%PDF-1.7");
+    writer.WriteLine("%\xB5\xED\xAE\xFB");
+
+    var objects = new List<long>();
+    var pageObjects = new List<int>();
+    int nextObjId = 1;
+    int catalogId = nextObjId++;
+    int pagesId = nextObjId++;
+    int fontId = nextObjId++;
+
+    var svgResults = new List<(string fileName, Folly.Svg.SvgToPdfResult result, Folly.Svg.SvgDocument doc, int contentObjId, Dictionary<string, int> resourceIds)>();
+
+    foreach (var svgFile in svgFiles)
+    {
+        var svgPath = Path.Combine(svgDir, svgFile);
+        if (!File.Exists(svgPath))
+        {
+            Console.WriteLine($"  Warning: SVG file not found: {svgPath}");
+            continue;
+        }
+
+        var svgData = File.ReadAllBytes(svgPath);
+        var svgDoc = Folly.Svg.SvgDocument.Parse(svgData);
+        var converter = new Folly.Svg.SvgToPdfConverter(svgDoc);
+        var result = converter.Convert();
+        int contentObjId = nextObjId++;
+        var resourceIds = new Dictionary<string, int>();
+        foreach (var key in result.Shadings.Keys) resourceIds[key] = nextObjId++;
+        foreach (var key in result.Patterns.Keys) resourceIds[key] = nextObjId++;
+        foreach (var key in result.GraphicsStates.Keys) resourceIds[key] = nextObjId++;
+        svgResults.Add((svgFile, result, svgDoc, contentObjId, resourceIds));
+    }
+
+    foreach (var (fileName, result, doc, contentObjId, resourceIds) in svgResults)
+    {
+        pageObjects.Add(nextObjId++);
+    }
+
+    writer.Flush();
+
+    void WriteObject(int id, string content)
+    {
+        objects.Add(pdfStream.Position);
+        writer.WriteLine($"{id} 0 obj");
+        writer.WriteLine(content);
+        writer.WriteLine("endobj");
+    }
+
+    WriteObject(catalogId, $"<< /Type /Catalog /Pages {pagesId} 0 R >>");
+    var pageReferences = string.Join(" ", pageObjects.Select(p => $"{p} 0 R"));
+    WriteObject(pagesId, $"<< /Type /Pages /Kids [{pageReferences}] /Count {pageObjects.Count} >>");
+    WriteObject(fontId, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+
+    for (int i = 0; i < svgResults.Count; i++)
+    {
+        var (fileName, result, doc, contentObjId, resourceIds) = svgResults[i];
+        var pageObjId = pageObjects[i];
+        double pageWidth = Math.Max(595, doc.EffectiveWidthPt + 144);
+        double pageHeight = Math.Max(842, doc.EffectiveHeightPt + 200);
+        double offsetX = (pageWidth - doc.EffectiveWidthPt) / 2;
+        double offsetY = pageHeight - (pageHeight - doc.EffectiveHeightPt) / 2 - doc.EffectiveHeightPt;
+
+        var resourceDict = new System.Text.StringBuilder();
+        resourceDict.Append($"<< /Font << /F1 {fontId} 0 R >> ");
+        if (result.Shadings.Count > 0)
+        {
+            resourceDict.Append("/Shading << ");
+            foreach (var (key, _) in result.Shadings) resourceDict.Append($"/{key} {resourceIds[key]} 0 R ");
+            resourceDict.Append(">> ");
+        }
+        if (result.Patterns.Count > 0)
+        {
+            resourceDict.Append("/Pattern << ");
+            foreach (var (key, _) in result.Patterns) resourceDict.Append($"/{key} {resourceIds[key]} 0 R ");
+            resourceDict.Append(">> ");
+        }
+        if (result.GraphicsStates.Count > 0)
+        {
+            resourceDict.Append("/ExtGState << ");
+            foreach (var (key, _) in result.GraphicsStates) resourceDict.Append($"/{key} {resourceIds[key]} 0 R ");
+            resourceDict.Append(">> ");
+        }
+        resourceDict.Append(">>");
+
+        WriteObject(pageObjId, $"<< /Type /Page /Parent {pagesId} 0 R /MediaBox [0 0 {pageWidth:F2} {pageHeight:F2}] /Contents {contentObjId} 0 R /Resources {resourceDict} >>");
+
+        var contentStream = new System.Text.StringBuilder();
+        contentStream.AppendLine("BT");
+        contentStream.AppendLine("/F1 14 Tf");
+        contentStream.AppendLine("0 0 0 rg");
+        contentStream.AppendLine($"50 {pageHeight - 50:F2} Td");
+        contentStream.AppendLine($"({EscapePdfString(title)} - {EscapePdfString(fileName)}) Tj");
+        contentStream.AppendLine("ET");
+        contentStream.AppendLine("q");
+        contentStream.AppendLine($"1 0 0 1 {offsetX:F2} {offsetY:F2} cm");
+        contentStream.AppendLine(result.ContentStream);
+        contentStream.AppendLine("Q");
+
+        var contentString = contentStream.ToString();
+        var contentBytes = System.Text.Encoding.ASCII.GetBytes(contentString);
+        WriteObject(contentObjId, $"<< /Length {contentBytes.Length} >>\nstream\n{contentString}endstream");
+
+        foreach (var (key, shadingDict) in result.Shadings) WriteObject(resourceIds[key], shadingDict);
+        foreach (var (key, patternDict) in result.Patterns) WriteObject(resourceIds[key], patternDict);
+        foreach (var (key, gsDict) in result.GraphicsStates) WriteObject(resourceIds[key], gsDict);
+    }
+
+    writer.Flush();
+    var xrefPos = pdfStream.Position;
+    writer.WriteLine("xref");
+    writer.WriteLine($"0 {objects.Count + 1}");
+    writer.WriteLine("0000000000 65535 f ");
+    foreach (var offset in objects) writer.WriteLine($"{offset:D10} 00000 n ");
+    writer.WriteLine("trailer");
+    writer.WriteLine($"<< /Size {objects.Count + 1} /Root {catalogId} 0 R >>");
+    writer.WriteLine("startxref");
+    writer.WriteLine(xrefPos.ToString());
+    writer.WriteLine("%%EOF");
+    writer.Flush();
+}
+
+static string EscapePdfString(string s) => s.Replace("\\", "\\\\").Replace("(", "\\(").Replace(")", "\\)");
