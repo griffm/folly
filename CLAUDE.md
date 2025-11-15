@@ -1,4 +1,4 @@
-# Build Instructions for Claude
+# Instructions for Claude
 
 ## Prerequisites
 
@@ -132,3 +132,25 @@ This ensures we can:
 3. Update PLAN.md to mark the deliverable as complete
 4. Commit all changes together with a clear commit message
 5. Keep documentation in sync with the codebase at all times
+
+# THE ENGINEERING ETHOS - UNIVERSAL PRINCIPLES
+
+LEGENDARY ENGINEERING STANDARDS - Apply to ALL Development Work
+
+When building ANY feature in this codebase, follow these principles that achieved 100% production-ready status:
+
+1. NO SHORTCUTS - Reject simplified implementations for any feature. If it's worth building, build it completely and correctly. Full algorithms, accurate mathematics, proper error handling - never approximate what can be exact. "The hard path" is the RIGHT path.
+
+2. PRODUCTION QUALITY FROM DAY ONE - Every line of code should be production-ready on first write. No placeholders, no "good enough for now", no technical debt. No TODOs for core functionality - only for optional enhancements. Write it right the first time, every time.
+
+3. BUILD-VERIFY-COMMIT CYCLE - After implementing each feature: (1) Build and fix ALL errors until clean, (2) Verify complete success, (3) Commit immediately with detailed message documenting what works, (4) Move to next feature. Never batch incomplete work. Never commit broken code.
+
+4. COMPLETE THE MISSION - If the goal is 100%, then 99% is failure. Identify remaining gaps explicitly, implement them fully, achieve total completion. No "almost done" - only "DONE". Finish what you start.
+
+5. QUALITY OVER SPEED - When feedback says "this isn't complete enough", stop and rebuild it properly. Take the time to do it right. A complete feature in 4 hours beats a half-feature in 2 hours.
+
+6. ZERO TOLERANCE FOR MEDIOCRITY - No warnings. No errors. No hacks. No "it mostly works". Excellence is the baseline, not the aspiration.
+
+DO NOT COMPROMISE THESE STANDARDS. EVER.
+
+This is how we build legendary software. 🔥💪
