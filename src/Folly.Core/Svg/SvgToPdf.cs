@@ -21,10 +21,10 @@ public sealed class SvgToPdfConverter
 
     // Resource counters for naming
     private int _shadingCounter = 0;
+    private int _graphicsStateCounter = 0;
 #pragma warning disable CS0414 // Field is assigned but never used (infrastructure for future features)
     private int _patternCounter = 0;
     private int _xObjectCounter = 0;
-    private int _graphicsStateCounter = 0;
 #pragma warning restore CS0414
 
     /// <summary>
@@ -484,7 +484,9 @@ public sealed class SvgToPdfConverter
         // Set text opacity if needed
         if (style.FillOpacity < 1.0 || style.Opacity < 1.0)
         {
-            // TODO: Set text opacity in graphics state
+            var textOpacity = style.FillOpacity * style.Opacity;
+            var gsName = AddOpacityGraphicsState(textOpacity, textOpacity);
+            _contentStream.AppendLine($"/{gsName} gs");
         }
 
         // Render text
@@ -646,8 +648,10 @@ public sealed class SvgToPdfConverter
             // Set fill opacity if needed
             if (style.FillOpacity < 1.0 || style.Opacity < 1.0)
             {
-                var opacity = style.FillOpacity * style.Opacity;
-                // TODO: Set CA (fill opacity) in graphics state
+                var fillOpacity = style.FillOpacity * style.Opacity;
+                var strokeOpacity = 1.0; // Not applying to stroke here
+                var gsName = AddOpacityGraphicsState(fillOpacity, strokeOpacity);
+                _contentStream.AppendLine($"/{gsName} gs");
             }
         }
         else if (fillIsGradient && boundingBox.HasValue)
@@ -715,6 +719,15 @@ public sealed class SvgToPdfConverter
             {
                 var dashPattern = ParseDashArray(style.StrokeDashArray);
                 _contentStream.AppendLine($"[{string.Join(" ", dashPattern)}] {style.StrokeDashOffset} d");
+            }
+
+            // Set stroke opacity if needed
+            if (style.StrokeOpacity < 1.0 || style.Opacity < 1.0)
+            {
+                var fillOpacity = 1.0; // Not applying to fill here
+                var strokeOpacity = style.StrokeOpacity * style.Opacity;
+                var gsName = AddOpacityGraphicsState(fillOpacity, strokeOpacity);
+                _contentStream.AppendLine($"/{gsName} gs");
             }
         }
 
@@ -1387,5 +1400,29 @@ public sealed class SvgToPdfConverter
         _shadings[shadingName] = shadingDict;
 
         return shadingName;
+    }
+
+    /// <summary>
+    /// Adds a graphics state with opacity to the resource collection and returns its name.
+    /// </summary>
+    /// <param name="fillOpacity">The fill opacity (ca operator), 0.0-1.0.</param>
+    /// <param name="strokeOpacity">The stroke opacity (CA operator), 0.0-1.0.</param>
+    /// <returns>The graphics state resource name (e.g., "GS1").</returns>
+    private string AddOpacityGraphicsState(double fillOpacity, double strokeOpacity)
+    {
+        // Build graphics state dictionary
+        var gsDict = $@"<<
+  /Type /ExtGState
+  /ca {fillOpacity}
+  /CA {strokeOpacity}
+>>";
+
+        // Create unique graphics state name
+        var gsName = $"GS{++_graphicsStateCounter}";
+
+        // Add to resources collection
+        _graphicsStates[gsName] = gsDict;
+
+        return gsName;
     }
 }
