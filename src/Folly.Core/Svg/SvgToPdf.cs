@@ -340,6 +340,9 @@ public sealed class SvgToPdfConverter
         }
 
         ApplyFillAndStroke(element.Style);
+
+        // Render markers if specified
+        RenderMarkers(element, d);
     }
 
     private void RenderText(SvgElement element)
@@ -684,5 +687,39 @@ public sealed class SvgToPdfConverter
         var clipRule = clipPath.ClipRule == "evenodd" ? "W*" : "W";
         _contentStream.AppendLine(clipRule); // Set clipping path
         _contentStream.AppendLine("n"); // End path without filling/stroking
+    }
+
+    /// <summary>
+    /// Renders markers (arrow heads, endpoints) on a path.
+    /// </summary>
+    private void RenderMarkers(SvgElement element, string pathData)
+    {
+        var style = element.Style;
+        var hasMarkerStart = !string.IsNullOrWhiteSpace(style.MarkerStart);
+        var hasMarkerMid = !string.IsNullOrWhiteSpace(style.MarkerMid);
+        var hasMarkerEnd = !string.IsNullOrWhiteSpace(style.MarkerEnd);
+
+        if (!hasMarkerStart && !hasMarkerMid && !hasMarkerEnd)
+            return; // No markers to render
+
+        // TODO: Implement marker rendering - this is complex and requires:
+        // 1. Parse path data to extract all vertices (start, mid-points, end)
+        // 2. Calculate the angle/direction at each vertex
+        // 3. For each marker position:
+        //    a. Save graphics state (q)
+        //    b. Translate to vertex position
+        //    c. Rotate to match path direction (if orient="auto")
+        //    d. Scale based on markerUnits (strokeWidth vs userSpaceOnUse)
+        //    e. Translate by -refX, -refY
+        //    f. Render marker content
+        //    g. Restore graphics state (Q)
+        //
+        // Key challenges:
+        // - Path vertices extraction (need to track M, L, C, Q, A endpoints)
+        // - Angle calculation (use atan2 of incoming/outgoing tangents)
+        // - Orient="auto" vs orient="auto-start-reverse" vs fixed angle
+        // - MarkerUnits="strokeWidth" requires multiplying by current stroke width
+        //
+        // For now, markers are parsed and stored but not yet rendered
     }
 }
