@@ -105,6 +105,10 @@ public static class SvgParser
         var markers = new Dictionary<string, SvgMarker>();
         CollectMarkers(root, markers);
 
+        // Parse filters
+        var filters = new Dictionary<string, SvgFilter>();
+        CollectFilters(root, filters);
+
         return new SvgDocument
         {
             Root = rootElement,
@@ -119,7 +123,8 @@ public static class SvgParser
             ClipPaths = clipPaths,
             Patterns = patterns,
             Masks = masks,
-            Markers = markers
+            Markers = markers,
+            Filters = filters
         };
     }
 
@@ -302,6 +307,9 @@ public static class SvgParser
                 break;
             case "marker-end":
                 style.MarkerEnd = value;
+                break;
+            case "filter":
+                style.Filter = value;
                 break;
         }
     }
@@ -704,6 +712,73 @@ public static class SvgParser
             }
 
             markers[id] = marker;
+        }
+    }
+
+    private static void CollectFilters(XElement root, Dictionary<string, SvgFilter> filters)
+    {
+        // Find all filter elements
+        var filterElements = root.Descendants().Where(e => e.Name.LocalName == "filter");
+
+        foreach (var elem in filterElements)
+        {
+            var id = elem.Attribute("id")?.Value;
+            if (string.IsNullOrWhiteSpace(id)) continue;
+
+            var filter = new SvgFilter
+            {
+                Id = id,
+                X = ParseDoubleAttr(elem, "x", -0.1),
+                Y = ParseDoubleAttr(elem, "y", -0.1),
+                Width = ParseDoubleAttr(elem, "width", 1.2),
+                Height = ParseDoubleAttr(elem, "height", 1.2),
+                FilterUnits = elem.Attribute("filterUnits")?.Value ?? "objectBoundingBox",
+                PrimitiveUnits = elem.Attribute("primitiveUnits")?.Value ?? "userSpaceOnUse"
+            };
+
+            // Parse filter primitives (feGaussianBlur, feDropShadow, feBlend, etc.)
+            foreach (var child in elem.Elements())
+            {
+                var primitiveType = child.Name.LocalName;
+                SvgFilterPrimitive? primitive = primitiveType switch
+                {
+                    "feGaussianBlur" => new SvgGaussianBlur
+                    {
+                        PrimitiveType = primitiveType,
+                        In = child.Attribute("in")?.Value,
+                        Result = child.Attribute("result")?.Value,
+                        StdDeviation = child.Attribute("stdDeviation")?.Value ?? "0",
+                        EdgeMode = child.Attribute("edgeMode")?.Value ?? "duplicate"
+                    },
+                    "feDropShadow" => new SvgDropShadow
+                    {
+                        PrimitiveType = primitiveType,
+                        In = child.Attribute("in")?.Value,
+                        Result = child.Attribute("result")?.Value,
+                        Dx = ParseDoubleAttr(child, "dx", 2),
+                        Dy = ParseDoubleAttr(child, "dy", 2),
+                        StdDeviation = ParseDoubleAttr(child, "stdDeviation", 2),
+                        FloodColor = child.Attribute("flood-color")?.Value ?? "black",
+                        FloodOpacity = ParseDoubleAttr(child, "flood-opacity", 1.0)
+                    },
+                    "feBlend" => new SvgBlend
+                    {
+                        PrimitiveType = primitiveType,
+                        In = child.Attribute("in")?.Value,
+                        In2 = child.Attribute("in2")?.Value,
+                        Result = child.Attribute("result")?.Value,
+                        Mode = child.Attribute("mode")?.Value ?? "normal"
+                    },
+                    _ => null // TODO: Support more filter primitives (feOffset, feColorMatrix, feComposite, etc.)
+                };
+
+                if (primitive != null)
+                {
+                    filter.Primitives.Add(primitive);
+                }
+            }
+
+            filters[id] = filter;
         }
     }
 }
