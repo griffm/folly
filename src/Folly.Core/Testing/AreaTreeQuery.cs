@@ -468,6 +468,11 @@ public class InlineQuery
     public string? FontWeight => _inline.FontWeight;
 
     /// <summary>
+    /// Gets the font style.
+    /// </summary>
+    public string? FontStyle => _inline.FontStyle;
+
+    /// <summary>
     /// Gets the word spacing adjustment (for justified text).
     /// </summary>
     public double? WordSpacing => _inline.WordSpacing;
