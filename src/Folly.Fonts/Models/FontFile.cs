@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Folly.Fonts.OpenType;
 
 namespace Folly.Fonts.Models;
 
@@ -139,6 +140,18 @@ public class FontFile
     /// PostScript table data.
     /// </summary>
     public PostTable? Post { get; set; }
+
+    /// <summary>
+    /// GSUB (Glyph Substitution) table data for OpenType features like ligatures.
+    /// Null if the font does not have a GSUB table.
+    /// </summary>
+    public GsubData? Gsub { get; set; }
+
+    /// <summary>
+    /// GPOS (Glyph Positioning) table data for OpenType features like kerning and mark positioning.
+    /// Null if the font does not have a GPOS table.
+    /// </summary>
+    public GposData? Gpos { get; set; }
 
     /// <summary>
     /// Gets the advance width for a character in font units.
