@@ -9,11 +9,50 @@ public static class ImageFormatDetector
     /// Detects the image format from raw byte data.
     /// </summary>
     /// <param name="data">The image file data.</param>
-    /// <returns>The detected format name (JPEG, PNG, BMP, GIF, TIFF) or "UNKNOWN".</returns>
+    /// <returns>The detected format name (JPEG, PNG, BMP, GIF, TIFF, SVG) or "UNKNOWN".</returns>
     public static string Detect(byte[] data)
     {
         if (data == null || data.Length < 8)
             return "UNKNOWN";
+
+        // SVG: Check for XML declaration or <svg tag
+        // SVG files typically start with <?xml or <svg or whitespace followed by these
+        if (data.Length >= 4)
+        {
+            // Skip BOM and leading whitespace
+            int offset = 0;
+
+            // UTF-8 BOM: EF BB BF
+            if (data.Length >= 3 && data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF)
+                offset = 3;
+
+            // Skip whitespace (space, tab, newline, carriage return)
+            while (offset < data.Length && (data[offset] == 0x20 || data[offset] == 0x09 ||
+                   data[offset] == 0x0A || data[offset] == 0x0D))
+                offset++;
+
+            if (offset + 5 <= data.Length)
+            {
+                // Check for "<?xml"
+                if (data[offset] == 0x3C && data[offset + 1] == 0x3F &&
+                    data[offset + 2] == 0x78 && data[offset + 3] == 0x6D && data[offset + 4] == 0x6C)
+                {
+                    // Further verify it contains "<svg" somewhere in first 1000 bytes
+                    int searchLimit = Math.Min(data.Length - 3, 1000);
+                    for (int i = offset; i < searchLimit; i++)
+                    {
+                        if (data[i] == 0x3C && i + 3 < data.Length &&
+                            data[i + 1] == 0x73 && data[i + 2] == 0x76 && data[i + 3] == 0x67)
+                            return "SVG";
+                    }
+                }
+
+                // Check for "<svg" directly
+                if (data[offset] == 0x3C && offset + 3 < data.Length &&
+                    data[offset + 1] == 0x73 && data[offset + 2] == 0x76 && data[offset + 3] == 0x67)
+                    return "SVG";
+            }
+        }
 
         // JPEG: FF D8 FF
         if (data.Length >= 3 && data[0] == 0xFF && data[1] == 0xD8 && data[2] == 0xFF)

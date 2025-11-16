@@ -123,9 +123,9 @@ cd examples
 dotnet run --project Folly.Examples
 ```
 
-This generates 35 XSL-FO example PDFs + 26 SVG examples showcasing Folly's capabilities:
+This generates 37 XSL-FO example PDFs + 26 SVG examples showcasing Folly's capabilities:
 
-### XSL-FO Examples (35)
+### XSL-FO Examples (37)
 - **Hello World** - Basic document with simple text
 - **Multiple Blocks** - Different fonts and sizes
 - **Text Alignment** - Start, center, and end alignment
@@ -161,6 +161,8 @@ This generates 35 XSL-FO example PDFs + 26 SVG examples showcasing Folly's capab
 - **All Image Formats** - Comprehensive demonstration of BMP, GIF, and TIFF support with zero dependencies
 - **Rounded Corners** - Modern border-radius support with Bezier curves
 - **Unicode BiDi (RTL Languages)** - Full UAX#9 implementation demonstrating Arabic, Hebrew, and mixed LTR/RTL content
+- **SVG in XSL-FO (instream-foreign-object)** - Embedding SVG graphics directly in XSL-FO documents for scalable vector content
+- **SVG in XSL-FO (external-graphic)** - Loading SVG files as external graphics with automatic scaling
 
 ### SVG Examples (26)
 - **Basic Shapes** (7) - Rectangle, circle, ellipse, line, polyline, polygon, rounded rectangles

@@ -832,7 +832,7 @@ internal sealed class LayoutEngine
         var hasBasicLink = foBlock.Children.Any(c => c is Dom.FoBasicLink);
         var hasInline = foBlock.Children.Any(c => c is Dom.FoInline);
         var hasLeader = foBlock.Children.Any(c => c is Dom.FoLeader);
-        var hasBlockChildren = foBlock.Children.Any(c => c is Dom.FoBlock or Dom.FoExternalGraphic);
+        var hasBlockChildren = foBlock.Children.Any(c => c is Dom.FoBlock or Dom.FoExternalGraphic or Dom.FoInstreamForeignObject);
 
         // Handle block-level children (images, nested blocks)
         if (hasBlockChildren)
@@ -841,11 +841,20 @@ internal sealed class LayoutEngine
             {
                 if (child is Dom.FoExternalGraphic graphic)
                 {
-                    var imageArea = LayoutImage(graphic, foBlock.PaddingLeft, currentY, contentWidth);
-                    if (imageArea != null)
+                    var area = LayoutImageOrSvg(graphic.Src, graphic, foBlock.PaddingLeft, currentY, contentWidth);
+                    if (area != null)
                     {
-                        blockArea.AddChild(imageArea);
-                        currentY += imageArea.Height;
+                        blockArea.AddChild(area);
+                        currentY += area.Height;
+                    }
+                }
+                else if (child is Dom.FoInstreamForeignObject foreignObject)
+                {
+                    var svgArea = LayoutEmbeddedSvg(foreignObject, foBlock.PaddingLeft, currentY, contentWidth);
+                    if (svgArea != null)
+                    {
+                        blockArea.AddChild(svgArea);
+                        currentY += svgArea.Height;
                     }
                 }
                 else if (child is Dom.FoBlock nestedBlock)
@@ -2826,6 +2835,12 @@ internal sealed class LayoutEngine
                         break;
                     }
 
+                case "SVG":
+                    {
+                        // SVG dimensions are extracted during layout, return placeholder
+                        return ("SVG", 0, 0);
+                    }
+
                 default:
                     return ("UNKNOWN", 0, 0);
             }
@@ -3018,6 +3033,219 @@ internal sealed class LayoutEngine
         // Parse content-width and content-height
         var contentWidth = graphic.ContentWidth;
         var contentHeight = graphic.ContentHeight;
+
+        double? explicitWidth = null;
+        double? explicitHeight = null;
+
+        if (contentWidth != "auto")
+        {
+            explicitWidth = Dom.LengthParser.Parse(contentWidth);
+        }
+
+        if (contentHeight != "auto")
+        {
+            explicitHeight = Dom.LengthParser.Parse(contentHeight);
+        }
+
+        // If both dimensions specified, use them
+        if (explicitWidth.HasValue && explicitHeight.HasValue)
+        {
+            return (explicitWidth.Value, explicitHeight.Value);
+        }
+
+        // If only width specified, calculate height maintaining aspect ratio
+        if (explicitWidth.HasValue)
+        {
+            var aspectRatio = intrinsicHeight / intrinsicWidth;
+            return (explicitWidth.Value, explicitWidth.Value * aspectRatio);
+        }
+
+        // If only height specified, calculate width maintaining aspect ratio
+        if (explicitHeight.HasValue)
+        {
+            var aspectRatio = intrinsicWidth / intrinsicHeight;
+            return (explicitHeight.Value * aspectRatio, explicitHeight.Value);
+        }
+
+        // Auto sizing - use intrinsic size but constrain to available width
+        if (intrinsicWidth > availableWidth)
+        {
+            var aspectRatio = intrinsicHeight / intrinsicWidth;
+            return (availableWidth, availableWidth * aspectRatio);
+        }
+
+        return (intrinsicWidth, intrinsicHeight);
+    }
+
+    /// <summary>
+    /// Routes to either LayoutImage or LayoutSvg based on file format.
+    /// </summary>
+    private Area? LayoutImageOrSvg(string src, Dom.FoExternalGraphic graphic, double x, double y, double availableWidth)
+    {
+        if (string.IsNullOrWhiteSpace(src))
+            return null;
+
+        // Resolve relative paths
+        var imagePath = src;
+        if (src.StartsWith("url(") && src.EndsWith(")"))
+        {
+            imagePath = src.Substring(4, src.Length - 5).Trim('\'', '"');
+        }
+
+        // Security: Validate image path
+        if (!ValidateImagePath(imagePath))
+            return null;
+
+        // Load file to detect format
+        try
+        {
+            if (File.Exists(imagePath))
+            {
+                var fileInfo = new FileInfo(imagePath);
+
+                // Security: Check image size limit
+                if (_options.MaxImageSizeBytes > 0 && fileInfo.Length > _options.MaxImageSizeBytes)
+                    return null;
+
+                var imageData = File.ReadAllBytes(imagePath);
+                var format = Images.ImageFormatDetector.Detect(imageData);
+
+                if (format == "SVG")
+                {
+                    // Handle SVG file
+                    return LayoutSvgFromFile(imagePath, imageData, graphic, x, y, availableWidth);
+                }
+                else
+                {
+                    // Handle raster image using existing method
+                    return LayoutImage(graphic, x, y, availableWidth);
+                }
+            }
+        }
+        catch
+        {
+            // File not found or couldn't be loaded
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Layouts SVG content from fo:instream-foreign-object.
+    /// </summary>
+    private SvgArea? LayoutEmbeddedSvg(Dom.FoInstreamForeignObject foreignObject, double x, double y, double availableWidth)
+    {
+        if (foreignObject.ForeignContent == null)
+            return null;
+
+        try
+        {
+            // Parse the SVG XML element by converting it to bytes
+            var svgXml = foreignObject.ForeignContent.ToString();
+            var svgBytes = System.Text.Encoding.UTF8.GetBytes(svgXml);
+            var svgDoc = Svg.SvgDocument.Parse(svgBytes);
+            if (svgDoc == null)
+                return null;
+
+            // Extract intrinsic dimensions from SVG
+            var (intrinsicWidth, intrinsicHeight) = GetSvgDimensions(svgDoc);
+
+            // Calculate display dimensions using same logic as images
+            var (displayWidth, displayHeight) = CalculateSvgDimensions(
+                foreignObject,
+                intrinsicWidth,
+                intrinsicHeight,
+                availableWidth);
+
+            return new SvgArea
+            {
+                X = x,
+                Y = y,
+                Width = displayWidth,
+                Height = displayHeight,
+                SvgDocument = svgDoc,
+                Scaling = foreignObject.Scaling,
+                IntrinsicWidth = intrinsicWidth,
+                IntrinsicHeight = intrinsicHeight
+            };
+        }
+        catch
+        {
+            // SVG parsing failed
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Layouts SVG content from an external file via fo:external-graphic.
+    /// </summary>
+    private SvgArea? LayoutSvgFromFile(string path, byte[] svgData, Dom.FoExternalGraphic graphic, double x, double y, double availableWidth)
+    {
+        try
+        {
+            // Parse SVG from file data
+            var svgDoc = Svg.SvgDocument.Parse(svgData);
+            if (svgDoc == null)
+                return null;
+
+            // Extract intrinsic dimensions from SVG
+            var (intrinsicWidth, intrinsicHeight) = GetSvgDimensions(svgDoc);
+
+            // Calculate display dimensions
+            var (displayWidth, displayHeight) = CalculateImageDimensions(
+                graphic,
+                intrinsicWidth,
+                intrinsicHeight,
+                availableWidth);
+
+            return new SvgArea
+            {
+                X = x,
+                Y = y,
+                Width = displayWidth,
+                Height = displayHeight,
+                SvgDocument = svgDoc,
+                Source = path,
+                Scaling = graphic.Scaling,
+                IntrinsicWidth = intrinsicWidth,
+                IntrinsicHeight = intrinsicHeight
+            };
+        }
+        catch
+        {
+            // SVG parsing failed
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Extracts intrinsic dimensions from an SVG document.
+    /// </summary>
+    private (double Width, double Height) GetSvgDimensions(Svg.SvgDocument svgDoc)
+    {
+        // Use effective dimensions which already fall back correctly
+        double width = svgDoc.EffectiveWidthPt;
+        double height = svgDoc.EffectiveHeightPt;
+
+        // If still zero, use reasonable defaults
+        if (width == 0) width = 100;
+        if (height == 0) height = 100;
+
+        return (width, height);
+    }
+
+    /// <summary>
+    /// Calculates display dimensions for SVG based on FO properties.
+    /// </summary>
+    private (double Width, double Height) CalculateSvgDimensions(
+        Dom.FoInstreamForeignObject foreignObject,
+        double intrinsicWidth,
+        double intrinsicHeight,
+        double availableWidth)
+    {
+        // Parse content-width and content-height
+        var contentWidth = foreignObject.ContentWidth;
+        var contentHeight = foreignObject.ContentHeight;
 
         double? explicitWidth = null;
         double? explicitHeight = null;

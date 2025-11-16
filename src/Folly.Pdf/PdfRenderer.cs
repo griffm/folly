@@ -372,6 +372,10 @@ public sealed class PdfRenderer : IDisposable
         {
             RenderImage(imageArea, content, imageIds, pageHeight, offsetX, offsetY, structureTree, parentElement, pageIndex);
         }
+        else if (area is SvgArea svgArea)
+        {
+            RenderSvg(svgArea, content, pageHeight, offsetX, offsetY);
+        }
         else if (area is TableArea tableArea)
         {
             RenderTable(tableArea, content, fontIds, imageIds, pageHeight, structureTree, parentElement, pageIndex);
@@ -1487,6 +1491,42 @@ public sealed class PdfRenderer : IDisposable
         {
             content.AppendLine("EMC");
         }
+    }
+
+    private void RenderSvg(SvgArea svg, StringBuilder content, double pageHeight, double offsetX, double offsetY)
+    {
+        if (svg.SvgDocument == null)
+            return;
+
+        // Save graphics state
+        content.AppendLine("q");
+
+        // Calculate absolute position
+        var x = offsetX + svg.X;
+        var y = offsetY + svg.Y;
+
+        // Convert Y coordinate from top-down to PDF's bottom-up coordinate system
+        var pdfY = pageHeight - y - svg.Height;
+
+        // Translate to SVG position
+        content.AppendLine($"1 0 0 1 {x:F2} {pdfY:F2} cm");
+
+        // Calculate scaling factor based on display size vs intrinsic size
+        double scaleX = svg.Width / svg.IntrinsicWidth;
+        double scaleY = svg.Height / svg.IntrinsicHeight;
+
+        // Apply scaling to match display dimensions
+        content.AppendLine($"{scaleX:F6} 0 0 {scaleY:F6} 0 0 cm");
+
+        // Convert SVG to PDF content stream
+        var svgConverter = new Svg.SvgToPdfConverter(svg.SvgDocument);
+        var svgResult = svgConverter.Convert();
+
+        // Append the SVG content directly
+        content.Append(svgResult.ContentStream);
+
+        // Restore graphics state
+        content.AppendLine("Q");
     }
 
     private void RenderTable(TableArea table, StringBuilder content, Dictionary<string, int> fontIds, Dictionary<string, int> imageIds, double pageHeight, PdfStructureTree? structureTree, StructureElement? parentElement, int pageIndex)

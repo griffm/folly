@@ -538,6 +538,9 @@ internal static class FoParser
                 case "external-graphic":
                     children.Add(ParseExternalGraphic(child));
                     break;
+                case "instream-foreign-object":
+                    children.Add(ParseInstreamForeignObject(child));
+                    break;
                 case "page-number":
                     children.Add(ParsePageNumber(child));
                     break;
@@ -595,6 +598,27 @@ internal static class FoParser
         return new FoExternalGraphic
         {
             Properties = ParseProperties(element)
+        };
+    }
+
+    private static FoInstreamForeignObject ParseInstreamForeignObject(XElement element)
+    {
+        // Extract the first non-FO child element (e.g., svg:svg)
+        XElement? foreignContent = null;
+        foreach (var child in element.Elements())
+        {
+            // Skip elements in the FO namespace, take the first foreign element
+            if (child.Name.Namespace != FoNamespace)
+            {
+                foreignContent = child;
+                break;
+            }
+        }
+
+        return new FoInstreamForeignObject
+        {
+            Properties = ParseProperties(element),
+            ForeignContent = foreignContent
         };
     }
 
@@ -714,6 +738,9 @@ internal static class FoParser
                 case "external-graphic":
                     children.Add(ParseExternalGraphic(child));
                     break;
+                case "instream-foreign-object":
+                    children.Add(ParseInstreamForeignObject(child));
+                    break;
                 case "page-number":
                     children.Add(ParsePageNumber(child));
                     break;
@@ -775,6 +802,9 @@ internal static class FoParser
                     break;
                 case "external-graphic":
                     children.Add(ParseExternalGraphic(child));
+                    break;
+                case "instream-foreign-object":
+                    children.Add(ParseInstreamForeignObject(child));
                     break;
             }
         }
@@ -1178,6 +1208,9 @@ internal static class FoParser
                 case "external-graphic":
                     children.Add(ParseExternalGraphic(child));
                     break;
+                case "instream-foreign-object":
+                    children.Add(ParseInstreamForeignObject(child));
+                    break;
                 case "basic-link":
                     children.Add(ParseBasicLink(child));
                     break;
@@ -1235,6 +1268,9 @@ internal static class FoParser
                     break;
                 case "external-graphic":
                     children.Add(ParseExternalGraphic(child));
+                    break;
+                case "instream-foreign-object":
+                    children.Add(ParseInstreamForeignObject(child));
                     break;
                 case "basic-link":
                     children.Add(ParseBasicLink(child));

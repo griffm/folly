@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
+  <!-- Process flow diagram -->
+  <rect x="20" y="100" width="100" height="60" fill="#3498DB" stroke="#2C3E50" stroke-width="2" rx="5"/>
+  <text x="70" y="135" text-anchor="middle" font-size="14" fill="white" font-weight="bold">Start</text>
+
+  <path d="M 120 130 L 160 130" stroke="#2C3E50" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+  <rect x="160" y="100" width="100" height="60" fill="#E74C3C" stroke="#2C3E50" stroke-width="2" rx="5"/>
+  <text x="210" y="135" text-anchor="middle" font-size="14" fill="white" font-weight="bold">Process</text>
+
+  <path d="M 260 130 L 300 130" stroke="#2C3E50" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+  <rect x="300" y="100" width="80" height="60" fill="#2ECC71" stroke="#2C3E50" stroke-width="2" rx="5"/>
+  <text x="340" y="135" text-anchor="middle" font-size="14" fill="white" font-weight="bold">End</text>
+
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#2C3E50"/>
+    </marker>
+  </defs>
+</svg>

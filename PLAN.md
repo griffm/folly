@@ -7,7 +7,7 @@ This roadmap outlines Folly's path from its current state (~80% XSL-FO 1.1 compl
 **Current Status:**
 - ~80% XSL-FO 1.1 compliance with world-class SVG support
 - 364 passing tests (99.5% success rate)
-- 35 XSL-FO examples + 26 SVG examples
+- 37 XSL-FO examples + 26 SVG examples (including SVG-XSL-FO integration)
 - Excellent performance: ~150ms for 200 pages (66x faster than target)
 - Zero runtime dependencies beyond .NET 8
 

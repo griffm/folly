@@ -489,6 +489,37 @@ public sealed class ImageArea : Area
 }
 
 /// <summary>
+/// Represents an SVG image area (from fo:instream-foreign-object or fo:external-graphic with SVG).
+/// </summary>
+public sealed class SvgArea : Area
+{
+    /// <summary>
+    /// Gets or sets the SVG document.
+    /// </summary>
+    public Svg.SvgDocument? SvgDocument { get; set; }
+
+    /// <summary>
+    /// Gets or sets the source path (if loaded from external file).
+    /// </summary>
+    public string? Source { get; set; }
+
+    /// <summary>
+    /// Gets or sets the scaling method.
+    /// </summary>
+    public string Scaling { get; set; } = "uniform";
+
+    /// <summary>
+    /// Gets or sets the intrinsic width of the SVG (from viewBox or width attribute).
+    /// </summary>
+    public double IntrinsicWidth { get; set; }
+
+    /// <summary>
+    /// Gets or sets the intrinsic height of the SVG (from viewBox or height attribute).
+    /// </summary>
+    public double IntrinsicHeight { get; set; }
+}
+
+/// <summary>
 /// Represents a table area (from fo:table).
 /// </summary>
 public sealed class TableArea : Area
