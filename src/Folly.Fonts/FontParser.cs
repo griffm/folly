@@ -124,8 +124,20 @@ public class FontParser
                 font.Glyphs = GlyfTableParser.Parse(stream, glyfTable, font);
             }
 
-            // TODO: Parse 'GPOS' table for advanced positioning (OpenType)
-            // TODO: Parse 'GSUB' table for glyph substitution (OpenType)
+            // Parse 'GSUB' table for glyph substitution (OpenType advanced typography)
+            if (directory.HasTable("GSUB"))
+            {
+                var gsubTable = directory.GetTable("GSUB")!;
+                GsubTableParser.Parse(stream, gsubTable, font);
+            }
+
+            // Parse 'GPOS' table for advanced positioning (OpenType advanced typography)
+            if (directory.HasTable("GPOS"))
+            {
+                var gposTable = directory.GetTable("GPOS")!;
+                GposTableParser.Parse(stream, gposTable, font);
+            }
+
             // TODO: Parse 'CFF ' table for OpenType/CFF fonts
 
             return font;
