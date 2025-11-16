@@ -210,6 +210,10 @@ GenerateSvgExternalGraphicExample(Path.Combine(outputDir, "41b-svg-xslfo-externa
 Console.WriteLine("Generating Example 42: Tagged PDF (Accessibility)...");
 GenerateTaggedPdfExample(Path.Combine(outputDir, "42-tagged-pdf.pdf"));
 
+// Example 43: Table Captions
+Console.WriteLine("Generating Example 43: Table Captions...");
+GenerateTableCaptionExample(Path.Combine(outputDir, "43-table-captions.pdf"));
+
 Console.WriteLine("\n✓ All examples generated successfully!");
 Console.WriteLine($"\nView PDFs in: {outputDir}");
 Console.WriteLine("\nValidate with qpdf:");
@@ -5014,6 +5018,194 @@ static void GenerateSvgExternalGraphicExample(string outputPath, string examples
               <fo:block font-size="11pt" space-before="24pt" color="#7F8C8D" border-top="1pt solid #BDC3C7" padding-top="8pt">
                 This example demonstrates the fo:external-graphic element loading SVG files.
                 SVG graphics scale perfectly at any size while maintaining crisp vector quality in the PDF.
+              </fo:block>
+            </fo:flow>
+          </fo:page-sequence>
+        </fo:root>
+        """;
+
+    using var doc = FoDocument.Load(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml)));
+    doc.SavePdf(outputPath);
+}
+
+static void GenerateTableCaptionExample(string outputPath)
+{
+    var foXml = """
+        <?xml version="1.0"?>
+        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+          <fo:layout-master-set>
+            <fo:simple-page-master master-name="A4" page-width="595pt" page-height="842pt">
+              <fo:region-body margin="72pt"/>
+            </fo:simple-page-master>
+          </fo:layout-master-set>
+          <fo:page-sequence master-reference="A4">
+            <fo:flow flow-name="xsl-region-body">
+              <fo:block font-size="18pt" font-family="Helvetica" font-weight="bold" text-align="center"
+                        space-after="24pt" color="#2C3E50">
+                Table Caption Examples
+              </fo:block>
+
+              <fo:block font-size="12pt" space-after="18pt" color="#34495E">
+                This example demonstrates the use of fo:table-and-caption and fo:table-caption elements.
+                Captions can be positioned before or after the table using the caption-side property.
+              </fo:block>
+
+              <!-- Example 1: Caption Before (default) -->
+              <fo:table-and-caption space-after="36pt">
+                <fo:table-caption caption-side="before">
+                  <fo:block font-size="12pt" font-weight="bold" text-align="center"
+                            space-after="8pt" color="#2C3E50">
+                    Table 1: Sales Data (Caption Before)
+                  </fo:block>
+                </fo:table-caption>
+
+                <fo:table border-collapse="separate" border-spacing="2pt">
+                  <fo:table-column column-width="150pt"/>
+                  <fo:table-column column-width="100pt"/>
+                  <fo:table-column column-width="100pt"/>
+
+                  <fo:table-header>
+                    <fo:table-row>
+                      <fo:table-cell padding="8pt" border="1pt solid black" background-color="#E0E0E0">
+                        <fo:block font-family="Helvetica" font-size="11pt" font-weight="bold">
+                          Product
+                        </fo:block>
+                      </fo:table-cell>
+                      <fo:table-cell padding="8pt" border="1pt solid black" background-color="#E0E0E0">
+                        <fo:block font-family="Helvetica" font-size="11pt" font-weight="bold" text-align="center">
+                          Quantity
+                        </fo:block>
+                      </fo:table-cell>
+                      <fo:table-cell padding="8pt" border="1pt solid black" background-color="#E0E0E0">
+                        <fo:block font-family="Helvetica" font-size="11pt" font-weight="bold" text-align="end">
+                          Price
+                        </fo:block>
+                      </fo:table-cell>
+                    </fo:table-row>
+                  </fo:table-header>
+
+                  <fo:table-body>
+                    <fo:table-row>
+                      <fo:table-cell padding="8pt" border="1pt solid black">
+                        <fo:block font-size="10pt">Widget A</fo:block>
+                      </fo:table-cell>
+                      <fo:table-cell padding="8pt" border="1pt solid black">
+                        <fo:block font-size="10pt" text-align="center">5</fo:block>
+                      </fo:table-cell>
+                      <fo:table-cell padding="8pt" border="1pt solid black">
+                        <fo:block font-size="10pt" text-align="end">$25.00</fo:block>
+                      </fo:table-cell>
+                    </fo:table-row>
+
+                    <fo:table-row>
+                      <fo:table-cell padding="8pt" border="1pt solid black">
+                        <fo:block font-size="10pt">Widget B</fo:block>
+                      </fo:table-cell>
+                      <fo:table-cell padding="8pt" border="1pt solid black">
+                        <fo:block font-size="10pt" text-align="center">3</fo:block>
+                      </fo:table-cell>
+                      <fo:table-cell padding="8pt" border="1pt solid black">
+                        <fo:block font-size="10pt" text-align="end">$45.00</fo:block>
+                      </fo:table-cell>
+                    </fo:table-row>
+
+                    <fo:table-row>
+                      <fo:table-cell padding="8pt" border="1pt solid black">
+                        <fo:block font-size="10pt">Widget C</fo:block>
+                      </fo:table-cell>
+                      <fo:table-cell padding="8pt" border="1pt solid black">
+                        <fo:block font-size="10pt" text-align="center">7</fo:block>
+                      </fo:table-cell>
+                      <fo:table-cell padding="8pt" border="1pt solid black">
+                        <fo:block font-size="10pt" text-align="end">$35.00</fo:block>
+                      </fo:table-cell>
+                    </fo:table-row>
+                  </fo:table-body>
+                </fo:table>
+              </fo:table-and-caption>
+
+              <!-- Example 2: Caption After -->
+              <fo:table-and-caption space-after="36pt">
+                <fo:table-caption caption-side="after">
+                  <fo:block font-size="12pt" font-weight="bold" text-align="center"
+                            space-before="8pt" color="#2C3E50">
+                    Table 2: Monthly Revenue (Caption After)
+                  </fo:block>
+                  <fo:block font-size="10pt" font-style="italic" text-align="center"
+                            space-before="4pt" color="#7F8C8D">
+                    Figures shown in thousands of dollars
+                  </fo:block>
+                </fo:table-caption>
+
+                <fo:table border-collapse="separate" border-spacing="2pt">
+                  <fo:table-column column-width="150pt"/>
+                  <fo:table-column column-width="100pt"/>
+                  <fo:table-column column-width="100pt"/>
+
+                  <fo:table-header>
+                    <fo:table-row>
+                      <fo:table-cell padding="8pt" border="1pt solid black" background-color="#D6EAF8">
+                        <fo:block font-family="Helvetica" font-size="11pt" font-weight="bold">
+                          Month
+                        </fo:block>
+                      </fo:table-cell>
+                      <fo:table-cell padding="8pt" border="1pt solid black" background-color="#D6EAF8">
+                        <fo:block font-family="Helvetica" font-size="11pt" font-weight="bold" text-align="center">
+                          Sales
+                        </fo:block>
+                      </fo:table-cell>
+                      <fo:table-cell padding="8pt" border="1pt solid black" background-color="#D6EAF8">
+                        <fo:block font-family="Helvetica" font-size="11pt" font-weight="bold" text-align="center">
+                          Profit
+                        </fo:block>
+                      </fo:table-cell>
+                    </fo:table-row>
+                  </fo:table-header>
+
+                  <fo:table-body>
+                    <fo:table-row>
+                      <fo:table-cell padding="8pt" border="1pt solid black">
+                        <fo:block font-size="10pt">January</fo:block>
+                      </fo:table-cell>
+                      <fo:table-cell padding="8pt" border="1pt solid black">
+                        <fo:block font-size="10pt" text-align="center">$125</fo:block>
+                      </fo:table-cell>
+                      <fo:table-cell padding="8pt" border="1pt solid black">
+                        <fo:block font-size="10pt" text-align="center">$42</fo:block>
+                      </fo:table-cell>
+                    </fo:table-row>
+
+                    <fo:table-row>
+                      <fo:table-cell padding="8pt" border="1pt solid black">
+                        <fo:block font-size="10pt">February</fo:block>
+                      </fo:table-cell>
+                      <fo:table-cell padding="8pt" border="1pt solid black">
+                        <fo:block font-size="10pt" text-align="center">$138</fo:block>
+                      </fo:table-cell>
+                      <fo:table-cell padding="8pt" border="1pt solid black">
+                        <fo:block font-size="10pt" text-align="center">$51</fo:block>
+                      </fo:table-cell>
+                    </fo:table-row>
+
+                    <fo:table-row>
+                      <fo:table-cell padding="8pt" border="1pt solid black">
+                        <fo:block font-size="10pt">March</fo:block>
+                      </fo:table-cell>
+                      <fo:table-cell padding="8pt" border="1pt solid black">
+                        <fo:block font-size="10pt" text-align="center">$152</fo:block>
+                      </fo:table-cell>
+                      <fo:table-cell padding="8pt" border="1pt solid black">
+                        <fo:block font-size="10pt" text-align="center">$63</fo:block>
+                      </fo:table-cell>
+                    </fo:table-row>
+                  </fo:table-body>
+                </fo:table>
+              </fo:table-and-caption>
+
+              <fo:block font-size="11pt" space-before="24pt" color="#7F8C8D" border-top="1pt solid #BDC3C7" padding-top="8pt">
+                This example demonstrates the fo:table-and-caption and fo:table-caption elements.
+                The caption-side property controls whether the caption appears before (top) or after (bottom) the table.
+                Captions can contain multiple blocks for titles, subtitles, and notes.
               </fo:block>
             </fo:flow>
           </fo:page-sequence>

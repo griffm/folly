@@ -250,3 +250,43 @@ public sealed class FoTableCell : FoElement
     /// </summary>
     public string VerticalAlign => Properties.GetString("vertical-align", "top");
 }
+
+/// <summary>
+/// Represents an fo:table-and-caption element, which contains both a caption and a table.
+/// </summary>
+public sealed class FoTableAndCaption : FoElement
+{
+    /// <inheritdoc/>
+    public override string Name => "table-and-caption";
+
+    /// <summary>
+    /// Gets the table caption (optional).
+    /// </summary>
+    public FoTableCaption? Caption { get; init; }
+
+    /// <summary>
+    /// Gets the table.
+    /// </summary>
+    public FoTable? Table { get; init; }
+}
+
+/// <summary>
+/// Represents an fo:table-caption element.
+/// </summary>
+public sealed class FoTableCaption : FoElement
+{
+    /// <inheritdoc/>
+    public override string Name => "table-caption";
+
+    /// <summary>
+    /// Gets the caption's block content.
+    /// </summary>
+    public IReadOnlyList<FoBlock> Blocks { get; init; } = Array.Empty<FoBlock>();
+
+    /// <summary>
+    /// Gets the caption side relative to the table.
+    /// Values: before, after, start, end, top, bottom, left, right
+    /// Default: before
+    /// </summary>
+    public string CaptionSide => Properties.GetString("caption-side", "before");
+}

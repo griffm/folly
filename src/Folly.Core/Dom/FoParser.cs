@@ -109,6 +109,8 @@ internal static class FoParser
                     EstablishParentRelationships(block, flow);
                 foreach (var table in flow.Tables)
                     EstablishParentRelationships(table, flow);
+                foreach (var tableAndCaption in flow.TableAndCaptions)
+                    EstablishParentRelationships(tableAndCaption, flow);
                 foreach (var list in flow.Lists)
                     EstablishParentRelationships(list, flow);
                 break;
@@ -149,6 +151,18 @@ internal static class FoParser
                     EstablishParentRelationships(table.Footer, table);
                 if (table.Body != null)
                     EstablishParentRelationships(table.Body, table);
+                break;
+
+            case FoTableAndCaption tableAndCaption:
+                if (tableAndCaption.Caption != null)
+                    EstablishParentRelationships(tableAndCaption.Caption, tableAndCaption);
+                if (tableAndCaption.Table != null)
+                    EstablishParentRelationships(tableAndCaption.Table, tableAndCaption);
+                break;
+
+            case FoTableCaption caption:
+                foreach (var block in caption.Blocks)
+                    EstablishParentRelationships(block, caption);
                 break;
 
             case FoTableHeader header:
@@ -472,6 +486,7 @@ internal static class FoParser
     {
         var blocks = new List<FoBlock>();
         var tables = new List<FoTable>();
+        var tableAndCaptions = new List<FoTableAndCaption>();
         var lists = new List<FoListBlock>();
         var blockContainers = new List<FoBlockContainer>();
 
@@ -485,6 +500,9 @@ internal static class FoParser
                     break;
                 case "table":
                     tables.Add(ParseTable(child));
+                    break;
+                case "table-and-caption":
+                    tableAndCaptions.Add(ParseTableAndCaption(child));
                     break;
                 case "list-block":
                     lists.Add(ParseListBlock(child));
@@ -506,6 +524,7 @@ internal static class FoParser
             Properties = ParseProperties(element),
             Blocks = blocks,
             Tables = tables,
+            TableAndCaptions = tableAndCaptions,
             Lists = lists,
             BlockContainers = blockContainers,
             TextContent = textContent
@@ -1476,5 +1495,49 @@ internal static class FoParser
             if (!props.HasProperty("border-left-color"))
                 props["border-left-color"] = value;
         }
+    }
+
+    private static FoTableAndCaption ParseTableAndCaption(XElement element)
+    {
+        FoTableCaption? caption = null;
+        FoTable? table = null;
+
+        foreach (var child in element.Elements())
+        {
+            var name = child.Name.LocalName;
+            switch (name)
+            {
+                case "table-caption":
+                    caption = ParseTableCaption(child);
+                    break;
+                case "table":
+                    table = ParseTable(child);
+                    break;
+            }
+        }
+
+        return new FoTableAndCaption
+        {
+            Properties = ParseProperties(element),
+            Caption = caption,
+            Table = table
+        };
+    }
+
+    private static FoTableCaption ParseTableCaption(XElement element)
+    {
+        var blocks = new List<FoBlock>();
+
+        foreach (var child in element.Elements())
+        {
+            if (child.Name.LocalName == "block")
+                blocks.Add(ParseBlock(child));
+        }
+
+        return new FoTableCaption
+        {
+            Properties = ParseProperties(element),
+            Blocks = blocks
+        };
     }
 }
