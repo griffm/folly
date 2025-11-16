@@ -271,4 +271,179 @@ public class FontSubsetterTests
         Assert.Equal(6, parts[0].Length);
         Assert.All(parts[0], c => Assert.True(char.IsLetter(c) && char.IsUpper(c)));
     }
+
+    [Fact]
+    public void CreateSubset_RemapsKerningPairs()
+    {
+        // Arrange
+        var fontPath = GetTestFontPath("LiberationSans-Regular.ttf");
+        var font = FontParser.Parse(fontPath);
+
+        // Use characters that have kerning pairs in LiberationSans (e.g., "AV", "WA", "To")
+        var usedCharacters = new HashSet<char> { 'A', 'V', 'W', 'T', 'o' };
+
+        // Get original kerning values for reference
+        var origAGlyphId = font.GetGlyphIndex('A');
+        var origVGlyphId = font.GetGlyphIndex('V');
+
+        // Act
+        byte[] subsetData = FontSubsetter.CreateSubset(font, usedCharacters);
+        using var ms = new MemoryStream(subsetData);
+        var subsetFont = FontParser.Parse(ms);
+
+        // Assert - subset should have kerning pairs
+        Assert.NotEmpty(subsetFont.KerningPairs);
+
+        // The glyph indices will be different in the subset, but kerning pairs should still exist
+        var subsetAGlyphId = subsetFont.GetGlyphIndex('A');
+        var subsetVGlyphId = subsetFont.GetGlyphIndex('V');
+
+        Assert.True(subsetAGlyphId.HasValue, "Character 'A' should be in subset");
+        Assert.True(subsetVGlyphId.HasValue, "Character 'V' should be in subset");
+
+        // If the original font had a kerning pair for A-V, the subset should too
+        // (using the new glyph indices)
+        if (origAGlyphId.HasValue && origVGlyphId.HasValue)
+        {
+            var origPair = (origAGlyphId.Value, origVGlyphId.Value);
+            var subsetPair = (subsetAGlyphId.Value, subsetVGlyphId.Value);
+
+            if (font.KerningPairs.TryGetValue(origPair, out short origKerning))
+            {
+                // The subset should have the same kerning value for the remapped pair
+                Assert.True(subsetFont.KerningPairs.TryGetValue(subsetPair, out short subsetKerning),
+                    $"Subset should have kerning pair for A-V (glyphs {subsetPair.Item1}-{subsetPair.Item2})");
+                Assert.Equal(origKerning, subsetKerning);
+            }
+        }
+    }
+
+    [Fact]
+    public void CreateSubset_ExcludesKerningPairsForMissingGlyphs()
+    {
+        // Arrange
+        var fontPath = GetTestFontPath("LiberationSans-Regular.ttf");
+        var font = FontParser.Parse(fontPath);
+
+        // Only include 'A' and 'B' - this means kerning pairs like 'AV' or 'To' won't be in the subset
+        var usedCharacters = new HashSet<char> { 'A', 'B' };
+
+        // Act
+        byte[] subsetData = FontSubsetter.CreateSubset(font, usedCharacters);
+        using var ms = new MemoryStream(subsetData);
+        var subsetFont = FontParser.Parse(ms);
+
+        // Assert - Check that kerning pairs only exist for glyphs in the subset
+        var subsetAGlyphId = subsetFont.GetGlyphIndex('A');
+        var subsetBGlyphId = subsetFont.GetGlyphIndex('B');
+
+        foreach (var kvp in subsetFont.KerningPairs)
+        {
+            var (left, right) = kvp.Key;
+
+            // Both glyph IDs should be valid (within the subset's glyph count)
+            Assert.True(left < subsetFont.GlyphCount,
+                $"Left glyph ID {left} should be less than glyph count {subsetFont.GlyphCount}");
+            Assert.True(right < subsetFont.GlyphCount,
+                $"Right glyph ID {right} should be less than glyph count {subsetFont.GlyphCount}");
+        }
+    }
+
+    [Fact]
+    public void CreateSubset_PreservesKerningValues()
+    {
+        // Arrange
+        var fontPath = GetTestFontPath("Roboto-Regular.ttf");
+        var font = FontParser.Parse(fontPath);
+
+        // Use common kerning pairs
+        var usedCharacters = new HashSet<char> { 'T', 'o', 'Y', 'A', 'V', 'W' };
+
+        // Collect original kerning information
+        var originalKerningByCharPair = new Dictionary<(char, char), short>();
+        foreach (var kvp in font.KerningPairs)
+        {
+            var (leftGlyph, rightGlyph) = kvp.Key;
+
+            // Find which characters map to these glyphs
+            foreach (var c1 in usedCharacters)
+            {
+                var g1 = font.GetGlyphIndex(c1);
+                if (g1 == leftGlyph)
+                {
+                    foreach (var c2 in usedCharacters)
+                    {
+                        var g2 = font.GetGlyphIndex(c2);
+                        if (g2 == rightGlyph)
+                        {
+                            originalKerningByCharPair[(c1, c2)] = kvp.Value;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Act
+        byte[] subsetData = FontSubsetter.CreateSubset(font, usedCharacters);
+        using var ms = new MemoryStream(subsetData);
+        var subsetFont = FontParser.Parse(ms);
+
+        // Assert - Verify kerning values are preserved
+        foreach (var kvp in originalKerningByCharPair)
+        {
+            var (c1, c2) = kvp.Key;
+            var originalKerning = kvp.Value;
+
+            var subsetG1 = subsetFont.GetGlyphIndex(c1);
+            var subsetG2 = subsetFont.GetGlyphIndex(c2);
+
+            Assert.True(subsetG1.HasValue, $"Character '{c1}' should be in subset");
+            Assert.True(subsetG2.HasValue, $"Character '{c2}' should be in subset");
+
+            var subsetPair = (subsetG1.Value, subsetG2.Value);
+
+            if (subsetFont.KerningPairs.TryGetValue(subsetPair, out short subsetKerning))
+            {
+                Assert.Equal(originalKerning, subsetKerning);
+            }
+        }
+    }
+
+    [Fact]
+    public void CreateSubset_WithKerningPairs_ProducesValidFont()
+    {
+        // Arrange
+        var fontPath = GetTestFontPath("LiberationSans-Regular.ttf");
+        var font = FontParser.Parse(fontPath);
+
+        // Use the classic kerning test string
+        var text = "AV WA To Ty";
+        var usedCharacters = new HashSet<char>(text);
+
+        // Act
+        byte[] subsetData = FontSubsetter.CreateSubset(font, usedCharacters);
+
+        // Assert - Verify it's a valid TrueType font
+        Assert.NotNull(subsetData);
+        Assert.True(subsetData.Length > 0);
+
+        // Parse the subset to ensure it's valid
+        using var ms = new MemoryStream(subsetData);
+        var subsetFont = FontParser.Parse(ms);
+
+        Assert.NotNull(subsetFont);
+        Assert.True(subsetFont.GlyphCount > 0);
+
+        // Verify all characters are present
+        foreach (char c in usedCharacters)
+        {
+            if (c != ' ')
+            {
+                Assert.True(subsetFont.HasCharacter(c), $"Character '{c}' should be in subset");
+            }
+        }
+
+        // The subset should have some kerning pairs (LiberationSans has kerning)
+        Assert.NotEmpty(subsetFont.KerningPairs);
+    }
 }

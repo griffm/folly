@@ -97,6 +97,12 @@ public class TrueTypeFontSerializer
             tables.Add(CreateOS2Table(font));
         }
 
+        // Add kern table if font has kerning pairs
+        if (font.KerningPairs != null && font.KerningPairs.Count > 0)
+        {
+            tables.Add(CreateKernTable(font));
+        }
+
         // Sort tables alphabetically by tag (required by TrueType spec)
         tables = tables.OrderBy(t => t.Tag).ToList();
 
@@ -850,5 +856,66 @@ public class TrueTypeFontSerializer
         // Version 5+ has optical point sizes (we don't support version 5)
 
         return new TableEntry { Tag = "OS/2", Data = ms.ToArray() };
+    }
+
+    /// <summary>
+    /// Creates the kern (kerning) table containing horizontal kerning pairs.
+    /// Format 0: Simple pair-based kerning (most common format).
+    /// </summary>
+    private static TableEntry CreateKernTable(FontFile font)
+    {
+        using var ms = new MemoryStream();
+        using var writer = new BigEndianBinaryWriter(ms, leaveOpen: true);
+
+        if (font.KerningPairs == null || font.KerningPairs.Count == 0)
+            return new TableEntry { Tag = "kern", Data = Array.Empty<byte>() };
+
+        // Sort kerning pairs by left glyph ID, then by right glyph ID
+        // This is required for binary search in the font
+        var sortedPairs = font.KerningPairs
+            .OrderBy(kvp => kvp.Key.Item1)
+            .ThenBy(kvp => kvp.Key.Item2)
+            .ToList();
+
+        ushort nPairs = (ushort)sortedPairs.Count;
+
+        // Calculate search parameters for binary search
+        // searchRange = (2^floor(log2(nPairs))) * 6 (size of kerning pair entry)
+        ushort searchRange = 1;
+        ushort entrySelector = 0;
+        while (searchRange * 2 <= nPairs)
+        {
+            searchRange *= 2;
+            entrySelector++;
+        }
+        searchRange *= 6; // Each kerning pair entry is 6 bytes
+        ushort rangeShift = (ushort)(nPairs * 6 - searchRange);
+
+        // Subtable length = header (6 bytes) + pairs (nPairs * 6 bytes)
+        ushort subtableLength = (ushort)(14 + nPairs * 6);
+
+        // Write kern table header
+        writer.WriteUInt16(0); // version (0 for TrueType)
+        writer.WriteUInt16(1); // nTables (we have 1 subtable)
+
+        // Write subtable header (format 0)
+        writer.WriteUInt16(0); // version (0 for format 0)
+        writer.WriteUInt16(subtableLength); // length of this subtable
+        writer.WriteUInt16(0x0001); // coverage: format 0, horizontal kerning, no minimum, no cross-stream
+
+        writer.WriteUInt16(nPairs);
+        writer.WriteUInt16(searchRange);
+        writer.WriteUInt16(entrySelector);
+        writer.WriteUInt16(rangeShift);
+
+        // Write kerning pairs
+        foreach (var kvp in sortedPairs)
+        {
+            writer.WriteUInt16(kvp.Key.Item1); // left glyph ID
+            writer.WriteUInt16(kvp.Key.Item2); // right glyph ID
+            writer.WriteInt16(kvp.Value); // kerning value (FUnits)
+        }
+
+        return new TableEntry { Tag = "kern", Data = ms.ToArray() };
     }
 }

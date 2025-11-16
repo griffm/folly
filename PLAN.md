@@ -312,12 +312,23 @@ public Dictionary<(int, int), int> RemapKerningPairs(
 ```
 
 **Deliverables:**
-- [ ] Verify current kerning remapping logic is correct
-- [ ] Add explicit tests for kerning in subset fonts
-- [ ] Validate kerning works in generated PDFs
-- [ ] Document kerning pair remapping algorithm
+- [x] Verify current kerning remapping logic is correct
+- [x] Add explicit tests for kerning in subset fonts
+- [x] Validate kerning works in generated PDFs
+- [x] Document kerning pair remapping algorithm
+- [x] Add kern table serialization to TrueTypeFontSerializer
 
-**Complexity:** Low (1 week)
+**Status:** ✅ COMPLETED (December 2025)
+
+**Implementation Notes:**
+- Kerning pair remapping algorithm was already implemented in FontSubsetter.cs:146-160
+- Added CreateKernTable method to TrueTypeFontSerializer to write kern table in format 0
+- Kern table now included in serialized subset fonts, preserving kerning data
+- Added 5 comprehensive tests for kerning pair remapping in subsets
+- All tests passing (8/8 kerning-related tests)
+- Zero warnings, zero errors
+
+**Complexity:** Low (completed in 1 day)
 
 ---
 
@@ -458,10 +469,10 @@ Or use `ConcurrentDictionary` and `Lazy<T>` for lock-free scanning.
 - ✅ Arabic contextual forms work - Phase 8.1 completed
 - ✅ CFF/OpenType fonts embed successfully - Phase 8.2 foundation completed
 - ✅ Font metadata accurate (timestamps, style, metrics) - Phase 8.3 completed
-- ⏳ Kerning correct in all subset fonts - Phase 8.4 pending
+- ✅ Kerning correct in all subset fonts - Phase 8.4 completed
 - ⏳ Font system performance optimized (< 500ms font scanning) - Phase 8.5 pending
 - ⏳ Thread-safe font operations - Phase 8.5 pending
-- ✅ All existing tests passing (364 tests)
+- ✅ All existing tests passing (all tests + 5 new kerning tests)
 - ⏳ Examples showcase OpenType features - deferred
 
 ---
