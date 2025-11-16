@@ -286,13 +286,147 @@ public Dictionary<(int, int), int> RemapKerningPairs(
 
 ---
 
+### 8.5 Font System Performance Optimizations
+
+**Current Gap:** Multiple performance bottlenecks in font loading and system font discovery
+
+**Impact:**
+- High memory usage when loading large fonts
+- Slow system font scanning on first use
+- Thread-safety issues in multi-threaded scenarios
+- Unbounded cache growth
+
+**Priority:** Medium (can be deferred but important for production use)
+
+#### Issue 1: Full Font File Loading into Memory
+
+**Location:** `PdfWriter.cs:855` (or similar)
+```csharp
+var fontData = File.ReadAllBytes(fontPath);
+```
+
+**Problem:**
+- Loads entire font file into memory for embedding
+- Typical fonts: 168 KB - 15 MB (for CJK fonts)
+- With 10 embedded fonts: 1.6 MB - 150 MB in memory
+- Memory pressure in high-concurrency scenarios
+
+**Proposed Fix:**
+- Use stream-based processing where possible
+- Consider memory-mapped files for large fonts
+- Implement font data caching with LRU eviction
+
+**Estimated Effort:** 1 week
+
+#### Issue 2: System Font Scanning Performance
+
+**Location:** `FontResolver.cs:89-131` (or similar)
+
+**Problem:**
+- Scans ALL font directories recursively on first call
+- Parses EVERY font file to extract family name
+- Windows: ~1000 fonts = 5-10 seconds first call
+- Linux: ~500 fonts = 2-5 seconds
+- Blocks rendering thread during scan
+
+**Impact:** Unacceptable latency on first PDF render with `EnableFontFallback=true`
+
+**Proposed Fixes:**
+1. **Lazy scanning** - Only scan on-demand when font not found in cache
+2. **Async scanning** - Non-blocking background scan
+3. **Persistent cache** - Save discovered fonts to disk (e.g., `~/.folly/font-cache.json`)
+4. **Scan timeout** - Limit scan duration (default 10 seconds)
+5. **Platform-specific optimizations:**
+   - Linux: Use `fontconfig` (`fc-list`) instead of filesystem scanning
+   - Windows: Query registry (`HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts`)
+   - macOS: Use CoreText APIs if feasible
+
+**Estimated Effort:** 1-2 weeks
+
+#### Issue 3: Thread Safety
+
+**Problem:**
+- Race condition in check-then-set pattern for font scanning
+- Dictionary modifications not synchronized
+- Multiple threads can scan simultaneously
+- Potential corruption or crashes in parallel PDF generation
+
+**Proposed Fix:**
+```csharp
+private readonly object _scanLock = new();
+private volatile bool _systemFontsScanned;
+
+if (!_systemFontsScanned)
+{
+    lock (_scanLock)
+    {
+        if (!_systemFontsScanned)
+        {
+            ScanSystemFonts();
+            _systemFontsScanned = true;
+        }
+    }
+}
+```
+
+Or use `ConcurrentDictionary` and `Lazy<T>` for lock-free scanning.
+
+**Estimated Effort:** 2-3 days
+
+#### Issue 4: Unbounded Cache Growth
+
+**Problem:**
+- No size limits on font cache
+- System with 2000 fonts = 2000+ cache entries
+- No LRU eviction
+- Memory scales linearly with # of fonts
+
+**Proposed Fixes:**
+1. Implement LRU cache with size limit
+2. Add configuration option for max cache size
+3. Consider using `MemoryCache` with expiration
+
+**Estimated Effort:** 3-4 days
+
+**Deliverables:**
+- [ ] Implement double-checked locking for thread safety
+- [ ] Add scan timeout (10 second default)
+- [ ] Add cache size limits (500 fonts max default)
+- [ ] Implement lazy/async scanning options
+- [ ] Add persistent cache support
+- [ ] Platform-specific font discovery optimizations
+- [ ] Stream-based font loading for large fonts
+- [ ] LRU cache implementation
+- [ ] Add 10+ tests for thread safety and performance
+- [ ] Benchmark suite for font operations
+- [ ] Documentation of performance characteristics
+
+**Success Metrics:**
+- System font scanning: < 500ms (currently 5-10s)
+- Font resolution: < 10ms per call
+- Memory usage: < 5 MB for font cache
+- Thread-safe: 100 concurrent font resolutions without errors
+- Persistent cache: < 100ms cold start with cached fonts
+
+**Complexity:** Medium-High (3-5 weeks total)
+
+**Note:** This work can be deferred to Phase 8.5 or later because:
+1. Critical correctness bugs must be fixed first
+2. Current performance is acceptable for low-volume use
+3. Opt-in feature (`EnableFontFallback=false` by default)
+4. Requires significant platform-specific work and testing
+
+---
+
 **Phase 8 Success Metrics:**
 - ✅ Ligatures render correctly (fi, fl, ffi, ffl)
 - ✅ Arabic contextual forms work
 - ✅ CFF/OpenType fonts embed successfully
 - ✅ Font metadata accurate (timestamps, style, metrics)
 - ✅ Kerning correct in all subset fonts
-- ✅ 30+ new passing tests
+- ✅ Font system performance optimized (< 500ms font scanning)
+- ✅ Thread-safe font operations
+- ✅ 40+ new passing tests
 - ✅ Examples showcase OpenType features
 
 ---
