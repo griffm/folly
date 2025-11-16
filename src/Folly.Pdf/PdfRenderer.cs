@@ -306,7 +306,7 @@ public sealed class PdfRenderer : IDisposable
             else if (_options.EnableFontFallback)
             {
                 // Try to resolve font via system font discovery
-                var resolver = new Fonts.FontResolver(_options.TrueTypeFonts);
+                var resolver = new Fonts.FontResolver(_options.TrueTypeFonts, _options.FontCacheOptions);
                 var resolvedPath = resolver.ResolveFontFamily(fontName);
                 if (resolvedPath != null)
                 {

@@ -24,6 +24,9 @@ internal sealed class PdfWriter : IDisposable
     // Maps character to glyph ID (used for 2-byte character codes in PDF content streams)
     private readonly Dictionary<string, Dictionary<char, ushort>> _characterToGlyphId = new();
 
+    // Font data cache for improved performance when the same fonts are used multiple times
+    private readonly Fonts.FontDataCache? _fontDataCache;
+
     // Security: Maximum allowed PNG chunk size (10MB) to prevent integer overflow attacks
     private const int MAX_PNG_CHUNK_SIZE = 10 * 1024 * 1024;
 
@@ -47,6 +50,13 @@ internal sealed class PdfWriter : IDisposable
     {
         _output = output ?? throw new ArgumentNullException(nameof(output));
         _options = options ?? throw new ArgumentNullException(nameof(options));
+
+        // Initialize font data cache if configured
+        var cacheOptions = options.FontCacheOptions ?? new FontCacheOptions();
+        _fontDataCache = cacheOptions.MaxFontDataCacheSize > 0
+            ? new Fonts.FontDataCache(cacheOptions.MaxFontDataCacheSize)
+            : null;
+
         _writer = new StreamWriter(_output, Encoding.ASCII, leaveOpen: true)
         {
             NewLine = "\n",
@@ -992,7 +1002,7 @@ internal sealed class PdfWriter : IDisposable
         Fonts.FontResolver? fontResolver = null;
         if (enableFontFallback)
         {
-            fontResolver = new Fonts.FontResolver(trueTypeFonts);
+            fontResolver = new Fonts.FontResolver(trueTypeFonts, _options.FontCacheOptions);
         }
 
         foreach (var fontName in fontNames)
@@ -1081,7 +1091,10 @@ internal sealed class PdfWriter : IDisposable
                     $"Font path: {fontPath}");
             }
 
-            fontData = File.ReadAllBytes(fontPath);
+            // Load font data from cache or disk
+            fontData = _fontDataCache != null
+                ? _fontDataCache.LoadFontData(fontPath)
+                : File.ReadAllBytes(fontPath);
             fontToEmbed = font;
         }
 
