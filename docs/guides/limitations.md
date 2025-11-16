@@ -238,22 +238,25 @@ throw new NotSupportedException($"Interlaced PNG images (Adam7) are not supporte
 
 ---
 
-### 2.4 Image Decoding Error Fallback
+### 2.4 Image Decoding Error Handling ✅ FIXED (Phase 7)
 
-**Location**: `src/Folly.Pdf/PdfWriter.cs:514-516`
+**Status**: ✅ Fixed in Phase 7
 
-```csharp
-// Fallback for unexpected decoding errors: create a placeholder image (1x1 white pixel)
-byte[] fallback = new byte[] { 255, 255, 255 };
-return (fallback, 8, "DeviceRGB", 3, null, null, null);
-```
+**Solution**: Image decoding errors now throw `ImageDecodingException` with detailed diagnostics:
+- Image path
+- Image format
+- Failure reason
+- Inner exception details
+
+**Configurable Behavior** via `PdfOptions.ImageErrorBehavior`:
+- `ThrowException` (default) - Throws exception with detailed error message
+- `UsePlaceholder` - Renders 1x1 white pixel (legacy fallback mode)
+- `SkipImage` - Skips the failed image entirely
 
 **Impact**:
-- **Silent failure**: Corrupted images render as white pixels
-- No error reported to user
-- Document appears correct but images are missing
-
-**Risk**: High - users won't know their images failed to load
+- ✅ No more silent failures - all image errors reported clearly
+- ✅ Users can choose error handling strategy
+- ✅ Better debugging with detailed error messages
 
 ---
 
@@ -574,23 +577,25 @@ var floatWidth = Math.Min(200, bodyWidth / 3);
 
 ---
 
-### 5.2 Large Fonts Loaded into Memory
+### 5.2 Large Font Memory Management ✅ FIXED (Phase 7)
 
-**Location**: `src/Folly.Pdf/PdfWriter.cs:865-867`
+**Status**: ✅ Fixed in Phase 7 (practical solution implemented)
 
-```csharp
-// TODO: For very large fonts (e.g., CJK fonts >15MB), consider streaming instead
-// of loading entire file. Requires refactoring to support two-pass writing
-// (calculate length first, then stream data) or buffering approach.
-fontData = File.ReadAllBytes(fontPath);
-```
+**Solution**: Font file size checking before loading into memory:
+- `PdfOptions.MaxFontMemory` quota (default: 50MB)
+- Clear error message when font exceeds limit
+- Guidance on resolution options:
+  1. Enable font subsetting (recommended)
+  2. Increase MaxFontMemory
+  3. Use smaller font files
 
 **Impact**:
-- **Memory exhaustion** with large CJK fonts
-- Multiple large fonts can cause OutOfMemoryException
-- Server scenarios with many concurrent PDFs may crash
+- ✅ No more OutOfMemoryException crashes
+- ✅ Clear error messages with actionable guidance
+- ✅ Font subsetting (already supported) reduces CJK fonts dramatically
+- ✅ Configurable memory limit for different use cases
 
-**Risk**: High for CJK languages
+**Future Enhancement**: Full streaming implementation with deferred content streams (deferred to future phase due to complexity)
 
 ---
 
@@ -783,9 +788,9 @@ Major unimplemented elements:
 **Recently Completed Features**: BiDi (UAX#9), Text Justification, Hyphenation, Keep Controls, Widow/Orphan, Image Formats (GIF/TIFF/BMP), SVG Support
 
 **Severity Breakdown**:
-- 🔴 **Critical** (will fail for common use cases): 2
-  - Large CJK fonts (memory) - needs streaming
-  - Silent image failures - needs proper error handling
+- 🔴 **Critical** (will fail for common use cases): 0 ✅ (Phase 7 completed)
+  - ~~Large CJK fonts (memory)~~ ✅ FIXED - MaxFontMemory quota with clear errors
+  - ~~Silent image failures~~ ✅ FIXED - ImageDecodingException with detailed diagnostics
 
 - 🟡 **High** (missing features for professional use): 8
   - OpenType features (GPOS/GSUB for ligatures)
@@ -813,15 +818,18 @@ Major unimplemented elements:
 - ✅ Keep-with-next/previous
 - ✅ GIF, TIFF, BMP image support
 - ✅ Comprehensive SVG support
+- ✅ **Phase 7 completed**: Image error handling and font memory management
 
 ---
 
 ## Recommendations
 
-### Immediate Priorities (Critical Issues)
+### ✅ Critical Issues Resolved (Phase 7 - November 2025)
 
-1. **Fix silent image failures** - Should throw errors, not render white pixels
-2. **Add memory streaming for large fonts** - Prevent OOM with CJK fonts (>15MB)
+1. ✅ **Fix silent image failures** - Now throws ImageDecodingException with detailed diagnostics
+2. ✅ **Add memory management for large fonts** - MaxFontMemory quota prevents OOM crashes
+
+### Immediate Priorities (High Priority Features)
 3. **Support interlaced images** - PNG Adam7, interlaced GIF are common
 
 ### Next Phase (Professional Features)
