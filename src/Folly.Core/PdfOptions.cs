@@ -48,4 +48,13 @@ public sealed class PdfOptions
     /// Default is false for backward compatibility.
     /// </summary>
     public bool EnableFontFallback { get; set; } = false;
+
+    /// <summary>
+    /// Gets or sets whether to generate a tagged PDF with structure tree for accessibility.
+    /// When enabled, the PDF will include a structure tree that defines logical document structure
+    /// (headings, paragraphs, tables, etc.) for screen readers and assistive technologies.
+    /// This is foundational for PDF/UA (Universal Accessibility) compliance.
+    /// Default is false for backward compatibility.
+    /// </summary>
+    public bool EnableTaggedPdf { get; set; } = false;
 }
