@@ -11,6 +11,19 @@ dotnet --version
 Do not run apt-get update before installation.
 Expected version format: 8.0.xxx.
 
+### Handling Shallow Git Checkouts
+Claude Code on the web sometimes performs a shallow git checkout, which can cause build failures when the build process requires full git history.
+
+To check if the repository is shallow:
+
+git rev-parse --is-shallow-repository
+
+If the output is `true`, unshallow the repository:
+
+git fetch --unshallow
+
+This command fetches the complete git history and resolves build issues related to shallow clones.
+
 ## 2. Running Examples
 
 ### Location
