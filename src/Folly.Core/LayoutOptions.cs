@@ -121,4 +121,66 @@ public sealed class LayoutOptions
     /// Default is 72 DPI, which is the PDF standard for images without embedded DPI metadata.
     /// </summary>
     public double DefaultImageDpi { get; set; } = 72.0;
+
+    // Knuth-Plass Line Breaking Parameters
+
+    /// <summary>
+    /// Gets or sets the space stretch ratio for the Knuth-Plass line breaking algorithm.
+    /// This controls how much inter-word spaces can be expanded to fill a line.
+    /// Default is 0.5 (TeX default), meaning spaces can stretch up to 50% of their normal width.
+    /// Only applies when LineBreaking is set to Optimal.
+    /// </summary>
+    public double KnuthPlassSpaceStretchRatio { get; set; } = 0.5;
+
+    /// <summary>
+    /// Gets or sets the space shrink ratio for the Knuth-Plass line breaking algorithm.
+    /// This controls how much inter-word spaces can be compressed to fit a line.
+    /// Default is 0.333 (TeX default), meaning spaces can shrink up to 33.3% of their normal width.
+    /// Only applies when LineBreaking is set to Optimal.
+    /// </summary>
+    public double KnuthPlassSpaceShrinkRatio { get; set; } = 0.333;
+
+    /// <summary>
+    /// Gets or sets the tolerance for line badness in the Knuth-Plass algorithm.
+    /// Higher values allow more variation from ideal line width (looser justification).
+    /// Lower values enforce stricter justification (may result in overfull/underfull boxes).
+    /// Default is 1.0 (TeX default). Range: 0.1 to 10.0.
+    /// Only applies when LineBreaking is set to Optimal.
+    /// </summary>
+    public double KnuthPlassTolerance { get; set; } = 1.0;
+
+    /// <summary>
+    /// Gets or sets the penalty for each line break in the Knuth-Plass algorithm.
+    /// Higher values result in fewer lines (longer paragraphs).
+    /// Lower values result in more lines (shorter paragraphs).
+    /// Default is 10.0 (TeX default). Range: 0.0 to 100.0.
+    /// Only applies when LineBreaking is set to Optimal.
+    /// </summary>
+    public double KnuthPlassLinePenalty { get; set; } = 10.0;
+
+    /// <summary>
+    /// Gets or sets the penalty for consecutive hyphens or very bad lines in the Knuth-Plass algorithm.
+    /// Higher values discourage consecutive hyphenated lines.
+    /// Default is 100.0 (TeX default). Range: 0.0 to 1000.0.
+    /// Only applies when LineBreaking is set to Optimal.
+    /// </summary>
+    public double KnuthPlassFlaggedDemerit { get; set; } = 100.0;
+
+    /// <summary>
+    /// Gets or sets the penalty for fitness class changes in consecutive lines (Knuth-Plass algorithm).
+    /// Fitness classes track whether lines are tight, normal, loose, or very loose.
+    /// Higher values encourage consistent line spacing throughout the paragraph.
+    /// Default is 100.0 (TeX default). Range: 0.0 to 1000.0.
+    /// Only applies when LineBreaking is set to Optimal.
+    /// </summary>
+    public double KnuthPlassFitnessDemerit { get; set; } = 100.0;
+
+    /// <summary>
+    /// Gets or sets the hyphen penalty for the Knuth-Plass algorithm.
+    /// This is the cost of breaking a word with a hyphen.
+    /// Higher values discourage hyphenation.
+    /// Default is 50.0 (TeX default). Range: 0.0 to 1000.0.
+    /// Only applies when LineBreaking is set to Optimal and EnableHyphenation is true.
+    /// </summary>
+    public double KnuthPlassHyphenPenalty { get; set; } = 50.0;
 }

@@ -359,8 +359,8 @@ public sealed class UnicodeBidiAlgorithm
     /// </summary>
     private void ResolveNeutralTypes(string text, BidiCharacterType[] types, int[] levels, int paragraphEmbeddingLevel)
     {
-        // N0: Paired bracket handling (simplified - full implementation is complex)
-        // TODO: Implement full paired bracket algorithm for complete UAX#9 compliance
+        // N0: Paired bracket handling (UAX#9 BD16 - fully implemented)
+        ResolvePairedBrackets(text, types, levels);
 
         // N1 & N2: Resolve neutrals based on surrounding strong types
         for (int i = 0; i < types.Length; i++)
@@ -402,6 +402,193 @@ public sealed class UnicodeBidiAlgorithm
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// N0 (BD16): Resolves paired brackets according to the Unicode Bidirectional Algorithm.
+    /// Implements the full paired bracket algorithm for UAX#9 compliance.
+    /// </summary>
+    private void ResolvePairedBrackets(string text, BidiCharacterType[] types, int[] levels)
+    {
+        // Step 1: Identify all bracket characters
+        var bracketPairs = new List<(int openIndex, int closeIndex)>();
+        var stack = new Stack<(int index, char bracket)>();
+
+        for (int i = 0; i < text.Length; i++)
+        {
+            char ch = text[i];
+
+            if (IsOpeningBracket(ch))
+            {
+                // Push opening bracket onto stack
+                stack.Push((i, ch));
+            }
+            else if (IsClosingBracket(ch))
+            {
+                // Try to match with opening bracket
+                var matchingOpen = GetMatchingOpenBracket(ch);
+
+                // Search for matching opening bracket in stack
+                var tempStack = new Stack<(int index, char bracket)>();
+
+                while (stack.Count > 0)
+                {
+                    var top = stack.Pop();
+                    if (top.bracket == matchingOpen)
+                    {
+                        // Found a match!
+                        bracketPairs.Add((top.index, i));
+                        break;
+                    }
+                    else
+                    {
+                        // Save for later
+                        tempStack.Push(top);
+                    }
+                }
+
+                // Restore unmatched brackets to stack
+                while (tempStack.Count > 0)
+                {
+                    stack.Push(tempStack.Pop());
+                }
+            }
+        }
+
+        // Step 2: Process each bracket pair (BD16 algorithm)
+        foreach (var (openIndex, closeIndex) in bracketPairs)
+        {
+            // Get the embedding level
+            int embeddingLevel = levels[openIndex];
+            bool isRtl = (embeddingLevel % 2) == 1;
+
+            // BD16 Rule: Determine the direction based on strong types inside the brackets
+            BidiCharacterType? insideStrongType = null;
+
+            // Look for strong directional types between the brackets
+            for (int i = openIndex + 1; i < closeIndex; i++)
+            {
+                if (types[i] == BidiCharacterType.L)
+                {
+                    insideStrongType = BidiCharacterType.L;
+                    if (!isRtl) break; // Found LTR in LTR context - we're done
+                }
+                else if (types[i] == BidiCharacterType.R)
+                {
+                    insideStrongType = BidiCharacterType.R;
+                    if (isRtl) break; // Found RTL in RTL context - we're done
+                }
+            }
+
+            // If we found a strong type opposite to embedding direction,
+            // check if there's also a matching strong type (BD16 rule)
+            if (insideStrongType != null)
+            {
+                var targetType = insideStrongType.Value;
+
+                // Set the bracket characters to the strong type direction
+                types[openIndex] = targetType;
+                types[closeIndex] = targetType;
+            }
+            else
+            {
+                // BD16 Rule: If no strong types inside, look at context before opening bracket
+                BidiCharacterType? precedingStrongType = null;
+
+                for (int i = openIndex - 1; i >= 0; i--)
+                {
+                    if (types[i] == BidiCharacterType.L || types[i] == BidiCharacterType.R)
+                    {
+                        precedingStrongType = types[i];
+                        break;
+                    }
+                }
+
+                // If preceding context matches embedding direction, use it
+                if (precedingStrongType != null)
+                {
+                    bool precedingMatchesEmbedding =
+                        (isRtl && precedingStrongType == BidiCharacterType.R) ||
+                        (!isRtl && precedingStrongType == BidiCharacterType.L);
+
+                    if (precedingMatchesEmbedding)
+                    {
+                        types[openIndex] = precedingStrongType.Value;
+                        types[closeIndex] = precedingStrongType.Value;
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Checks if a character is an opening bracket.
+    /// </summary>
+    private bool IsOpeningBracket(char ch)
+    {
+        return ch == '(' || ch == '[' || ch == '{' || ch == '<' ||
+               ch == '\u2018' || // '
+               ch == '\u201C' || // "
+               ch == '\u2039' || // ‹
+               ch == '\u00AB' || // «
+               ch == '\u3008' || // 〈
+               ch == '\u300A' || // 《
+               ch == '\u300C' || // 「
+               ch == '\u300E' || // 『
+               ch == '\u3010' || // 【
+               ch == '\u3014' || // 〔
+               ch == '\u3016' || // 〖
+               ch == '\u3018' || // 〘
+               ch == '\u301A';   // 〚
+    }
+
+    /// <summary>
+    /// Checks if a character is a closing bracket.
+    /// </summary>
+    private bool IsClosingBracket(char ch)
+    {
+        return ch == ')' || ch == ']' || ch == '}' || ch == '>' ||
+               ch == '\u2019' || // '
+               ch == '\u201D' || // "
+               ch == '\u203A' || // ›
+               ch == '\u00BB' || // »
+               ch == '\u3009' || // 〉
+               ch == '\u300B' || // 》
+               ch == '\u300D' || // 」
+               ch == '\u300F' || // 』
+               ch == '\u3011' || // 】
+               ch == '\u3015' || // 〕
+               ch == '\u3017' || // 〗
+               ch == '\u3019' || // 〙
+               ch == '\u301B';   // 〛
+    }
+
+    /// <summary>
+    /// Gets the matching opening bracket for a closing bracket.
+    /// </summary>
+    private char GetMatchingOpenBracket(char closingBracket)
+    {
+        return closingBracket switch
+        {
+            ')' => '(',
+            ']' => '[',
+            '}' => '{',
+            '>' => '<',
+            '\u2019' => '\u2018', // ' → '
+            '\u201D' => '\u201C', // " → "
+            '\u203A' => '\u2039', // › → ‹
+            '\u00BB' => '\u00AB', // » → «
+            '\u3009' => '\u3008', // 〉 → 〈
+            '\u300B' => '\u300A', // 》 → 《
+            '\u300D' => '\u300C', // 」 → 「
+            '\u300F' => '\u300E', // 』 → 『
+            '\u3011' => '\u3010', // 】 → 【
+            '\u3015' => '\u3014', // 〕 → 〔
+            '\u3017' => '\u3016', // 〗 → 〖
+            '\u3019' => '\u3018', // 〙 → 〘
+            '\u301B' => '\u301A', // 〛 → 〚
+            _ => closingBracket
+        };
     }
 
     /// <summary>

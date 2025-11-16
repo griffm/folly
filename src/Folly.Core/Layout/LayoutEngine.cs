@@ -1354,8 +1354,16 @@ internal sealed class LayoutEngine
             currentPos = end + 1; // +1 for space
         }
 
-        // Create the Knuth-Plass line breaker
-        var lineBreaker = new KnuthPlassLineBreaker(fontMetrics, availableWidth, tolerance: 1.0);
+        // Create the Knuth-Plass line breaker with configurable parameters from LayoutOptions
+        var lineBreaker = new KnuthPlassLineBreaker(
+            fontMetrics,
+            availableWidth,
+            tolerance: _options.KnuthPlassTolerance,
+            spaceStretchRatio: _options.KnuthPlassSpaceStretchRatio,
+            spaceShrinkRatio: _options.KnuthPlassSpaceShrinkRatio,
+            linePenalty: _options.KnuthPlassLinePenalty,
+            flaggedDemerit: _options.KnuthPlassFlaggedDemerit,
+            fitnessDemerit: _options.KnuthPlassFitnessDemerit);
 
         // Find optimal breakpoints
         var breakpoints = lineBreaker.FindOptimalBreakpoints(text, words, wordPositions);
