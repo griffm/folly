@@ -182,6 +182,11 @@ public sealed class FoTableCell : FoElement
     public IReadOnlyList<FoBlock> Blocks { get; init; } = Array.Empty<FoBlock>();
 
     /// <summary>
+    /// Gets the retrieve-table-marker elements in this cell.
+    /// </summary>
+    public IReadOnlyList<FoRetrieveTableMarker> RetrieveTableMarkers { get; init; } = Array.Empty<FoRetrieveTableMarker>();
+
+    /// <summary>
     /// Gets the number of columns this cell spans.
     /// </summary>
     public int NumberColumnsSpanned => int.TryParse(Properties.GetString("number-columns-spanned", "1"), out var n) ? n : 1;
