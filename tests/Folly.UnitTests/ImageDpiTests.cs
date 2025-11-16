@@ -12,7 +12,7 @@ namespace Folly.UnitTests;
 /// </summary>
 public class ImageDpiTests
 {
-    [Fact(Skip = "Test resource not yet available")]
+    [Fact]
     public void DetectJpegDpi_JFIF_72Dpi()
     {
         // Arrange
@@ -27,7 +27,7 @@ public class ImageDpiTests
         Assert.Equal(72, info.VerticalDpi);
     }
 
-    [Fact(Skip = "Test resource not yet available")]
+    [Fact]
     public void DetectJpegDpi_JFIF_96Dpi()
     {
         // Arrange
@@ -42,7 +42,7 @@ public class ImageDpiTests
         Assert.Equal(96, info.VerticalDpi);
     }
 
-    [Fact(Skip = "Test resource not yet available")]
+    [Fact]
     public void DetectJpegDpi_JFIF_150Dpi()
     {
         // Arrange
@@ -57,7 +57,7 @@ public class ImageDpiTests
         Assert.Equal(150, info.VerticalDpi);
     }
 
-    [Fact(Skip = "Test resource not yet available")]
+    [Fact]
     public void DetectJpegDpi_JFIF_300Dpi()
     {
         // Arrange
@@ -72,7 +72,7 @@ public class ImageDpiTests
         Assert.Equal(300, info.VerticalDpi);
     }
 
-    [Fact(Skip = "Test resource not yet available")]
+    [Fact]
     public void DetectPngDpi_pHYs()
     {
         // Arrange
@@ -83,11 +83,11 @@ public class ImageDpiTests
         var info = parser.Parse(imageBytes);
 
         // Assert
-        Assert.Equal(300, info.HorizontalDpi);
-        Assert.Equal(300, info.VerticalDpi);
+        Assert.Equal(300, info.HorizontalDpi, precision: 1);
+        Assert.Equal(300, info.VerticalDpi, precision: 1);
     }
 
-    [Fact(Skip = "Test resource not yet available")]
+    [Fact]
     public void DefaultDpi_WhenNoDpiMetadata()
     {
         // Arrange

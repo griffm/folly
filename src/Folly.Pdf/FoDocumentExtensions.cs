@@ -22,8 +22,15 @@ public static class FoDocumentExtensions
         // Options metadata takes precedence over declarations
         ExtractAndMergeMetadata(document.Root.Declarations, options.Metadata);
 
+        // Create layout options from PDF options
+        var layoutOptions = new LayoutOptions
+        {
+            DefaultImageDpi = options.DefaultImageDpi,
+            AllowAbsoluteImagePaths = true  // Allow absolute paths for PDF generation
+        };
+
         // Build the area tree from the FO document
-        var areaTree = document.BuildAreaTree();
+        var areaTree = document.BuildAreaTree(layoutOptions);
 
         // Get the bookmark tree (if any)
         var bookmarkTree = document.Root.BookmarkTree;

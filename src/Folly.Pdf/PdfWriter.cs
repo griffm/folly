@@ -314,7 +314,7 @@ internal sealed class PdfWriter : IDisposable
         // Use ICC-based color space if ICC profile is embedded
         if (iccProfileId.HasValue)
         {
-            WriteLine($"  /ColorSpace [{iccProfileId.Value} 0 R]");
+            WriteLine($"  /ColorSpace [/ICCBased {iccProfileId.Value} 0 R]");
         }
         else
         {

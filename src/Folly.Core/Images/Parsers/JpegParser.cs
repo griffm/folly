@@ -185,6 +185,12 @@ public sealed class JpegParser : IImageParser
         if (width == 0 || height == 0)
             throw new InvalidDataException("JPEG file has invalid dimensions");
 
+        // Apply default DPI if no metadata was found
+        if (horizontalDpi == 0)
+            horizontalDpi = 72;
+        if (verticalDpi == 0)
+            verticalDpi = 72;
+
         return new ImageInfo
         {
             Format = "JPEG",

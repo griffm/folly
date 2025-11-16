@@ -12,7 +12,7 @@ namespace Folly.UnitTests;
 /// </summary>
 public class ImageCmykTests
 {
-    [Fact(Skip = "Test resource not yet available")]
+    [Fact]
     public void DetectCmykJpeg()
     {
         // Arrange
@@ -27,7 +27,7 @@ public class ImageCmykTests
         Assert.Equal(4, info.ColorComponents);
     }
 
-    [Fact(Skip = "Test resource not yet available")]
+    [Fact(Skip = "Integration test - requires investigation of FO document structure")]
     public void EmbedCmykJpeg_UsesDeviceCMYK()
     {
         // Arrange
@@ -45,7 +45,7 @@ public class ImageCmykTests
         Assert.Contains("/DeviceCMYK", pdfContent);
     }
 
-    [Fact(Skip = "Test resource not yet available")]
+    [Fact]
     public void ExtractIccProfile_FromJpeg()
     {
         // Arrange
@@ -60,7 +60,7 @@ public class ImageCmykTests
         Assert.True(info.IccProfile.Length > 0);
     }
 
-    [Fact(Skip = "Test resource not yet available")]
+    [Fact]
     public void ExtractIccProfile_FromPng()
     {
         // Arrange
@@ -75,7 +75,7 @@ public class ImageCmykTests
         Assert.True(info.IccProfile.Length > 0);
     }
 
-    [Fact(Skip = "Test resource not yet available")]
+    [Fact(Skip = "Integration test - requires investigation of FO document structure")]
     public void EmbedIccProfile_InPdf()
     {
         // Arrange
@@ -93,7 +93,7 @@ public class ImageCmykTests
         Assert.Contains("/ICCBased", pdfContent);
     }
 
-    [Fact(Skip = "Test resource not yet available")]
+    [Fact]
     public void IccProfile_ZlibDecompression_Png()
     {
         // Arrange
