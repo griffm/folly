@@ -78,7 +78,7 @@ internal sealed class PdfWriter : IDisposable
     /// Writes the document catalog and returns its object ID.
     /// Also reserves object ID 2 for the pages tree.
     /// </summary>
-    public int WriteCatalog(int pageCount, Dom.FoBookmarkTree? bookmarkTree = null, int structTreeRootId = 0)
+    public int WriteCatalog(int pageCount, Dom.FoBookmarkTree? bookmarkTree = null, int structTreeRootId = 0, int xmpMetadataId = 0, int outputIntentId = 0)
     {
         // Reserve object 1 for catalog
         var catalogId = 1;
@@ -113,6 +113,18 @@ internal sealed class PdfWriter : IDisposable
         {
             WriteLine($"  /StructTreeRoot {structTreeRootId} 0 R");
             WriteLine("  /MarkInfo << /Marked true >>");
+        }
+
+        // Add XMP metadata reference for PDF/A compliance
+        if (xmpMetadataId > 0)
+        {
+            WriteLine($"  /Metadata {xmpMetadataId} 0 R");
+        }
+
+        // Add OutputIntents for PDF/A compliance
+        if (outputIntentId > 0)
+        {
+            WriteLine($"  /OutputIntents [ {outputIntentId} 0 R ]");
         }
 
         WriteLine(">>");
@@ -1739,6 +1751,85 @@ internal sealed class PdfWriter : IDisposable
         EndObject();
 
         return infoId;
+    }
+
+    /// <summary>
+    /// Writes XMP metadata stream for PDF/A compliance and returns its object ID.
+    /// XMP (Extensible Metadata Platform) is required for PDF/A.
+    /// </summary>
+    public int WriteXmpMetadata(PdfMetadata metadata, PdfALevel pdfALevel, string pdfVersion)
+    {
+        var xmpData = XmpMetadataWriter.CreateXmpMetadata(metadata, pdfALevel, pdfVersion);
+
+        var metadataId = BeginObject();
+        WriteLine("<<");
+        WriteLine("  /Type /Metadata");
+        WriteLine("  /Subtype /XML");
+        WriteLine($"  /Length {xmpData.Length}");
+        WriteLine(">>");
+        WriteLine("stream");
+
+        // Write XMP data as binary
+        _writer.Flush();
+        _output.Write(xmpData, 0, xmpData.Length);
+        _position += xmpData.Length;
+
+        WriteLine("");
+        WriteLine("endstream");
+        EndObject();
+
+        return metadataId;
+    }
+
+    /// <summary>
+    /// Writes OutputIntent array for PDF/A compliance and returns its object ID.
+    /// OutputIntent defines the intended output device or production condition.
+    /// </summary>
+    public int WriteOutputIntent()
+    {
+        // First, write the ICC profile stream
+        var iccProfile = SrgbIccProfile.GetProfile();
+        var iccProfileId = BeginObject();
+        WriteLine("<<");
+        WriteLine("  /N 3"); // Number of color components (RGB = 3)
+        WriteLine($"  /Length {iccProfile.Length}");
+
+        if (_options.CompressStreams)
+        {
+            WriteLine("  /Filter /FlateDecode");
+            var compressed = CompressWithDeflate(iccProfile);
+            WriteLine(">>");
+            WriteLine("stream");
+            _writer.Flush();
+            _output.Write(compressed, 0, compressed.Length);
+            _position += compressed.Length;
+        }
+        else
+        {
+            WriteLine(">>");
+            WriteLine("stream");
+            _writer.Flush();
+            _output.Write(iccProfile, 0, iccProfile.Length);
+            _position += iccProfile.Length;
+        }
+
+        WriteLine("");
+        WriteLine("endstream");
+        EndObject();
+
+        // Now write the OutputIntent dictionary
+        var outputIntentId = BeginObject();
+        WriteLine("<<");
+        WriteLine("  /Type /OutputIntent");
+        WriteLine("  /S /GTS_PDFA1"); // PDF/A output intent subtype
+        WriteLine($"  /OutputConditionIdentifier ({EscapeString(SrgbIccProfile.OutputConditionIdentifier)})");
+        WriteLine($"  /OutputCondition ({EscapeString(SrgbIccProfile.OutputCondition)})");
+        WriteLine($"  /RegistryName ({EscapeString(SrgbIccProfile.RegistryName)})");
+        WriteLine($"  /DestOutputProfile {iccProfileId} 0 R");
+        WriteLine(">>");
+        EndObject();
+
+        return outputIntentId;
     }
 
     /// <summary>

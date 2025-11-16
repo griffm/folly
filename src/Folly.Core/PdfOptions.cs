@@ -86,6 +86,45 @@ public sealed class PdfOptions
     /// Default is 72 DPI, which is the PDF standard for images without embedded DPI metadata.
     /// </summary>
     public double DefaultImageDpi { get; set; } = 72.0;
+
+    /// <summary>
+    /// Gets or sets the PDF/A compliance level.
+    /// When set to a value other than None, the PDF generator will ensure compliance with the specified PDF/A standard.
+    /// PDF/A is an ISO-standardized version of PDF specialized for digital preservation of electronic documents.
+    /// Default is None (standard PDF 1.7 output).
+    /// </summary>
+    public PdfALevel PdfACompliance { get; set; } = PdfALevel.None;
+}
+
+/// <summary>
+/// PDF/A compliance levels for archival documents.
+/// PDF/A is an ISO-standardized version of PDF specialized for long-term preservation.
+/// </summary>
+public enum PdfALevel
+{
+    /// <summary>
+    /// No PDF/A compliance - generate standard PDF 1.7 documents.
+    /// </summary>
+    None,
+
+    /// <summary>
+    /// PDF/A-1b (ISO 19005-1, Level B) - Basic compliance based on PDF 1.4.
+    /// Ensures visual appearance preservation with all fonts embedded and device-independent color.
+    /// </summary>
+    PdfA1b,
+
+    /// <summary>
+    /// PDF/A-2b (ISO 19005-2, Level B) - Basic compliance based on PDF 1.7.
+    /// Adds support for JPEG 2000 compression, transparency, and PDF layers compared to PDF/A-1.
+    /// Recommended for most archival use cases.
+    /// </summary>
+    PdfA2b,
+
+    /// <summary>
+    /// PDF/A-3b (ISO 19005-3, Level B) - Basic compliance based on PDF 1.7 with embedded files.
+    /// Allows embedding of files in any format (e.g., XML, spreadsheets) for additional context.
+    /// </summary>
+    PdfA3b
 }
 
 /// <summary>

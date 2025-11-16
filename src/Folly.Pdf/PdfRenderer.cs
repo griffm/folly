@@ -76,14 +76,54 @@ public sealed class PdfRenderer : IDisposable
             structTreeRootId = structureTree.WriteToPdf(_writer, pageIds.ToArray());
         }
 
-        // Write catalog with structure tree reference
-        var catalogId = _writer.WriteCatalog(areaTree.Pages.Count, bookmarkTree, structTreeRootId);
+        // PDF/A compliance validation and setup
+        int xmpMetadataId = 0;
+        int outputIntentId = 0;
+
+        if (_options.PdfACompliance != PdfALevel.None)
+        {
+            // Validate PDF/A requirements
+            ValidatePdfACompliance();
+
+            // Write XMP metadata stream (required for PDF/A)
+            xmpMetadataId = _writer.WriteXmpMetadata(_options.Metadata, _options.PdfACompliance, _options.PdfVersion);
+
+            // Write OutputIntent with ICC profile (required for PDF/A)
+            outputIntentId = _writer.WriteOutputIntent();
+        }
+
+        // Write catalog with structure tree reference and PDF/A metadata
+        var catalogId = _writer.WriteCatalog(areaTree.Pages.Count, bookmarkTree, structTreeRootId, xmpMetadataId, outputIntentId);
 
         // Update pages tree
         _writer.WritePages(catalogId + 1, pageIds, areaTree.Pages);
 
         _writer.WriteMetadata(_options.Metadata);
         _writer.WriteXRefAndTrailer(catalogId);
+    }
+
+    /// <summary>
+    /// Validates that the current options comply with PDF/A requirements.
+    /// </summary>
+    private void ValidatePdfACompliance()
+    {
+        // PDF/A requires all fonts to be embedded
+        if (!_options.EmbedFonts)
+        {
+            throw new InvalidOperationException(
+                "PDF/A compliance requires all fonts to be embedded. Set PdfOptions.EmbedFonts = true.");
+        }
+
+        // PDF/A doesn't allow encryption (current implementation doesn't support encryption, but validate for future)
+        // This is a placeholder for when encryption is implemented
+
+        // Warn if metadata is minimal
+        if (string.IsNullOrWhiteSpace(_options.Metadata.Title) &&
+            string.IsNullOrWhiteSpace(_options.Metadata.Author))
+        {
+            // This is not a hard requirement, but good practice for archival documents
+            // We'll allow it but could log a warning if we had logging infrastructure
+        }
     }
 
     private (HashSet<string> Fonts, Dictionary<string, HashSet<char>> CharacterUsage) CollectFonts(AreaTree areaTree)
