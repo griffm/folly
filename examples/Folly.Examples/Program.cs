@@ -4543,7 +4543,7 @@ static void RenderSvgFilesToPdf(string outputPath, string svgDir, string[] svgFi
     writer.WriteLine("%PDF-1.7");
     writer.WriteLine("%\xB5\xED\xAE\xFB");
 
-    var objects = new List<long>();
+    var objectOffsets = new Dictionary<int, long>();
     var pageObjects = new List<int>();
     int nextObjId = 1;
     int catalogId = nextObjId++;
@@ -4582,7 +4582,8 @@ static void RenderSvgFilesToPdf(string outputPath, string svgDir, string[] svgFi
 
     void WriteObject(int id, string content)
     {
-        objects.Add(pdfStream.Position);
+        writer.Flush();  // Flush buffer before recording position
+        objectOffsets[id] = pdfStream.Position;
         writer.WriteLine($"{id} 0 obj");
         writer.WriteLine(content);
         writer.WriteLine("endobj");
@@ -4649,12 +4650,25 @@ static void RenderSvgFilesToPdf(string outputPath, string svgDir, string[] svgFi
 
     writer.Flush();
     var xrefPos = pdfStream.Position;
+    int maxObjId = objectOffsets.Keys.Max();
     writer.WriteLine("xref");
-    writer.WriteLine($"0 {objects.Count + 1}");
+    writer.WriteLine($"0 {maxObjId + 1}");
     writer.WriteLine("0000000000 65535 f ");
-    foreach (var offset in objects) writer.WriteLine($"{offset:D10} 00000 n ");
+    // Write objects in ID order (1, 2, 3, ...)
+    for (int objId = 1; objId <= maxObjId; objId++)
+    {
+        if (objectOffsets.ContainsKey(objId))
+        {
+            writer.WriteLine($"{objectOffsets[objId]:D10} 00000 n ");
+        }
+        else
+        {
+            // Unused object - mark as free
+            writer.WriteLine("0000000000 65535 f ");
+        }
+    }
     writer.WriteLine("trailer");
-    writer.WriteLine($"<< /Size {objects.Count + 1} /Root {catalogId} 0 R >>");
+    writer.WriteLine($"<< /Size {maxObjId + 1} /Root {catalogId} 0 R >>");
     writer.WriteLine("startxref");
     writer.WriteLine(xrefPos.ToString());
     writer.WriteLine("%%EOF");
