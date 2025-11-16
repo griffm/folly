@@ -1,3 +1,5 @@
+using Folly.Images;
+using Folly.Images.Parsers;
 using Folly.Pdf;
 using Folly.UnitTests.Helpers;
 using Xunit;
@@ -14,14 +16,15 @@ public class ImageCmykTests
     public void DetectCmykJpeg()
     {
         // Arrange
-        var imagePath = TestResourceLocator.GetImagePath("test-cmyk.jpg");
+        var imageBytes = TestResourceLocator.LoadImage("test-cmyk.jpg");
+        var parser = new JpegParser();
 
         // Act
-        var info = JpegParser.Parse(imagePath);
+        var info = parser.Parse(imageBytes);
 
         // Assert
-        Assert.Equal(ImageColorSpace.CMYK, info.ColorSpace);
-        Assert.Equal(4, info.Components);
+        Assert.Equal("DeviceCMYK", info.ColorSpace);
+        Assert.Equal(4, info.ColorComponents);
     }
 
     [Fact(Skip = "Test resource not yet available")]
@@ -46,10 +49,11 @@ public class ImageCmykTests
     public void ExtractIccProfile_FromJpeg()
     {
         // Arrange
-        var imagePath = TestResourceLocator.GetImagePath("jpeg-with-icc.jpg");
+        var imageBytes = TestResourceLocator.LoadImage("jpeg-with-icc.jpg");
+        var parser = new JpegParser();
 
         // Act
-        var info = JpegParser.Parse(imagePath);
+        var info = parser.Parse(imageBytes);
 
         // Assert
         Assert.NotNull(info.IccProfile);
@@ -60,10 +64,11 @@ public class ImageCmykTests
     public void ExtractIccProfile_FromPng()
     {
         // Arrange
-        var imagePath = TestResourceLocator.GetImagePath("png-with-iccp.png");
+        var imageBytes = TestResourceLocator.LoadImage("png-with-iccp.png");
+        var parser = new PngParser();
 
         // Act
-        var info = PngParser.Parse(imagePath);
+        var info = parser.Parse(imageBytes);
 
         // Assert
         Assert.NotNull(info.IccProfile);
@@ -92,10 +97,11 @@ public class ImageCmykTests
     public void IccProfile_ZlibDecompression_Png()
     {
         // Arrange
-        var imagePath = TestResourceLocator.GetImagePath("png-with-iccp.png");
+        var imageBytes = TestResourceLocator.LoadImage("png-with-iccp.png");
+        var parser = new PngParser();
 
         // Act
-        var info = PngParser.Parse(imagePath);
+        var info = parser.Parse(imageBytes);
 
         // Assert
         // PNG iCCP chunk is zlib-compressed, verify it decompresses correctly
