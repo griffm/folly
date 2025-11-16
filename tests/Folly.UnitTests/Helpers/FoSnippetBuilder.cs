@@ -39,7 +39,16 @@ public static class FoSnippetBuilder
                     new XAttribute("flow-name", "xsl-region-body"),
                     flowContent)));
 
-        return FoDocument.Load(xml);
+        // Convert XElement to stream and load
+        using var ms = new MemoryStream();
+        using (var writer = new StreamWriter(ms, leaveOpen: true))
+        {
+            writer.Write(xml.ToString());
+            writer.Flush();
+        }
+        ms.Position = 0;
+
+        return FoDocument.Load(ms);
     }
 
     /// <summary>

@@ -1,3 +1,5 @@
+using Folly.Images;
+using Folly.Images.Parsers;
 using Folly.Pdf;
 using Folly.UnitTests.Helpers;
 using Xunit;
@@ -14,84 +16,90 @@ public class ImageDpiTests
     public void DetectJpegDpi_JFIF_72Dpi()
     {
         // Arrange
-        var imagePath = TestResourceLocator.GetImagePath("test-72dpi.jpg");
+        var imageBytes = TestResourceLocator.LoadImage("test-72dpi.jpg");
+        var parser = new JpegParser();
 
         // Act
-        var info = JpegParser.Parse(imagePath);
+        var info = parser.Parse(imageBytes);
 
         // Assert
-        Assert.Equal(72, info.DpiX);
-        Assert.Equal(72, info.DpiY);
+        Assert.Equal(72, info.HorizontalDpi);
+        Assert.Equal(72, info.VerticalDpi);
     }
 
     [Fact(Skip = "Test resource not yet available")]
     public void DetectJpegDpi_JFIF_96Dpi()
     {
         // Arrange
-        var imagePath = TestResourceLocator.GetImagePath("test-96dpi.jpg");
+        var imageBytes = TestResourceLocator.LoadImage("test-96dpi.jpg");
+        var parser = new JpegParser();
 
         // Act
-        var info = JpegParser.Parse(imagePath);
+        var info = parser.Parse(imageBytes);
 
         // Assert
-        Assert.Equal(96, info.DpiX);
-        Assert.Equal(96, info.DpiY);
+        Assert.Equal(96, info.HorizontalDpi);
+        Assert.Equal(96, info.VerticalDpi);
     }
 
     [Fact(Skip = "Test resource not yet available")]
     public void DetectJpegDpi_JFIF_150Dpi()
     {
         // Arrange
-        var imagePath = TestResourceLocator.GetImagePath("test-150dpi.jpg");
+        var imageBytes = TestResourceLocator.LoadImage("test-150dpi.jpg");
+        var parser = new JpegParser();
 
         // Act
-        var info = JpegParser.Parse(imagePath);
+        var info = parser.Parse(imageBytes);
 
         // Assert
-        Assert.Equal(150, info.DpiX);
-        Assert.Equal(150, info.DpiY);
+        Assert.Equal(150, info.HorizontalDpi);
+        Assert.Equal(150, info.VerticalDpi);
     }
 
     [Fact(Skip = "Test resource not yet available")]
     public void DetectJpegDpi_JFIF_300Dpi()
     {
         // Arrange
-        var imagePath = TestResourceLocator.GetImagePath("test-300dpi.jpg");
+        var imageBytes = TestResourceLocator.LoadImage("test-300dpi.jpg");
+        var parser = new JpegParser();
 
         // Act
-        var info = JpegParser.Parse(imagePath);
+        var info = parser.Parse(imageBytes);
 
         // Assert
-        Assert.Equal(300, info.DpiX);
-        Assert.Equal(300, info.DpiY);
+        Assert.Equal(300, info.HorizontalDpi);
+        Assert.Equal(300, info.VerticalDpi);
     }
 
     [Fact(Skip = "Test resource not yet available")]
     public void DetectPngDpi_pHYs()
     {
         // Arrange
-        var imagePath = TestResourceLocator.GetImagePath("test-300dpi.png");
+        var imageBytes = TestResourceLocator.LoadImage("test-300dpi.png");
+        var parser = new PngParser();
 
         // Act
-        var info = PngParser.Parse(imagePath);
+        var info = parser.Parse(imageBytes);
 
         // Assert
-        Assert.Equal(300, info.DpiX);
-        Assert.Equal(300, info.DpiY);
+        Assert.Equal(300, info.HorizontalDpi);
+        Assert.Equal(300, info.VerticalDpi);
     }
 
     [Fact(Skip = "Test resource not yet available")]
     public void DefaultDpi_WhenNoDpiMetadata()
     {
         // Arrange
-        var imagePath = TestResourceLocator.GetImagePath("no-dpi-metadata.jpg");
+        var imageBytes = TestResourceLocator.LoadImage("no-dpi-metadata.jpg");
+        var parser = new JpegParser();
 
         // Act
-        var info = JpegParser.Parse(imagePath);
+        var info = parser.Parse(imageBytes);
 
         // Assert
-        Assert.Equal(72, info.DpiX); // Default DPI
-        Assert.Equal(72, info.DpiY);
+        Assert.Equal(72, info.HorizontalDpi); // Default DPI
+        Assert.Equal(72, info.VerticalDpi);
     }
 
     [Fact(Skip = "Implementation pending")]
