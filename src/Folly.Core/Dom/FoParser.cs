@@ -569,6 +569,15 @@ internal static class FoParser
                 case "page-number-citation-last":
                     children.Add(ParsePageNumberCitationLast(child));
                     break;
+                case "index-range-begin":
+                    children.Add(ParseIndexRangeBegin(child));
+                    break;
+                case "index-range-end":
+                    children.Add(ParseIndexRangeEnd(child));
+                    break;
+                case "index-key-reference":
+                    children.Add(ParseIndexKeyReference(child));
+                    break;
                 case "marker":
                     children.Add(ParseMarker(child));
                     break;
@@ -912,6 +921,15 @@ internal static class FoParser
                     break;
                 case "page-number-citation-last":
                     children.Add(ParsePageNumberCitationLast(child));
+                    break;
+                case "index-range-begin":
+                    children.Add(ParseIndexRangeBegin(child));
+                    break;
+                case "index-range-end":
+                    children.Add(ParseIndexRangeEnd(child));
+                    break;
+                case "index-key-reference":
+                    children.Add(ParseIndexKeyReference(child));
                     break;
                 case "basic-link":
                     children.Add(ParseBasicLink(child));
@@ -1331,6 +1349,15 @@ internal static class FoParser
                 case "page-number-citation-last":
                     children.Add(ParsePageNumberCitationLast(child));
                     break;
+                case "index-range-begin":
+                    children.Add(ParseIndexRangeBegin(child));
+                    break;
+                case "index-range-end":
+                    children.Add(ParseIndexRangeEnd(child));
+                    break;
+                case "index-key-reference":
+                    children.Add(ParseIndexKeyReference(child));
+                    break;
                 case "leader":
                     children.Add(ParseLeader(child));
                     break;
@@ -1388,6 +1415,15 @@ internal static class FoParser
                     break;
                 case "page-number-citation-last":
                     children.Add(ParsePageNumberCitationLast(child));
+                    break;
+                case "index-range-begin":
+                    children.Add(ParseIndexRangeBegin(child));
+                    break;
+                case "index-range-end":
+                    children.Add(ParseIndexRangeEnd(child));
+                    break;
+                case "index-key-reference":
+                    children.Add(ParseIndexKeyReference(child));
                     break;
                 case "leader":
                     children.Add(ParseLeader(child));
@@ -1657,6 +1693,133 @@ internal static class FoParser
         {
             Properties = ParseProperties(element),
             Blocks = blocks
+        };
+    }
+
+    private static FoIndexRangeBegin ParseIndexRangeBegin(XElement element)
+    {
+        return new FoIndexRangeBegin
+        {
+            Properties = ParseProperties(element)
+        };
+    }
+
+    private static FoIndexRangeEnd ParseIndexRangeEnd(XElement element)
+    {
+        return new FoIndexRangeEnd
+        {
+            Properties = ParseProperties(element)
+        };
+    }
+
+    private static FoIndexKeyReference ParseIndexKeyReference(XElement element)
+    {
+        var prefixes = new List<FoIndexPageNumberPrefix>();
+        var suffixes = new List<FoIndexPageNumberSuffix>();
+        var citationLists = new List<FoIndexPageCitationList>();
+
+        foreach (var child in element.Elements())
+        {
+            var name = child.Name.LocalName;
+            switch (name)
+            {
+                case "index-page-number-prefix":
+                    prefixes.Add(ParseIndexPageNumberPrefix(child));
+                    break;
+                case "index-page-number-suffix":
+                    suffixes.Add(ParseIndexPageNumberSuffix(child));
+                    break;
+                case "index-page-citation-list":
+                    citationLists.Add(ParseIndexPageCitationList(child));
+                    break;
+            }
+        }
+
+        return new FoIndexKeyReference
+        {
+            Properties = ParseProperties(element),
+            PageNumberPrefixes = prefixes,
+            PageNumberSuffixes = suffixes,
+            PageCitationLists = citationLists
+        };
+    }
+
+    private static FoIndexPageNumberPrefix ParseIndexPageNumberPrefix(XElement element)
+    {
+        var textContent = string.Join("", element.Nodes()
+            .OfType<XText>()
+            .Select(t => t.Value));
+
+        return new FoIndexPageNumberPrefix
+        {
+            Properties = ParseProperties(element),
+            TextContent = string.IsNullOrWhiteSpace(textContent) ? null : textContent
+        };
+    }
+
+    private static FoIndexPageNumberSuffix ParseIndexPageNumberSuffix(XElement element)
+    {
+        var textContent = string.Join("", element.Nodes()
+            .OfType<XText>()
+            .Select(t => t.Value));
+
+        return new FoIndexPageNumberSuffix
+        {
+            Properties = ParseProperties(element),
+            TextContent = string.IsNullOrWhiteSpace(textContent) ? null : textContent
+        };
+    }
+
+    private static FoIndexPageCitationList ParseIndexPageCitationList(XElement element)
+    {
+        var listSeparators = new List<FoIndexPageCitationListSeparator>();
+        var rangeSeparators = new List<FoIndexPageCitationRangeSeparator>();
+
+        foreach (var child in element.Elements())
+        {
+            var name = child.Name.LocalName;
+            switch (name)
+            {
+                case "index-page-citation-list-separator":
+                    listSeparators.Add(ParseIndexPageCitationListSeparator(child));
+                    break;
+                case "index-page-citation-range-separator":
+                    rangeSeparators.Add(ParseIndexPageCitationRangeSeparator(child));
+                    break;
+            }
+        }
+
+        return new FoIndexPageCitationList
+        {
+            Properties = ParseProperties(element),
+            ListSeparators = listSeparators,
+            RangeSeparators = rangeSeparators
+        };
+    }
+
+    private static FoIndexPageCitationListSeparator ParseIndexPageCitationListSeparator(XElement element)
+    {
+        var textContent = string.Join("", element.Nodes()
+            .OfType<XText>()
+            .Select(t => t.Value));
+
+        return new FoIndexPageCitationListSeparator
+        {
+            Properties = ParseProperties(element),
+            TextContent = string.IsNullOrWhiteSpace(textContent) ? null : textContent
+        };
+    }
+
+    private static FoIndexPageCitationRangeSeparator ParseIndexPageCitationRangeSeparator(XElement element)
+    {
+        var textContent = string.Join("", element.Nodes()
+            .OfType<XText>()
+            .Select(t => t.Value));
+
+        return new FoIndexPageCitationRangeSeparator
+        {
+            Properties = ParseProperties(element),
+            TextContent = string.IsNullOrWhiteSpace(textContent) ? null : textContent
         };
     }
 }

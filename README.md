@@ -228,7 +228,8 @@ The core rendering engine is fully operational with extensive feature support:
 - **Integer keep strength values** (1-999) for fine-grained pagination control
 - **Widow/orphan control** for professional typography (configurable via `widows` and `orphans` properties)
 - Static-content for headers and footers
-- Markers for dynamic content (fo:marker, fo:retrieve-marker)
+- Markers for dynamic content (fo:marker, fo:retrieve-marker, fo:retrieve-table-marker)
+- **Index generation** (fo:index-range-begin, fo:index-range-end, fo:index-key-reference) for automatic document indexing with page ranges, custom separators, and configurable merge behavior
 - Multi-column layout (column-count, column-gap)
 - Footnotes (fo:footnote, fo:footnote-body)
 - Footnote separators (xsl-footnote-separator) for visual separation
