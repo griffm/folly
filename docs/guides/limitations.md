@@ -290,8 +290,6 @@ return (fallback, 8, "DeviceRGB", 3, null, null, null);
 
 ### 2.7 Limited Image Format Support
 
-**Location**: See `docs/reference/limitations/images.md` for complete details
-
 **Fully Supported**:
 - ✅ JPEG, PNG (comprehensive)
 
@@ -373,7 +371,7 @@ return (100, 100); // Default fallback
 
 **Confidence Level**: High for production RTL language support
 
-**See**: `docs/reference/limitations/bidi-text-support.md` for complete details and `examples/35-bidi-arabic-hebrew.fo` for working examples
+**See**: `examples/35-bidi-arabic-hebrew.fo` for working examples
 
 ---
 

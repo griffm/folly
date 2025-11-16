@@ -20,10 +20,6 @@ The `architecture/` directory contains detailed information about internal syste
 - **[SVG Rendering](architecture/svg-support.md)** - SVG parsing and PDF conversion
 - **[PDF Generation](architecture/pdf-generation.md)** - PDF structure and rendering
 
-### Reference Documentation
-
-- **[Limitations Reference](reference/limitations/)** - Detailed limitations organized by feature area
-
 ## Quick Links
 
 - [Main README](../README.md) - Project overview and quick start
@@ -35,6 +31,6 @@ The `architecture/` directory contains detailed information about internal syste
 When adding new features or making changes, please:
 
 1. Update relevant documentation in this directory
-2. Add limitations to `guides/limitations.md` and detailed references in `reference/limitations/`
+2. Update `guides/limitations.md` to reflect current limitations and completed features
 3. Update examples in `../examples/` to demonstrate new features
 4. Keep documentation professional and concise
