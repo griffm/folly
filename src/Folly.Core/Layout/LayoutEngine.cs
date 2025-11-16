@@ -12,7 +12,8 @@ internal sealed class LayoutEngine
     private const double DefaultFontSize = 12.0; // Default font size when invalid
 
     private readonly LayoutOptions _options;
-    private readonly Dictionary<string, List<(int PageNumber, Dom.FoMarker Marker)>> _markers = new();
+    private readonly Dictionary<string, List<(int PageNumber, int Sequence, Dom.FoMarker Marker)>> _markers = new();
+    private readonly Dictionary<string, int> _markerSequenceCounters = new();
     private readonly List<Dom.FoFootnote> _currentPageFootnotes = new();
     private readonly List<Dom.FoFloat> _currentPageFloats = new();
     private readonly List<LinkArea> _currentPageLinks = new();
@@ -51,9 +52,64 @@ internal sealed class LayoutEngine
         if (flow == null)
             return;
 
+        // Remember the page count before this sequence
+        int pageCountBeforeSequence = areaTree.Pages.Count;
+
         // Layout the flow content, creating pages as needed
         // Pass foRoot to allow dynamic page master selection
         LayoutFlowWithPagination(areaTree, foRoot, pageSequence);
+
+        // Apply force-page-count if specified
+        ApplyForcePageCount(areaTree, foRoot, pageSequence, pageCountBeforeSequence);
+    }
+
+    /// <summary>
+    /// Applies the force-page-count property to ensure the page sequence ends on the correct parity.
+    /// Adds blank pages if necessary to satisfy even/odd requirements.
+    /// </summary>
+    private void ApplyForcePageCount(AreaTree areaTree, Dom.FoRoot foRoot, Dom.FoPageSequence pageSequence, int pageCountBeforeSequence)
+    {
+        var forcePageCount = pageSequence.ForcePageCount.ToLowerInvariant();
+
+        if (forcePageCount == "auto" || forcePageCount == "no-force" || areaTree.Pages.Count == 0)
+            return;
+
+        var currentPageCount = areaTree.Pages.Count;
+        var lastPageNumber = currentPageCount;
+        var isLastPageEven = lastPageNumber % 2 == 0;
+
+        bool needsBlankPage = false;
+
+        switch (forcePageCount)
+        {
+            case "even":
+                // End on an even page
+                needsBlankPage = !isLastPageEven;
+                break;
+
+            case "odd":
+                // End on an odd page
+                needsBlankPage = isLastPageEven;
+                break;
+
+            case "end-on-even":
+                // Same as "even" - end on an even page
+                needsBlankPage = !isLastPageEven;
+                break;
+
+            case "end-on-odd":
+                // Same as "odd" - end on an odd page
+                needsBlankPage = isLastPageEven;
+                break;
+        }
+
+        if (needsBlankPage)
+        {
+            // Add a blank page to satisfy the force-page-count requirement
+            var pageMaster = SelectPageMaster(foRoot, pageSequence, lastPageNumber + 1, lastPageNumber + 1);
+            var blankPage = CreatePage(pageMaster, pageSequence, lastPageNumber + 1);
+            areaTree.AddPage(blankPage);
+        }
     }
 
     private PageViewport CreatePage(Dom.FoSimplePageMaster pageMaster, Dom.FoPageSequence pageSequence, int pageNumber)
@@ -228,6 +284,14 @@ internal sealed class LayoutEngine
         }
     }
 
+    /// <summary>
+    /// Retrieves marker content based on the specified retrieve position.
+    /// Implements all XSL-FO 1.1 marker retrieve positions:
+    /// - first-starting-within-page: First marker that starts on this page
+    /// - first-including-carryover: First marker on this page, or last marker from previous pages if none on current page
+    /// - last-starting-within-page: Last marker that starts on this page
+    /// - last-ending-within-page: Last marker on or before this page (same as last-starting for point markers)
+    /// </summary>
     private IReadOnlyList<Dom.FoBlock> RetrieveMarkerContent(Dom.FoRetrieveMarker retrieveMarker, int pageNumber)
     {
         var className = retrieveMarker.RetrieveClassName;
@@ -236,25 +300,67 @@ internal sealed class LayoutEngine
 
         var markersForClass = _markers[className];
         var position = retrieveMarker.RetrievePosition;
+        var boundary = retrieveMarker.RetrieveBoundary; // page, page-sequence, or document
 
-        // Simplified implementation: support first-starting-within-page and last-ending-within-page
         Dom.FoMarker? selectedMarker = null;
 
-        if (position == "first-starting-within-page" || position == "first-including-carryover")
+        switch (position)
         {
-            // Get the first marker on this page
-            selectedMarker = markersForClass
-                .Where(m => m.PageNumber == pageNumber)
-                .OrderBy(m => m.PageNumber)
-                .FirstOrDefault().Marker;
-        }
-        else if (position == "last-starting-within-page" || position == "last-ending-within-page")
-        {
-            // Get the last marker on this page
-            selectedMarker = markersForClass
-                .Where(m => m.PageNumber == pageNumber)
-                .OrderBy(m => m.PageNumber)
-                .LastOrDefault().Marker;
+            case "first-starting-within-page":
+                // Get the first marker that starts on this page (by sequence order)
+                selectedMarker = markersForClass
+                    .Where(m => m.PageNumber == pageNumber)
+                    .OrderBy(m => m.Sequence)
+                    .FirstOrDefault().Marker;
+                break;
+
+            case "first-including-carryover":
+                // Get the first marker on this page, or if none exists, the last marker from previous pages
+                var firstOnPage = markersForClass
+                    .Where(m => m.PageNumber == pageNumber)
+                    .OrderBy(m => m.Sequence)
+                    .FirstOrDefault();
+
+                if (firstOnPage != default)
+                {
+                    selectedMarker = firstOnPage.Marker;
+                }
+                else
+                {
+                    // No marker on current page, get the last marker from previous pages (carryover)
+                    selectedMarker = markersForClass
+                        .Where(m => m.PageNumber < pageNumber)
+                        .OrderByDescending(m => m.PageNumber)
+                        .ThenByDescending(m => m.Sequence)
+                        .FirstOrDefault().Marker;
+                }
+                break;
+
+            case "last-starting-within-page":
+                // Get the last marker that starts on this page (by sequence order)
+                selectedMarker = markersForClass
+                    .Where(m => m.PageNumber == pageNumber)
+                    .OrderByDescending(m => m.Sequence)
+                    .FirstOrDefault().Marker;
+                break;
+
+            case "last-ending-within-page":
+                // For point markers (which don't span pages), this is the same as last-starting-within-page
+                // Get the last marker on or before this page
+                selectedMarker = markersForClass
+                    .Where(m => m.PageNumber <= pageNumber)
+                    .OrderByDescending(m => m.PageNumber)
+                    .ThenByDescending(m => m.Sequence)
+                    .FirstOrDefault().Marker;
+                break;
+
+            default:
+                // Default to first-starting-within-page if position is unrecognized
+                selectedMarker = markersForClass
+                    .Where(m => m.PageNumber == pageNumber)
+                    .OrderBy(m => m.Sequence)
+                    .FirstOrDefault().Marker;
+                break;
         }
 
         return selectedMarker?.Blocks ?? Array.Empty<Dom.FoBlock>();
@@ -808,9 +914,13 @@ internal sealed class LayoutEngine
                 if (!string.IsNullOrEmpty(className))
                 {
                     if (!_markers.ContainsKey(className))
-                        _markers[className] = new List<(int, Dom.FoMarker)>();
+                        _markers[className] = new List<(int, int, Dom.FoMarker)>();
 
-                    _markers[className].Add((pageNumber, marker));
+                    if (!_markerSequenceCounters.ContainsKey(className))
+                        _markerSequenceCounters[className] = 0;
+
+                    int sequence = _markerSequenceCounters[className]++;
+                    _markers[className].Add((pageNumber, sequence, marker));
                 }
             }
         }
@@ -2301,7 +2411,7 @@ internal sealed class LayoutEngine
         if (foTable.Columns.Count > 0)
         {
             // Expand repeated columns and categorize them
-            var expandedColumns = new List<(string widthSpec, double fixedWidth, double proportionalValue)>();
+            var expandedColumns = new List<(string widthSpec, double fixedWidth, double percentageValue, double proportionalValue)>();
 
             foreach (var column in foTable.Columns)
             {
@@ -2311,6 +2421,7 @@ internal sealed class LayoutEngine
                 for (int i = 0; i < repeat; i++)
                 {
                     double fixedWidth = 0;
+                    double percentageValue = 0;
                     double proportionalValue = 0;
 
                     if (widthSpec.StartsWith("proportional-column-width("))
@@ -2318,23 +2429,43 @@ internal sealed class LayoutEngine
                         // Parse proportional-column-width(N)
                         proportionalValue = ParseProportionalColumnWidth(widthSpec);
                     }
+                    else if (widthSpec.EndsWith("%"))
+                    {
+                        // Percentage width (e.g., "25%")
+                        if (double.TryParse(widthSpec.TrimEnd('%'), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var pct))
+                        {
+                            percentageValue = Math.Max(0, Math.Min(100, pct)); // Clamp to 0-100%
+                        }
+                    }
                     else if (widthSpec != "auto")
                     {
-                        // Fixed width
+                        // Fixed width (absolute length)
                         fixedWidth = column.ColumnWidth;
                     }
-                    // else: auto width (both values remain 0)
+                    // else: auto width (all values remain 0)
 
-                    expandedColumns.Add((widthSpec, fixedWidth, proportionalValue));
+                    expandedColumns.Add((widthSpec, fixedWidth, percentageValue, proportionalValue));
                 }
             }
 
-            // Calculate widths
-            var totalFixedWidth = expandedColumns.Sum(c => c.fixedWidth);
-            var totalProportional = expandedColumns.Sum(c => c.proportionalValue);
-            var autoCount = expandedColumns.Count(c => Math.Abs(c.fixedWidth) < Epsilon && Math.Abs(c.proportionalValue) < Epsilon);
+            // Calculate spacing
+            var spacing = foTable.BorderSpacing * (expandedColumns.Count + 1);
+            var availableForColumns = availableWidth - spacing;
 
-            var remainingWidth = availableWidth - totalFixedWidth - (foTable.BorderSpacing * (expandedColumns.Count + 1));
+            // Calculate widths for each category
+            var totalFixedWidth = expandedColumns.Sum(c => c.fixedWidth);
+            var totalPercentage = expandedColumns.Sum(c => c.percentageValue);
+            var totalProportional = expandedColumns.Sum(c => c.proportionalValue);
+            var autoCount = expandedColumns.Count(c =>
+                Math.Abs(c.fixedWidth) < Epsilon &&
+                Math.Abs(c.percentageValue) < Epsilon &&
+                Math.Abs(c.proportionalValue) < Epsilon);
+
+            // Calculate percentage widths (relative to available width for columns)
+            var totalPercentageWidth = (totalPercentage / 100.0) * availableForColumns;
+
+            // Remaining width for proportional and auto columns
+            var remainingWidth = availableForColumns - totalFixedWidth - totalPercentageWidth;
 
             // For auto columns, measure content widths to determine optimal sizing
             List<double> autoColumnContentWidths = new List<double>();
@@ -2348,8 +2479,10 @@ internal sealed class LayoutEngine
                 // Extract content widths for auto columns only
                 for (int i = 0; i < expandedColumns.Count; i++)
                 {
-                    var (_, fixedWidth, proportionalValue) = expandedColumns[i];
-                    if (Math.Abs(fixedWidth) < Epsilon && Math.Abs(proportionalValue) < Epsilon) // auto column
+                    var (_, fixedWidth, percentageValue, proportionalValue) = expandedColumns[i];
+                    if (Math.Abs(fixedWidth) < Epsilon &&
+                        Math.Abs(percentageValue) < Epsilon &&
+                        Math.Abs(proportionalValue) < Epsilon) // auto column
                     {
                         var contentWidth = contentWidths[i];
                         autoColumnContentWidths.Add(contentWidth);
@@ -2360,12 +2493,18 @@ internal sealed class LayoutEngine
 
             // Distribute remaining width
             int autoColumnIndex = 0;
-            foreach (var (_, fixedWidth, proportionalValue) in expandedColumns)
+            foreach (var (_, fixedWidth, percentageValue, proportionalValue) in expandedColumns)
             {
                 if (fixedWidth > Epsilon)
                 {
-                    // Fixed width column
-                    columnWidths.Add(fixedWidth);
+                    // Fixed width column (absolute length)
+                    columnWidths.Add(Math.Max(MinimumColumnWidth, fixedWidth));
+                }
+                else if (percentageValue > Epsilon)
+                {
+                    // Percentage width column
+                    var percentageWidth = (percentageValue / 100.0) * availableForColumns;
+                    columnWidths.Add(Math.Max(MinimumColumnWidth, percentageWidth));
                 }
                 else if (proportionalValue > Epsilon)
                 {
@@ -2427,6 +2566,64 @@ internal sealed class LayoutEngine
             return Math.Max(0, value); // Ensure non-negative
 
         return 1.0; // Default to 1 if parsing fails
+    }
+
+    /// <summary>
+    /// Calculates the width for a float element based on explicit width, content, or heuristics.
+    /// </summary>
+    /// <param name="foFloat">The float element</param>
+    /// <param name="bodyWidth">Available body width</param>
+    /// <returns>The calculated float width in points</returns>
+    private double CalculateFloatWidth(Dom.FoFloat foFloat, double bodyWidth)
+    {
+        // Check for explicit width property
+        var widthSpec = foFloat.Properties.GetString("width", "auto");
+
+        if (widthSpec != "auto")
+        {
+            // Explicit width specified
+            if (widthSpec.EndsWith("%"))
+            {
+                // Percentage width
+                if (double.TryParse(widthSpec.TrimEnd('%'), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var pct))
+                {
+                    return Math.Max(MinimumColumnWidth, (pct / 100.0) * bodyWidth);
+                }
+            }
+            else
+            {
+                // Absolute length
+                var explicitWidth = Dom.LengthParser.Parse(widthSpec);
+                if (explicitWidth > Epsilon)
+                {
+                    return Math.Max(MinimumColumnWidth, explicitWidth);
+                }
+            }
+        }
+
+        // No explicit width - measure content to determine optimal width
+        var contentWidth = MeasureFloatMinimumWidth(foFloat);
+
+        // Use content width, but don't exceed 1/3 of body width (reasonable maximum for floats)
+        var maxFloatWidth = bodyWidth / 3.0;
+        return Math.Max(MinimumColumnWidth, Math.Min(contentWidth, maxFloatWidth));
+    }
+
+    /// <summary>
+    /// Measures the minimum width needed to display the float's content.
+    /// </summary>
+    private double MeasureFloatMinimumWidth(Dom.FoFloat foFloat)
+    {
+        double maxWidth = 0;
+
+        foreach (var block in foFloat.Blocks)
+        {
+            var blockMinWidth = MeasureBlockMinimumWidth(block);
+            maxWidth = Math.Max(maxWidth, blockMinWidth);
+        }
+
+        // If no measurable content, use a reasonable default
+        return maxWidth > Epsilon ? maxWidth : 150.0;
     }
 
     /// <summary>
@@ -3488,8 +3685,8 @@ internal sealed class LayoutEngine
             var floatPosition = foFloat.Float?.ToLowerInvariant() ?? "start";
             var isStartFloat = floatPosition == "start" || floatPosition == "left";
 
-            // Calculate float width (default to 200pt, or 1/3 of body width)
-            var floatWidth = Math.Min(200, bodyWidth / 3);
+            // Calculate float width
+            var floatWidth = CalculateFloatWidth(foFloat, bodyWidth);
 
             // Calculate X position based on float side
             var floatX = isStartFloat

@@ -349,6 +349,13 @@ public sealed class FoBlock : FoElement
     }
 
     /// <summary>
+    /// Gets the span property - controls whether a block spans all columns.
+    /// Values: "none" (default), "all"
+    /// When "all", the block spans all columns in a multi-column layout.
+    /// </summary>
+    public string Span => Properties.GetString("span", "none");
+
+    /// <summary>
     /// Gets the wrap-option property - controls line wrapping behavior.
     /// Values: "wrap" (default), "no-wrap"
     /// </summary>

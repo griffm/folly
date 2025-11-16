@@ -22,4 +22,11 @@ public sealed class FoPageSequence : FoElement
     /// Gets the flow child element.
     /// </summary>
     public FoFlow? Flow { get; init; }
+
+    /// <summary>
+    /// Gets the force-page-count property (auto, even, odd, end-on-even, end-on-odd, no-force).
+    /// Determines whether the page sequence should end on an even or odd page by adding blank pages if necessary.
+    /// Default is "auto".
+    /// </summary>
+    public string ForcePageCount => Properties.GetString("force-page-count", "auto");
 }
