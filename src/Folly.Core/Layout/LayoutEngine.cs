@@ -802,6 +802,33 @@ internal sealed class LayoutEngine
             currentColumn = 0;  // Reset to first column after table
         }
 
+        // Layout each table-and-caption in the flow with page breaking support
+        // Note: Table-and-captions span full body width, not individual columns
+        foreach (var foTableAndCaption in flow.TableAndCaptions)
+        {
+            // Layout table-and-caption with page breaking
+            LayoutTableAndCaptionWithPageBreaking(
+                foTableAndCaption,
+                foRoot,
+                pageSequence,
+                areaTree,
+                ref currentPage,
+                ref currentPageMaster,
+                ref pageNumber,
+                ref currentY,
+                ref currentColumn,
+                bodyMarginLeft,
+                bodyWidth,
+                ref bodyMarginTop,
+                ref bodyMarginBottom,
+                ref bodyMarginLeft,
+                ref bodyMarginRight,
+                ref bodyWidth,
+                ref bodyHeight);
+
+            currentColumn = 0;  // Reset to first column after table-and-caption
+        }
+
         // Layout each list block in the flow
         // Note: Lists span full body width, not individual columns
         foreach (var foList in flow.Lists)
@@ -2200,6 +2227,149 @@ internal sealed class LayoutEngine
                 calculatedTableWidth,
                 ref currentY,
                 currentPage);
+        }
+    }
+
+    /// <summary>
+    /// Layouts a table-and-caption element with support for page breaking.
+    /// The caption is positioned according to the caption-side property.
+    /// </summary>
+    private void LayoutTableAndCaptionWithPageBreaking(
+        Dom.FoTableAndCaption foTableAndCaption,
+        Dom.FoRoot foRoot,
+        Dom.FoPageSequence pageSequence,
+        AreaTree areaTree,
+        ref PageViewport currentPage,
+        ref Dom.FoSimplePageMaster currentPageMaster,
+        ref int pageNumber,
+        ref double currentY,
+        ref int currentColumn,
+        double tableX,
+        double tableWidth,
+        ref double bodyMarginTop,
+        ref double bodyMarginBottom,
+        ref double bodyMarginLeft,
+        ref double bodyMarginRight,
+        ref double bodyWidth,
+        ref double bodyHeight)
+    {
+        var caption = foTableAndCaption.Caption;
+        var table = foTableAndCaption.Table;
+
+        if (table == null)
+            return;
+
+        // Get caption side (default: before)
+        var captionSide = caption?.CaptionSide ?? "before";
+
+        // Normalize caption-side to before/after
+        // before = top, start; after = bottom, end
+        var renderCaptionBefore = captionSide is "before" or "top" or "start";
+
+        // Render caption before table if needed
+        if (renderCaptionBefore && caption != null)
+        {
+            LayoutTableCaption(
+                caption,
+                foRoot,
+                pageSequence,
+                areaTree,
+                ref currentPage,
+                ref currentPageMaster,
+                ref pageNumber,
+                ref currentY,
+                ref currentColumn,
+                tableX,
+                tableWidth,
+                ref bodyMarginTop,
+                ref bodyMarginBottom,
+                ref bodyMarginLeft,
+                ref bodyMarginRight,
+                ref bodyWidth,
+                ref bodyHeight);
+        }
+
+        // Layout the table
+        LayoutTableWithPageBreaking(
+            table,
+            foRoot,
+            pageSequence,
+            areaTree,
+            ref currentPage,
+            ref currentPageMaster,
+            ref pageNumber,
+            ref currentY,
+            ref currentColumn,
+            tableX,
+            tableWidth,
+            ref bodyMarginTop,
+            ref bodyMarginBottom,
+            ref bodyMarginLeft,
+            ref bodyMarginRight,
+            ref bodyWidth,
+            ref bodyHeight);
+
+        // Render caption after table if needed
+        if (!renderCaptionBefore && caption != null)
+        {
+            LayoutTableCaption(
+                caption,
+                foRoot,
+                pageSequence,
+                areaTree,
+                ref currentPage,
+                ref currentPageMaster,
+                ref pageNumber,
+                ref currentY,
+                ref currentColumn,
+                tableX,
+                tableWidth,
+                ref bodyMarginTop,
+                ref bodyMarginBottom,
+                ref bodyMarginLeft,
+                ref bodyMarginRight,
+                ref bodyWidth,
+                ref bodyHeight);
+        }
+    }
+
+    /// <summary>
+    /// Layouts a table caption as a series of blocks.
+    /// </summary>
+    private void LayoutTableCaption(
+        Dom.FoTableCaption caption,
+        Dom.FoRoot foRoot,
+        Dom.FoPageSequence pageSequence,
+        AreaTree areaTree,
+        ref PageViewport currentPage,
+        ref Dom.FoSimplePageMaster currentPageMaster,
+        ref int pageNumber,
+        ref double currentY,
+        ref int currentColumn,
+        double captionX,
+        double captionWidth,
+        ref double bodyMarginTop,
+        ref double bodyMarginBottom,
+        ref double bodyMarginLeft,
+        ref double bodyMarginRight,
+        ref double bodyWidth,
+        ref double bodyHeight)
+    {
+        // Layout each block in the caption using LayoutBlock
+        foreach (var block in caption.Blocks)
+        {
+            var blockY = currentY + block.SpaceBefore;
+            var blockArea = LayoutBlock(block, captionX, blockY, captionWidth, pageNumber);
+
+            if (blockArea != null)
+            {
+                currentPage.AddArea(blockArea);
+
+                // Update currentY for next block/element
+                var blockTotalHeight = blockArea.SpaceBefore + blockArea.MarginTop +
+                                      blockArea.Height + blockArea.MarginBottom + blockArea.SpaceAfter;
+                currentY += blockTotalHeight;
+            }
         }
     }
 
