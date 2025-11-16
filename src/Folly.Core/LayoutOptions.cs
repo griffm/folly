@@ -114,4 +114,11 @@ public sealed class LayoutOptions
     /// Default is '-' (regular hyphen). Can be set to '\u00AD' (soft hyphen) for PDF.
     /// </summary>
     public char HyphenationCharacter { get; set; } = '-';
+
+    /// <summary>
+    /// Gets or sets the default DPI (dots per inch) to use for images that don't specify resolution metadata.
+    /// Common values: 72 (screen/PDF standard), 96 (Windows default), 150 (draft print), 300 (print quality).
+    /// Default is 72 DPI, which is the PDF standard for images without embedded DPI metadata.
+    /// </summary>
+    public double DefaultImageDpi { get; set; } = 72.0;
 }

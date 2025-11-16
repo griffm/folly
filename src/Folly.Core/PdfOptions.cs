@@ -79,6 +79,13 @@ public sealed class PdfOptions
     /// If null, uses default options (500 font cache, 10 second timeout, persistent cache enabled).
     /// </summary>
     public FontCacheOptions? FontCacheOptions { get; set; }
+
+    /// <summary>
+    /// Gets or sets the default DPI (dots per inch) to use for images that don't specify resolution metadata.
+    /// Common values: 72 (screen/PDF standard), 96 (Windows default), 150 (draft print), 300 (print quality).
+    /// Default is 72 DPI, which is the PDF standard for images without embedded DPI metadata.
+    /// </summary>
+    public double DefaultImageDpi { get; set; } = 72.0;
 }
 
 /// <summary>
