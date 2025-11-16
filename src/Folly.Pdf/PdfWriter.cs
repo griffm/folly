@@ -66,7 +66,7 @@ internal sealed class PdfWriter : IDisposable
     /// Writes the document catalog and returns its object ID.
     /// Also reserves object ID 2 for the pages tree.
     /// </summary>
-    public int WriteCatalog(int pageCount, Dom.FoBookmarkTree? bookmarkTree = null)
+    public int WriteCatalog(int pageCount, Dom.FoBookmarkTree? bookmarkTree = null, int structTreeRootId = 0)
     {
         // Reserve object 1 for catalog
         var catalogId = 1;
@@ -94,6 +94,13 @@ internal sealed class PdfWriter : IDisposable
         if (outlineId.HasValue)
         {
             WriteLine($"  /Outlines {outlineId.Value} 0 R");
+        }
+
+        // Add structure tree root reference if tagged PDF is enabled
+        if (structTreeRootId > 0)
+        {
+            WriteLine($"  /StructTreeRoot {structTreeRootId} 0 R");
+            WriteLine("  /MarkInfo << /Marked true >>");
         }
 
         WriteLine(">>");
@@ -1621,6 +1628,40 @@ internal sealed class PdfWriter : IDisposable
         return id;
     }
 
+    /// <summary>
+    /// Begins an object with a specific pre-assigned object ID.
+    /// Used when object IDs need to be reserved before writing.
+    /// </summary>
+    internal void BeginObject(int objectId)
+    {
+        // Ensure the offset list is large enough
+        while (_objectOffsets.Count <= objectId - 1)
+        {
+            _objectOffsets.Add(0);
+        }
+
+        // Update the offset for this object
+        _objectOffsets[objectId - 1] = _position;
+        WriteLine($"{objectId} 0 obj");
+
+        // Update next object ID if necessary
+        if (objectId >= _nextObjectId)
+        {
+            _nextObjectId = objectId + 1;
+        }
+    }
+
+    /// <summary>
+    /// Reserves an object ID without writing the object yet.
+    /// The object can be written later using BeginObject(int objectId).
+    /// </summary>
+    internal int ReserveObjectId()
+    {
+        var id = _nextObjectId++;
+        _objectOffsets.Add(0);  // Placeholder offset, will be updated when object is written
+        return id;
+    }
+
     internal void EndObject()
     {
         WriteLine("endobj");
@@ -1630,6 +1671,16 @@ internal sealed class PdfWriter : IDisposable
     {
         _writer.WriteLine(line);
         _position += Encoding.ASCII.GetByteCount(line) + 1; // +1 for newline
+    }
+
+    /// <summary>
+    /// Writes a string without a newline.
+    /// </summary>
+    internal void Write(string text)
+    {
+        _writer.Write(text);
+        _writer.Flush();
+        _position += Encoding.ASCII.GetByteCount(text);
     }
 
     /// <summary>
@@ -1671,7 +1722,7 @@ internal sealed class PdfWriter : IDisposable
     /// Escapes a string for safe inclusion in PDF string literals.
     /// Prevents PDF metadata injection attacks by escaping special characters.
     /// </summary>
-    private static string EscapeString(string str)
+    internal static string EscapeString(string str)
     {
         if (string.IsNullOrEmpty(str))
             return string.Empty;
