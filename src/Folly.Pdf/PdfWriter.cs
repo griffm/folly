@@ -196,12 +196,46 @@ internal sealed class PdfWriter : IDisposable
 
     private int WriteJpegXObject(byte[] jpegData, int width, int height, string? imagePath = null)
     {
-        // Parse JPEG metadata to extract actual color space and bits per component
-        var (parsedWidth, parsedHeight, bitsPerComponent, colorSpace) = ParseJpegMetadata(jpegData);
+        // Parse JPEG metadata using the full parser to get ICC profile if present
+        Folly.Images.ImageInfo? imageInfo = null;
+        try
+        {
+            var parser = new Folly.Images.Parsers.JpegParser();
+            imageInfo = parser.Parse(jpegData);
+        }
+        catch
+        {
+            // Parser failed, fall back to simple metadata extraction
+        }
 
-        // Use parsed dimensions if available, otherwise fall back to provided values
-        if (parsedWidth > 0) width = parsedWidth;
-        if (parsedHeight > 0) height = parsedHeight;
+        string colorSpace;
+        int bitsPerComponent;
+        int? iccProfileId = null;
+
+        if (imageInfo != null)
+        {
+            width = imageInfo.Width;
+            height = imageInfo.Height;
+            bitsPerComponent = imageInfo.BitsPerComponent;
+            colorSpace = imageInfo.ColorSpace;
+
+            // Embed ICC profile if present
+            if (imageInfo.IccProfile != null && imageInfo.IccProfile.Length > 0)
+            {
+                iccProfileId = WriteIccProfile(imageInfo.IccProfile, imageInfo.ColorComponents);
+                // Use ICCBased color space instead of Device* when ICC profile is present
+                // Keep DeviceCMYK for now for simplicity
+            }
+        }
+        else
+        {
+            // Fallback to simple parsing
+            var (parsedWidth, parsedHeight, parsedBits, parsedColorSpace) = ParseJpegMetadata(jpegData);
+            if (parsedWidth > 0) width = parsedWidth;
+            if (parsedHeight > 0) height = parsedHeight;
+            bitsPerComponent = parsedBits;
+            colorSpace = parsedColorSpace;
+        }
 
         var imageId = BeginObject();
         WriteLine("<<");
@@ -209,7 +243,17 @@ internal sealed class PdfWriter : IDisposable
         WriteLine("  /Subtype /Image");
         WriteLine($"  /Width {width}");
         WriteLine($"  /Height {height}");
-        WriteLine($"  /ColorSpace /{colorSpace}");
+
+        // Use ICC-based color space if ICC profile is embedded
+        if (iccProfileId.HasValue)
+        {
+            WriteLine($"  /ColorSpace [{iccProfileId.Value} 0 R]");
+        }
+        else
+        {
+            WriteLine($"  /ColorSpace /{colorSpace}");
+        }
+
         WriteLine($"  /BitsPerComponent {bitsPerComponent}");
         WriteLine("  /Filter /DCTDecode");
         WriteLine($"  /Length {jpegData.Length}");
@@ -483,6 +527,41 @@ internal sealed class PdfWriter : IDisposable
         EndObject();
 
         return smaskId;
+    }
+
+    /// <summary>
+    /// Writes an ICC color profile as a PDF ICCBased color space stream.
+    /// </summary>
+    private int WriteIccProfile(byte[] iccProfileData, int numComponents)
+    {
+        // Compress ICC profile data
+        byte[] compressedProfile;
+        using (var output = new MemoryStream())
+        {
+            using (var compressor = new System.IO.Compression.DeflateStream(output, System.IO.Compression.CompressionLevel.Optimal))
+            {
+                compressor.Write(iccProfileData, 0, iccProfileData.Length);
+            }
+            compressedProfile = output.ToArray();
+        }
+
+        // Write ICC profile stream
+        var profileId = BeginObject();
+        WriteLine("<<");
+        WriteLine($"  /N {numComponents}"); // Number of color components
+        WriteLine("  /Filter /FlateDecode");
+        WriteLine($"  /Length {compressedProfile.Length}");
+        WriteLine(">>");
+        WriteLine("stream");
+
+        _output.Write(compressedProfile, 0, compressedProfile.Length);
+        _position += compressedProfile.Length;
+
+        WriteLine("");
+        WriteLine("endstream");
+        EndObject();
+
+        return profileId;
     }
 
     private (byte[] CompressedData, int BitsPerComponent, string ColorSpace, int ColorComponents, byte[]? Palette, byte[]? Transparency, byte[]? AlphaData) DecodePng(byte[] pngData, int width, int height, string? imagePath = null)

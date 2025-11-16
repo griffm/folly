@@ -75,6 +75,12 @@ public sealed class ImageInfo
     public byte[]? AlphaData { get; init; }
 
     /// <summary>
+    /// Gets or sets the ICC color profile embedded in the image (for JPEG, PNG, TIFF).
+    /// Used for accurate color reproduction, especially for CMYK images.
+    /// </summary>
+    public byte[]? IccProfile { get; init; }
+
+    /// <summary>
     /// Gets whether this image requires rotation based on EXIF orientation.
     /// </summary>
     public bool RequiresRotation => Orientation >= 5 && Orientation <= 8;

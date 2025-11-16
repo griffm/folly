@@ -2753,11 +2753,20 @@ internal sealed class LayoutEngine
 
                 imageData = File.ReadAllBytes(imagePath);
 
-                // Detect format and dimensions
+                // Detect format and dimensions with DPI
                 var imageInfo = DetectImageFormat(imageData);
+                if (imageInfo == null)
+                    return null;
+
                 format = imageInfo.Format;
-                intrinsicWidth = imageInfo.Width;
-                intrinsicHeight = imageInfo.Height;
+
+                // Convert pixel dimensions to points based on DPI
+                var (widthInPoints, heightInPoints) = Images.ImageUtilities.GetIntrinsicSizeInPoints(
+                    imageInfo,
+                    _options.DefaultImageDpi);
+
+                intrinsicWidth = widthInPoints;
+                intrinsicHeight = heightInPoints;
             }
         }
         catch
@@ -2793,69 +2802,60 @@ internal sealed class LayoutEngine
         return imageArea;
     }
 
-    private (string Format, double Width, double Height) DetectImageFormat(byte[] data)
+    private Images.ImageInfo? DetectImageFormat(byte[] data)
     {
         // Use new image parser infrastructure
         var format = Images.ImageFormatDetector.Detect(data);
 
         try
         {
-            Images.ImageInfo? imageInfo = null;
-
             switch (format)
             {
                 case "JPEG":
-                    // For JPEG, use existing fast dimension detection (no full parse needed)
-                    var (jpegWidth, jpegHeight) = GetJpegDimensions(data);
-                    return ("JPEG", jpegWidth, jpegHeight);
+                    {
+                        var parser = new Images.Parsers.JpegParser();
+                        return parser.Parse(data);
+                    }
 
                 case "PNG":
-                    // For PNG, use existing fast dimension detection
-                    var (pngWidth, pngHeight) = GetPngDimensions(data);
-                    return ("PNG", pngWidth, pngHeight);
+                    {
+                        var parser = new Images.Parsers.PngParser();
+                        return parser.Parse(data);
+                    }
 
                 case "BMP":
                     {
                         var parser = new Images.Parsers.BmpParser();
-                        imageInfo = parser.Parse(data);
-                        break;
+                        return parser.Parse(data);
                     }
 
                 case "GIF":
                     {
                         var parser = new Images.Parsers.GifParser();
-                        imageInfo = parser.Parse(data);
-                        break;
+                        return parser.Parse(data);
                     }
 
                 case "TIFF":
                     {
                         var parser = new Images.Parsers.TiffParser();
-                        imageInfo = parser.Parse(data);
-                        break;
+                        return parser.Parse(data);
                     }
 
                 case "SVG":
                     {
-                        // SVG dimensions are extracted during layout, return placeholder
-                        return ("SVG", 0, 0);
+                        // SVG dimensions are extracted during layout, return null (handled separately)
+                        return null;
                     }
 
                 default:
-                    return ("UNKNOWN", 0, 0);
-            }
-
-            if (imageInfo != null)
-            {
-                return (imageInfo.Format, imageInfo.Width, imageInfo.Height);
+                    return null;
             }
         }
         catch
         {
-            // Parser failed, return unknown
+            // Parser failed, return null
+            return null;
         }
-
-        return ("UNKNOWN", 0, 0);
     }
 
     private (double Width, double Height) GetJpegDimensions(byte[] data)
@@ -2946,16 +2946,21 @@ internal sealed class LayoutEngine
 
                 var imageData = File.ReadAllBytes(imagePath);
 
-                // Detect format and dimensions
+                // Detect format and dimensions with DPI
                 var imageInfo = DetectImageFormat(imageData);
 
-                if (imageInfo.Format != "UNKNOWN" && imageInfo.Width > 0 && imageInfo.Height > 0)
+                if (imageInfo != null && imageInfo.Width > 0 && imageInfo.Height > 0)
                 {
+                    // Convert pixel dimensions to points based on DPI
+                    var (widthInPoints, heightInPoints) = Images.ImageUtilities.GetIntrinsicSizeInPoints(
+                        imageInfo,
+                        _options.DefaultImageDpi);
+
                     blockArea.BackgroundImage = imagePath;
                     blockArea.BackgroundImageData = imageData;
                     blockArea.BackgroundImageFormat = imageInfo.Format;
-                    blockArea.BackgroundImageWidth = imageInfo.Width;
-                    blockArea.BackgroundImageHeight = imageInfo.Height;
+                    blockArea.BackgroundImageWidth = widthInPoints;
+                    blockArea.BackgroundImageHeight = heightInPoints;
                 }
             }
         }
@@ -3004,16 +3009,21 @@ internal sealed class LayoutEngine
 
                 var imageData = File.ReadAllBytes(imagePath);
 
-                // Detect format and dimensions
+                // Detect format and dimensions with DPI
                 var imageInfo = DetectImageFormat(imageData);
 
-                if (imageInfo.Format != "UNKNOWN" && imageInfo.Width > 0 && imageInfo.Height > 0)
+                if (imageInfo != null && imageInfo.Width > 0 && imageInfo.Height > 0)
                 {
+                    // Convert pixel dimensions to points based on DPI
+                    var (widthInPoints, heightInPoints) = Images.ImageUtilities.GetIntrinsicSizeInPoints(
+                        imageInfo,
+                        _options.DefaultImageDpi);
+
                     area.BackgroundImage = imagePath;
                     area.BackgroundImageData = imageData;
                     area.BackgroundImageFormat = imageInfo.Format;
-                    area.BackgroundImageWidth = imageInfo.Width;
-                    area.BackgroundImageHeight = imageInfo.Height;
+                    area.BackgroundImageWidth = widthInPoints;
+                    area.BackgroundImageHeight = heightInPoints;
                 }
             }
         }
