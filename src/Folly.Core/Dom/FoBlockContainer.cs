@@ -68,6 +68,14 @@ public sealed class FoBlockContainer : FoElement
     public string DisplayAlign => Properties.GetString("display-align", "auto");
 
     /// <summary>
+    /// Gets the visibility of this block container (visible, hidden, collapse).
+    /// Inherits from parent elements. Default is "visible".
+    /// Hidden containers are not rendered but still occupy space.
+    /// Collapsed containers are not rendered and do not occupy space.
+    /// </summary>
+    public string Visibility => GetComputedProperty("visibility", "visible") ?? "visible";
+
+    /// <summary>
     /// Gets the overflow behavior (visible, hidden, scroll, auto, error-if-overflow).
     /// Default is "auto".
     /// </summary>

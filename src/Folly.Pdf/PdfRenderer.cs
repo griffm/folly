@@ -408,6 +408,61 @@ public sealed class PdfRenderer : IDisposable
 
     private void RenderArea(Area area, StringBuilder content, Dictionary<string, int> fontIds, Dictionary<string, int> imageIds, double pageHeight, PdfStructureTree? structureTree, StructureElement? parentElement, int pageIndex, double offsetX = 0, double offsetY = 0)
     {
+        // Check visibility: skip rendering if hidden or collapsed
+        if (area.Visibility.ToLowerInvariant() == "hidden" || area.Visibility.ToLowerInvariant() == "collapse")
+        {
+            return; // Element not rendered but still occupies space (layout already handled)
+        }
+
+        // Apply clipping if clip or overflow:hidden is set
+        bool needsClipping = false;
+        if (area.Clip != "auto" || area.Overflow.ToLowerInvariant() == "hidden")
+        {
+            needsClipping = true;
+            content.AppendLine("q"); // Save graphics state
+
+            // Calculate clip rectangle
+            double clipX, clipY, clipWidth, clipHeight;
+
+            if (area.Clip != "auto" && area.Clip.StartsWith("rect("))
+            {
+                // Parse rect(top, right, bottom, left)
+                var clipValues = ParseClipRect(area.Clip, area.Width, area.Height);
+                if (clipValues.HasValue)
+                {
+                    var (top, right, bottom, left) = clipValues.Value;
+                    clipX = offsetX + area.X + left;
+                    clipY = offsetY + area.Y + top;
+                    clipWidth = right - left;
+                    clipHeight = bottom - top;
+                }
+                else
+                {
+                    // Fallback to area bounds if parsing fails
+                    clipX = offsetX + area.X;
+                    clipY = offsetY + area.Y;
+                    clipWidth = area.Width;
+                    clipHeight = area.Height;
+                }
+            }
+            else
+            {
+                // overflow:hidden - clip to area bounds
+                clipX = offsetX + area.X;
+                clipY = offsetY + area.Y;
+                clipWidth = area.Width;
+                clipHeight = area.Height;
+            }
+
+            // Convert Y coordinate from top-down to PDF's bottom-up coordinate system
+            var pdfClipY = pageHeight - clipY - clipHeight;
+
+            // Apply clip rectangle using PDF path operators
+            content.AppendLine($"{clipX:F2} {pdfClipY:F2} {clipWidth:F2} {clipHeight:F2} re"); // Rectangle path
+            content.AppendLine("W"); // Clip to path (even-odd rule)
+            content.AppendLine("n"); // End path without filling or stroking
+        }
+
         if (area is ImageArea imageArea)
         {
             RenderImage(imageArea, content, imageIds, pageHeight, offsetX, offsetY, structureTree, parentElement, pageIndex);
@@ -500,6 +555,12 @@ public sealed class PdfRenderer : IDisposable
             {
                 RenderInline(inline, lineArea, content, fontIds, pageHeight, offsetX, offsetY);
             }
+        }
+
+        // Restore graphics state if we applied clipping
+        if (needsClipping)
+        {
+            content.AppendLine("Q"); // Restore graphics state
         }
     }
 
@@ -1479,6 +1540,72 @@ public sealed class PdfRenderer : IDisposable
 
         // Default to black if unable to parse
         return (0, 0, 0);
+    }
+
+    /// <summary>
+    /// Parses a CSS clip rect() value.
+    /// Format: rect(top, right, bottom, left) where values can be absolute lengths or "auto"
+    /// Returns (top, right, bottom, left) in points, or null if parsing fails.
+    /// </summary>
+    private static (double Top, double Right, double Bottom, double Left)? ParseClipRect(string clipValue, double width, double height)
+    {
+        if (string.IsNullOrWhiteSpace(clipValue) || !clipValue.StartsWith("rect(") || !clipValue.EndsWith(")"))
+            return null;
+
+        // Extract the values between rect( and )
+        var rectContent = clipValue.Substring(5, clipValue.Length - 6).Trim();
+        var parts = rectContent.Split(',').Select(p => p.Trim()).ToArray();
+
+        if (parts.Length != 4)
+            return null;
+
+        // Parse each value (top, right, bottom, left)
+        double top = ParseClipValue(parts[0], height);
+        double right = ParseClipValue(parts[1], width);
+        double bottom = ParseClipValue(parts[2], height);
+        double left = ParseClipValue(parts[3], width);
+
+        return (top, right, bottom, left);
+    }
+
+    /// <summary>
+    /// Parses a single clip value (e.g., "10pt", "50%", "auto")
+    /// Returns the value in points, or 0 for "auto"
+    /// </summary>
+    private static double ParseClipValue(string value, double dimension)
+    {
+        if (string.IsNullOrWhiteSpace(value) || value == "auto")
+            return 0;
+
+        value = value.Trim();
+
+        // Handle percentage values
+        if (value.EndsWith("%"))
+        {
+            if (double.TryParse(value.Substring(0, value.Length - 1), out var percent))
+                return dimension * (percent / 100.0);
+        }
+
+        // Parse length values (pt, px, in, cm, mm, pc)
+        var numEnd = 0;
+        while (numEnd < value.Length && (char.IsDigit(value[numEnd]) || value[numEnd] == '.' || value[numEnd] == '-'))
+            numEnd++;
+
+        if (numEnd == 0 || !double.TryParse(value.Substring(0, numEnd), out var number))
+            return 0;
+
+        var unit = value.Substring(numEnd).Trim().ToLowerInvariant();
+
+        return unit switch
+        {
+            "pt" or "" => number, // Points or unitless (assume points)
+            "px" => number, // Pixels (treat as points)
+            "in" => number * 72.0, // Inches to points
+            "cm" => number * 28.35, // Centimeters to points
+            "mm" => number * 2.835, // Millimeters to points
+            "pc" => number * 12.0, // Picas to points
+            _ => number // Default to points
+        };
     }
 
     private void RenderImage(ImageArea image, StringBuilder content, Dictionary<string, int> imageIds, double pageHeight, double offsetX, double offsetY, PdfStructureTree? structureTree, StructureElement? parentElement, int pageIndex)
