@@ -143,8 +143,11 @@ public class FontSubsetter
             }
         }
 
-        // Copy kerning pairs that involve subset glyphs
-        // TODO: Remap kerning pair indices to new glyph indices
+        // Remap kerning pairs to use new glyph indices in the subset.
+        // For each kerning pair in the original font, we check if both glyphs
+        // (left and right) are included in the subset. If both are present,
+        // we add the kerning pair to the subset using the new (remapped) glyph indices.
+        // This ensures proper kerning in subset fonts for character pairs like "AV", "To", etc.
         subsetFont.KerningPairs = new Dictionary<(ushort, ushort), short>();
         foreach (var kvp in originalFont.KerningPairs)
         {
