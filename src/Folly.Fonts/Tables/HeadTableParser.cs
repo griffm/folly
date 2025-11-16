@@ -18,6 +18,9 @@ public static class HeadTableParser
     {
         using var reader = FontFileReader.CreateTableReader(stream, table);
 
+        // Initialize HeadTable
+        var head = new HeadTable();
+
         // Version (Fixed) - should be 1.0
         double version = reader.ReadFixed();
         if (Math.Abs(version - 1.0) > 0.001)
@@ -25,8 +28,8 @@ public static class HeadTableParser
             throw new InvalidDataException($"Unsupported 'head' table version: {version}");
         }
 
-        // Font revision (Fixed)
-        reader.Skip(4);
+        // Font revision (Fixed 16.16) - store raw uint32 value
+        head.FontRevision = reader.ReadUInt32();
 
         // Checksum adjustment (uint32) - for whole font file validation
         reader.Skip(4);
@@ -39,7 +42,7 @@ public static class HeadTableParser
         }
 
         // Flags (uint16)
-        reader.Skip(2);
+        head.Flags = reader.ReadUInt16();
 
         // Units per em (uint16)
         font.UnitsPerEm = reader.ReadUInt16();
@@ -50,11 +53,11 @@ public static class HeadTableParser
             throw new InvalidDataException($"Invalid unitsPerEm: {font.UnitsPerEm}");
         }
 
-        // Created (longDateTime) - 8 bytes
-        reader.Skip(8);
+        // Created (longDateTime) - 8 bytes (Mac epoch: seconds since 1904-01-01)
+        head.Created = reader.ReadInt64();
 
         // Modified (longDateTime) - 8 bytes
-        reader.Skip(8);
+        head.Modified = reader.ReadInt64();
 
         // Bounding box
         font.XMin = reader.ReadInt16();
@@ -63,7 +66,7 @@ public static class HeadTableParser
         font.YMax = reader.ReadInt16();
 
         // Mac style (uint16)
-        reader.Skip(2);
+        head.MacStyle = reader.ReadUInt16();
 
         // Lowest recommended PPEM (uint16)
         reader.Skip(2);
@@ -86,5 +89,8 @@ public static class HeadTableParser
         {
             throw new InvalidDataException($"Unsupported glyphDataFormat: {glyphDataFormat}");
         }
+
+        // Store HeadTable in font
+        font.Head = head;
     }
 }
