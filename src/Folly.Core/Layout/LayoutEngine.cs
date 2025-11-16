@@ -14,6 +14,8 @@ internal sealed class LayoutEngine
     private readonly LayoutOptions _options;
     private readonly Dictionary<string, List<(int PageNumber, int Sequence, Dom.FoMarker Marker)>> _markers = new();
     private readonly Dictionary<string, int> _markerSequenceCounters = new();
+    private readonly Dictionary<string, List<(int Sequence, Dom.FoMarker Marker)>> _tableMarkers = new();
+    private readonly Dictionary<string, int> _tableMarkerSequenceCounters = new();
     private readonly List<Dom.FoFootnote> _currentPageFootnotes = new();
     private readonly List<Dom.FoFloat> _currentPageFloats = new();
     private readonly List<LinkArea> _currentPageLinks = new();
@@ -359,6 +361,48 @@ internal sealed class LayoutEngine
                 selectedMarker = markersForClass
                     .Where(m => m.PageNumber == pageNumber)
                     .OrderBy(m => m.Sequence)
+                    .FirstOrDefault().Marker;
+                break;
+        }
+
+        return selectedMarker?.Blocks ?? Array.Empty<Dom.FoBlock>();
+    }
+
+    /// <summary>
+    /// Retrieves table marker content based on retrieve-table-marker properties.
+    /// Table markers have table scope rather than page scope.
+    /// Supported retrieve positions:
+    /// - first-starting: First marker in the table
+    /// - first-including-carryover: First marker in the table (same as first-starting for tables)
+    /// - last-starting: Last marker in the table
+    /// - last-ending: Last marker in the table (same as last-starting for tables)
+    /// </summary>
+    private IReadOnlyList<Dom.FoBlock> RetrieveTableMarkerContent(Dom.FoRetrieveTableMarker retrieveMarker)
+    {
+        var className = retrieveMarker.RetrieveClassName;
+        if (string.IsNullOrEmpty(className) || !_tableMarkers.ContainsKey(className))
+            return Array.Empty<Dom.FoBlock>();
+
+        var markersForClass = _tableMarkers[className];
+        var position = retrieveMarker.RetrievePosition;
+
+        Dom.FoMarker? selectedMarker = null;
+
+        switch (position)
+        {
+            case "first-starting":
+            case "first-including-carryover":
+                // Get the first marker in the table (by sequence order)
+                selectedMarker = markersForClass
+                    .OrderBy(m => m.Sequence)
+                    .FirstOrDefault().Marker;
+                break;
+
+            case "last-starting":
+            case "last-ending":
+                // Get the last marker in the table (by sequence order)
+                selectedMarker = markersForClass
+                    .OrderByDescending(m => m.Sequence)
                     .FirstOrDefault().Marker;
                 break;
         }
@@ -1867,6 +1911,10 @@ internal sealed class LayoutEngine
 
     private TableArea? LayoutTable(Dom.FoTable foTable, double x, double y, double availableWidth)
     {
+        // Clear table markers at the start of each table
+        _tableMarkers.Clear();
+        _tableMarkerSequenceCounters.Clear();
+
         var tableArea = new TableArea
         {
             X = x,
@@ -2031,6 +2079,10 @@ internal sealed class LayoutEngine
         ref double bodyWidth,
         ref double bodyHeight)
     {
+        // Clear table markers at the start of each table
+        _tableMarkers.Clear();
+        _tableMarkerSequenceCounters.Clear();
+
         // Calculate column widths once for the entire table
         var columnWidths = CalculateColumnWidths(foTable, tableWidth);
         var calculatedTableWidth = columnWidths.Sum() + (foTable.BorderSpacing * (columnWidths.Count + 1));
@@ -3071,11 +3123,46 @@ internal sealed class LayoutEngine
         // Layout blocks within the cell
         foreach (var foBlock in foCell.Blocks)
         {
+            // Track markers within table scope
+            foreach (var child in foBlock.Children)
+            {
+                if (child is Dom.FoMarker marker)
+                {
+                    var className = marker.MarkerClassName;
+                    if (!string.IsNullOrEmpty(className))
+                    {
+                        if (!_tableMarkers.ContainsKey(className))
+                            _tableMarkers[className] = new List<(int, Dom.FoMarker)>();
+
+                        if (!_tableMarkerSequenceCounters.ContainsKey(className))
+                            _tableMarkerSequenceCounters[className] = 0;
+
+                        int sequence = _tableMarkerSequenceCounters[className]++;
+                        _tableMarkers[className].Add((sequence, marker));
+                    }
+                }
+            }
+
             var blockArea = LayoutBlock(foBlock, foCell.PaddingLeft, currentY, contentWidth);
             if (blockArea != null)
             {
                 cellArea.AddChild(blockArea);
                 currentY += blockArea.Height + blockArea.MarginTop + blockArea.MarginBottom;
+            }
+        }
+
+        // Handle retrieve-table-marker elements
+        foreach (var retrieveTableMarker in foCell.RetrieveTableMarkers)
+        {
+            var markerBlocks = RetrieveTableMarkerContent(retrieveTableMarker);
+            foreach (var block in markerBlocks)
+            {
+                var blockArea = LayoutBlock(block, foCell.PaddingLeft, currentY, contentWidth);
+                if (blockArea != null)
+                {
+                    cellArea.AddChild(blockArea);
+                    currentY += blockArea.Height + blockArea.MarginTop + blockArea.MarginBottom;
+                }
             }
         }
 
@@ -4304,6 +4391,39 @@ internal sealed class LayoutEngine
                 if (nestedArea != null)
                 {
                     childArea = nestedArea;
+                }
+            }
+            else if (child is Dom.FoMultiSwitch foMultiSwitch)
+            {
+                // Static rendering: select the first case with starting-state="show", or the first case
+                var selectedCase = foMultiSwitch.MultiCases.FirstOrDefault(c => c.StartingState == "show")
+                                ?? foMultiSwitch.MultiCases.FirstOrDefault();
+                if (selectedCase != null)
+                {
+                    // Layout the blocks from the selected case
+                    foreach (var caseBlock in selectedCase.Blocks)
+                    {
+                        var caseChildArea = LayoutBlock(caseBlock, contentX, currentY, contentWidth, pageNumber);
+                        if (caseChildArea != null)
+                        {
+                            absoluteArea.AddChild(caseChildArea);
+                            currentY += caseChildArea.Height + caseChildArea.MarginTop + caseChildArea.MarginBottom;
+                        }
+                    }
+                    childArea = null; // Already added children
+                }
+            }
+            else if (child is Dom.FoMultiProperties foMultiProperties)
+            {
+                // Static rendering: apply the first property set and render the wrapper
+                if (foMultiProperties.Wrapper != null)
+                {
+                    // For now, just render the wrapper without applying property sets
+                    // (applying property sets would require merging properties)
+                    if (foMultiProperties.Wrapper is Dom.FoBlock wrapperBlock)
+                    {
+                        childArea = LayoutBlock(wrapperBlock, contentX, currentY, contentWidth, pageNumber);
+                    }
                 }
             }
 

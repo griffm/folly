@@ -599,6 +599,12 @@ internal static class FoParser
                 case "bidi-override":
                     children.Add(ParseBidiOverride(child));
                     break;
+                case "multi-switch":
+                    children.Add(ParseMultiSwitch(child));
+                    break;
+                case "multi-properties":
+                    children.Add(ParseMultiProperties(child));
+                    break;
             }
         }
 
@@ -669,6 +675,109 @@ internal static class FoParser
     private static FoRetrieveMarker ParseRetrieveMarker(XElement element)
     {
         return new FoRetrieveMarker
+        {
+            Properties = ParseProperties(element)
+        };
+    }
+
+    private static FoRetrieveTableMarker ParseRetrieveTableMarker(XElement element)
+    {
+        return new FoRetrieveTableMarker
+        {
+            Properties = ParseProperties(element)
+        };
+    }
+
+    private static FoMultiSwitch ParseMultiSwitch(XElement element)
+    {
+        var multiCases = new List<FoMultiCase>();
+
+        foreach (var child in element.Elements())
+        {
+            if (child.Name.LocalName == "multi-case")
+                multiCases.Add(ParseMultiCase(child));
+        }
+
+        return new FoMultiSwitch
+        {
+            Properties = ParseProperties(element),
+            MultiCases = multiCases
+        };
+    }
+
+    private static FoMultiCase ParseMultiCase(XElement element)
+    {
+        var blocks = new List<FoBlock>();
+
+        foreach (var child in element.Elements())
+        {
+            if (child.Name.LocalName == "block")
+                blocks.Add(ParseBlock(child));
+        }
+
+        return new FoMultiCase
+        {
+            Properties = ParseProperties(element),
+            Blocks = blocks
+        };
+    }
+
+    private static FoMultiToggle ParseMultiToggle(XElement element)
+    {
+        var inlines = new List<FoInline>();
+
+        foreach (var child in element.Elements())
+        {
+            if (child.Name.LocalName == "inline")
+                inlines.Add(ParseInline(child));
+        }
+
+        return new FoMultiToggle
+        {
+            Properties = ParseProperties(element),
+            Inlines = inlines
+        };
+    }
+
+    private static FoMultiProperties ParseMultiProperties(XElement element)
+    {
+        var multiPropertySets = new List<FoMultiPropertySet>();
+        FoElement? wrapper = null;
+
+        foreach (var child in element.Elements())
+        {
+            var name = child.Name.LocalName;
+            if (name == "multi-property-set")
+            {
+                multiPropertySets.Add(ParseMultiPropertySet(child));
+            }
+            else if (name == "wrapper")
+            {
+                // Parse the wrapper element (typically a block or inline)
+                var wrapperChild = child.Elements().FirstOrDefault();
+                if (wrapperChild != null)
+                {
+                    wrapper = wrapperChild.Name.LocalName switch
+                    {
+                        "block" => ParseBlock(wrapperChild),
+                        "inline" => ParseInline(wrapperChild),
+                        _ => null
+                    };
+                }
+            }
+        }
+
+        return new FoMultiProperties
+        {
+            Properties = ParseProperties(element),
+            MultiPropertySets = multiPropertySets,
+            Wrapper = wrapper
+        };
+    }
+
+    private static FoMultiPropertySet ParseMultiPropertySet(XElement element)
+    {
+        return new FoMultiPropertySet
         {
             Properties = ParseProperties(element)
         };
@@ -952,17 +1061,27 @@ internal static class FoParser
     private static FoTableCell ParseTableCell(XElement element)
     {
         var blocks = new List<FoBlock>();
+        var retrieveTableMarkers = new List<FoRetrieveTableMarker>();
 
         foreach (var child in element.Elements())
         {
-            if (child.Name.LocalName == "block")
-                blocks.Add(ParseBlock(child));
+            var name = child.Name.LocalName;
+            switch (name)
+            {
+                case "block":
+                    blocks.Add(ParseBlock(child));
+                    break;
+                case "retrieve-table-marker":
+                    retrieveTableMarkers.Add(ParseRetrieveTableMarker(child));
+                    break;
+            }
         }
 
         return new FoTableCell
         {
             Properties = ParseProperties(element),
-            Blocks = blocks
+            Blocks = blocks,
+            RetrieveTableMarkers = retrieveTableMarkers
         };
     }
 
