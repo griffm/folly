@@ -2,7 +2,7 @@
 
 ## Overview
 
-Folly provides comprehensive support for JPEG and PNG images, including advanced PNG features like alpha channels, all color types, and all bit depths. However, many modern image formats (WebP, SVG, TIFF) and advanced transformations are not yet implemented.
+Folly provides comprehensive support for multiple raster image formats (JPEG, PNG, GIF, TIFF, BMP) with zero dependencies, implementing all parsers from scratch. PNG support is particularly comprehensive with all color types and bit depths. Additional formats like BMP, GIF, and TIFF are supported with baseline feature sets. Modern formats (WebP, JPEG 2000) and vector graphics (SVG - see separate documentation) have varying levels of support.
 
 ## Current Implementation
 
@@ -69,71 +69,130 @@ if (data[0] == 0x89 && data[1] == 0x50 && data[2] == 0x4E && data[3] == 0x47) { 
 - Aspect ratio preservation
 - Constraining to available width
 
-## Limitations
+### GIF Support (Baseline)
 
-### 1. Limited Format Support
+**Location**: `src/Folly.Core/Images/Parsers/GifParser.cs`
 
-**Severity**: Medium
-**Supported**: JPEG, PNG only
+**Supported**:
+- ✅ GIF87a and GIF89a formats
+- ✅ Indexed color (palette-based)
+- ✅ Transparency (tRNS chunk)
+- ✅ LZW decompression (custom zero-dependency implementation)
+- ✅ Non-interlaced images
 
 **Not Supported**:
-- **GIF** (.gif) - Legacy web format, includes animation
-- **WebP** (.webp) - Modern efficient format from Google
-- **TIFF** (.tif, .tiff) - Common in publishing/scanning
-- **BMP** (.bmp) - Windows bitmap
-- **SVG** (.svg) - Scalable vector graphics
-- **PDF** (.pdf) - Embedded PDF pages
-- **EPS** (.eps) - Encapsulated PostScript
-- **JPEG 2000** (.jp2, .j2k) - Advanced JPEG variant
+- ❌ Interlaced GIF (Adam7 progressive encoding)
+- ❌ Animation (only first frame would be extracted if supported)
 
-**Impact**:
-- Cannot embed modern web images (WebP)
-- Cannot use vector graphics (SVG)
-- Cannot include high-quality scans (TIFF)
-- Limited format flexibility
-
-**Example That Doesn't Work**:
-```xml
-<fo:external-graphic src="logo.svg"/>
-<fo:external-graphic src="photo.webp"/>
-<fo:external-graphic src="scan.tiff"/>
+**Limitations**:
+```csharp
+// src/Folly.Core/Images/Parsers/GifParser.cs:142-144
+if (interlaced)
+    throw new NotSupportedException("Interlaced GIF images are not yet supported");
 ```
 
-**Workaround**: Convert images to JPEG or PNG before processing
+**Impact**: Common progressive web GIFs will fail to load
 
-### 2. No SVG Support
+**Workaround**: Use non-interlaced GIF or convert to PNG
 
-**Severity**: High for modern documents
-**Format**: Scalable Vector Graphics
+---
 
-**Description**:
-- No SVG parsing or rendering
-- Cannot embed vector illustrations
-- Lose scalability benefits
+### TIFF Support (Baseline)
+
+**Location**: `src/Folly.Core/Images/Parsers/TiffParser.cs`
+
+**Supported**:
+- ✅ Baseline TIFF specification
+- ✅ Uncompressed RGB images
+- ✅ Both little-endian (II) and big-endian (MM) byte order
+- ✅ DPI metadata from resolution tags
+
+**Not Supported**:
+- ❌ Compressed TIFF (LZW, PackBits, JPEG compression)
+- ❌ Grayscale or palette-based TIFF
+- ❌ Multi-page TIFF (only first page)
+- ❌ CMYK color space
+
+**Limitations**:
+```csharp
+// src/Folly.Core/Images/Parsers/TiffParser.cs:51-57
+if (compression != 1)
+    throw new NotSupportedException("Only uncompressed TIFF (compression=1) supported");
+
+if (photometricInterpretation != 2)
+    throw new NotSupportedException("Only RGB (photometric=2) supported");
+```
+
+**Impact**: Most production TIFF files use LZW compression and will fail
+
+**Workaround**: Convert TIFF to uncompressed format or use PNG/JPEG
+
+---
+
+### BMP Support (Baseline)
+
+**Location**: `src/Folly.Core/Images/Parsers/BmpParser.cs`
+
+**Supported**:
+- ✅ 24-bit RGB BMP (uncompressed)
+- ✅ 32-bit RGBA BMP (uncompressed with alpha channel)
+- ✅ Top-down and bottom-up orientation
+- ✅ DPI metadata from pixels-per-meter
+
+**Not Supported**:
+- ❌ 8-bit indexed/palette BMP
+- ❌ RLE compression (BI_RLE8, BI_RLE4)
+- ❌ Other bit depths (1, 4, 16-bit)
+
+**Limitations**:
+```csharp
+// src/Folly.Core/Images/Parsers/BmpParser.cs:46-51
+if (compression != 0)
+    throw new NotSupportedException("Only uncompressed RGB BMPs supported");
+
+if (bitsPerPixel != 24 && bitsPerPixel != 32)
+    throw new NotSupportedException("Only 24-bit and 32-bit BMPs supported");
+```
+
+**Impact**: Icon files and optimized BMPs (typically 8-bit indexed) won't work
+
+**Workaround**: Convert BMP to 24-bit or use PNG
+
+---
+
+## Limitations
+
+### 1. Format Support Summary
+
+**Fully Supported** (Production Ready):
+- ✅ **JPEG** (.jpg, .jpeg) - All variants, passthrough embedding
+- ✅ **PNG** (.png) - All color types, all bit depths, comprehensive
+
+**Baseline Support** (Common cases work):
+- 🟡 **GIF** (.gif) - Non-interlaced only
+- 🟡 **TIFF** (.tif, .tiff) - Uncompressed RGB only
+- 🟡 **BMP** (.bmp) - 24/32-bit uncompressed only
+
+**Special Support**:
+- ✅ **SVG** (.svg) - See `docs/architecture/svg-support.md` for comprehensive vector graphics support
+
+**Not Supported**:
+- ❌ **WebP** (.webp) - Modern efficient format from Google
+- ❌ **PDF** (.pdf) - Embedded PDF pages
+- ❌ **EPS** (.eps) - Encapsulated PostScript
+- ❌ **JPEG 2000** (.jp2, .j2k) - Advanced JPEG variant
+- ❌ **HEIF/HEIC** (.heif, .heic) - Modern iOS format
 
 **Impact**:
-- Logos and diagrams must be rasterized
-- Loss of quality at high resolution/zoom
-- Larger file sizes (raster vs vector)
-- No text selection in embedded diagrams
+- Most common formats work (JPEG, PNG, GIF for web content)
+- Scanning workflows need uncompressed TIFF or format conversion
+- Modern web formats (WebP, HEIC) require pre-conversion
 
-**Use Cases Affected**:
-- Company logos (should be vector)
-- Technical diagrams
-- Charts and graphs
-- Icons
+**Test Coverage**: 17 image format tests covering all supported formats
 
-**Implementation Requirements**:
-1. Parse SVG XML
-2. Convert SVG paths to PDF graphics operators
-3. Handle SVG text, transforms, styles
-4. Support gradients, filters, clipping
+**Workaround**: Convert unsupported formats to JPEG or PNG before processing
 
-**Complexity**: Very High
-
-**Alternative**: Render SVG to raster at high DPI before embedding
-
-### 3. Limited Image Transformations
+### 2. Limited Image Transformations
 
 **Severity**: Medium
 **XSL-FO Properties**: Various image manipulation properties
@@ -160,7 +219,7 @@ if (data[0] == 0x89 && data[1] == 0x50 && data[2] == 0x4E && data[3] == 0x47) { 
 
 **Workaround**: Pre-process images externally
 
-### 4. No EXIF Orientation Support
+### 3. No EXIF Orientation Support
 
 **Severity**: Medium
 **EXIF Tag**: Orientation (0x0112)
@@ -187,7 +246,7 @@ Expected: Auto-rotate according to EXIF
 
 **Complexity**: Low to Medium
 
-### 5. Dimension and DPI Detection
+### 4. Dimension and DPI Detection
 
 **Severity**: Low
 
@@ -215,7 +274,7 @@ Image is 300 DPI (high-res print):
 
 **Solution**: Parse JFIF resolution markers
 
-### 6. Limited Compression Options
+### 5. Limited Compression Options
 
 **Severity**: Low
 **PDF Capabilities**: JPEG, Flate, JPEG2000, JBIG2
@@ -233,7 +292,7 @@ Image is 300 DPI (high-res print):
 
 **Impact**: Minimal - current compression is efficient for most use cases
 
-### 7. No Color Space Management
+### 6. No Color Space Management
 
 **Severity**: Medium for professional printing
 **Color Spaces**: RGB, CMYK, Grayscale, Lab, ICC profiles
@@ -257,7 +316,7 @@ Image is 300 DPI (high-res print):
 Current: Treats as RGB, colors may shift
 Expected: Preserve CMYK or convert properly
 
-### 8. Limited Image Optimization
+### 7. Limited Image Optimization
 
 **Severity**: Low
 **Optimization Techniques**:
@@ -278,7 +337,7 @@ User embeds 10 MB, 6000×4000px photo for 2"×1.5" display area:
 - Current: Embeds full 10 MB image
 - Optimal: Downsample to 300 DPI → 900×675px, ~200 KB
 
-### 9. No Animated Image Support
+### 8. No Animated Image Support
 
 **Severity**: Very Low
 **Formats**: Animated GIF, Animated PNG (APNG), Animated WebP
@@ -289,7 +348,7 @@ User embeds 10 MB, 6000×4000px photo for 2"×1.5" display area:
 
 **Impact**: Minimal - PDF is static medium
 
-### 10. No Image Caching/Reuse
+### 9. No Image Caching/Reuse
 
 **Severity**: Low
 **Description**: Same image used multiple times is embedded multiple times
