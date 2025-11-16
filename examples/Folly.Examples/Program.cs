@@ -198,6 +198,14 @@ GenerateSvgTransformsExample(Path.Combine(outputDir, "40-svg-transforms.pdf"), e
 Console.WriteLine("Generating Example 41: SVG Complex Features...");
 GenerateSvgComplexExample(Path.Combine(outputDir, "41-svg-complex.pdf"), examplesDir);
 
+// Example 41.5: SVG in XSL-FO with instream-foreign-object
+Console.WriteLine("Generating Example 41.5: SVG in XSL-FO (instream-foreign-object)...");
+GenerateSvgInstreamForeignObjectExample(Path.Combine(outputDir, "41a-svg-xslfo-instream.pdf"));
+
+// Example 41.6: SVG in XSL-FO with external-graphic
+Console.WriteLine("Generating Example 41.6: SVG in XSL-FO (external-graphic)...");
+GenerateSvgExternalGraphicExample(Path.Combine(outputDir, "41b-svg-xslfo-external.pdf"), examplesDir);
+
 // Example 42: Tagged PDF (Accessibility)
 Console.WriteLine("Generating Example 42: Tagged PDF (Accessibility)...");
 GenerateTaggedPdfExample(Path.Combine(outputDir, "42-tagged-pdf.pdf"));
@@ -4760,6 +4768,258 @@ static void GenerateTaggedPdfExample(string outputPath)
             Keywords = "tagged PDF, accessibility, PDF/UA, structure tree, screen reader"
         }
     };
-    
+
     doc.SavePdf(outputPath, options);
+}
+
+static void GenerateSvgInstreamForeignObjectExample(string outputPath)
+{
+    var foXml = """
+        <?xml version="1.0"?>
+        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format" xmlns:svg="http://www.w3.org/2000/svg">
+          <fo:layout-master-set>
+            <fo:simple-page-master master-name="simple" page-width="8.5in" page-height="11in" margin="1in">
+              <fo:region-body/>
+            </fo:simple-page-master>
+          </fo:layout-master-set>
+
+          <fo:page-sequence master-reference="simple">
+            <fo:flow flow-name="xsl-region-body">
+              <fo:block font-size="18pt" font-weight="bold" space-after="12pt" color="#2C3E50">
+                SVG Integration with fo:instream-foreign-object
+              </fo:block>
+
+              <fo:block font-size="11pt" space-after="12pt" color="#34495E">
+                This example demonstrates embedding SVG content directly within XSL-FO documents
+                using the fo:instream-foreign-object element. This is the standard XSL-FO 1.1
+                approach for inline foreign content.
+              </fo:block>
+
+              <fo:block font-size="14pt" font-weight="bold" space-before="18pt" space-after="8pt" color="#2C3E50">
+                Example 1: Basic Circle
+              </fo:block>
+
+              <fo:block space-after="18pt">
+                <fo:instream-foreign-object content-width="150pt" content-height="150pt">
+                  <svg:svg viewBox="0 0 100 100">
+                    <svg:circle cx="50" cy="50" r="40" fill="#3498DB" stroke="#2C3E50" stroke-width="2"/>
+                    <svg:text x="50" y="55" text-anchor="middle" font-size="14" fill="white" font-weight="bold">
+                      SVG Circle
+                    </svg:text>
+                  </svg:svg>
+                </fo:instream-foreign-object>
+              </fo:block>
+
+              <fo:block font-size="14pt" font-weight="bold" space-before="18pt" space-after="8pt" color="#2C3E50">
+                Example 2: Complex Gradient Logo
+              </fo:block>
+
+              <fo:block space-after="18pt">
+                <fo:instream-foreign-object content-width="200pt" content-height="100pt">
+                  <svg:svg viewBox="0 0 200 100">
+                    <svg:defs>
+                      <svg:linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <svg:stop offset="0%" style="stop-color:#E74C3C;stop-opacity:1"/>
+                        <svg:stop offset="100%" style="stop-color:#C0392B;stop-opacity:1"/>
+                      </svg:linearGradient>
+                      <svg:linearGradient id="grad2" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <svg:stop offset="0%" style="stop-color:#3498DB;stop-opacity:1"/>
+                        <svg:stop offset="100%" style="stop-color:#2980B9;stop-opacity:1"/>
+                      </svg:linearGradient>
+                    </svg:defs>
+                    <svg:rect x="10" y="10" width="80" height="80" fill="url(#grad1)" rx="10"/>
+                    <svg:circle cx="50" cy="50" r="25" fill="url(#grad2)"/>
+                    <svg:text x="120" y="55" font-size="28" font-weight="bold" fill="#2C3E50">
+                      Folly
+                    </svg:text>
+                  </svg:svg>
+                </fo:instream-foreign-object>
+              </fo:block>
+
+              <fo:block font-size="14pt" font-weight="bold" space-before="18pt" space-after="8pt" color="#2C3E50">
+                Example 3: Inline SVG in Text Flow
+              </fo:block>
+
+              <fo:block font-size="11pt" space-after="12pt" color="#34495E">
+                SVG graphics can be embedded inline with text:
+                <fo:instream-foreign-object content-width="24pt" content-height="24pt" baseline-shift="-6pt">
+                  <svg:svg viewBox="0 0 24 24">
+                    <svg:path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"
+                              fill="#F39C12" stroke="#E67E22" stroke-width="1"/>
+                  </svg:svg>
+                </fo:instream-foreign-object>
+                 and flow naturally with the surrounding content. This is useful for icons, symbols,
+                and decorative elements that need to scale perfectly at any resolution.
+              </fo:block>
+
+              <fo:block font-size="14pt" font-weight="bold" space-before="18pt" space-after="8pt" color="#2C3E50">
+                Example 4: Chart/Diagram
+              </fo:block>
+
+              <fo:block space-after="18pt">
+                <fo:instream-foreign-object content-width="300pt" content-height="200pt">
+                  <svg:svg viewBox="0 0 300 200">
+                    <!-- Bar chart background -->
+                    <svg:rect x="0" y="0" width="300" height="200" fill="#ECF0F1"/>
+
+                    <!-- Y-axis -->
+                    <svg:line x1="40" y1="20" x2="40" y2="170" stroke="#2C3E50" stroke-width="2"/>
+                    <!-- X-axis -->
+                    <svg:line x1="40" y1="170" x2="280" y2="170" stroke="#2C3E50" stroke-width="2"/>
+
+                    <!-- Bars -->
+                    <svg:rect x="60" y="90" width="40" height="80" fill="#3498DB"/>
+                    <svg:rect x="120" y="60" width="40" height="110" fill="#E74C3C"/>
+                    <svg:rect x="180" y="110" width="40" height="60" fill="#2ECC71"/>
+                    <svg:rect x="240" y="40" width="40" height="130" fill="#F39C12"/>
+
+                    <!-- Labels -->
+                    <svg:text x="80" y="190" text-anchor="middle" font-size="10" fill="#2C3E50">Q1</svg:text>
+                    <svg:text x="140" y="190" text-anchor="middle" font-size="10" fill="#2C3E50">Q2</svg:text>
+                    <svg:text x="200" y="190" text-anchor="middle" font-size="10" fill="#2C3E50">Q3</svg:text>
+                    <svg:text x="260" y="190" text-anchor="middle" font-size="10" fill="#2C3E50">Q4</svg:text>
+
+                    <!-- Title -->
+                    <svg:text x="150" y="15" text-anchor="middle" font-size="12" font-weight="bold" fill="#2C3E50">
+                      Quarterly Revenue
+                    </svg:text>
+                  </svg:svg>
+                </fo:instream-foreign-object>
+              </fo:block>
+
+              <fo:block font-size="11pt" space-before="24pt" color="#7F8C8D" border-top="1pt solid #BDC3C7" padding-top="8pt">
+                This example demonstrates the fo:instream-foreign-object element with various SVG content types.
+                The SVG content is embedded directly in the XSL-FO document and rendered as vector graphics in the PDF.
+              </fo:block>
+            </fo:flow>
+          </fo:page-sequence>
+        </fo:root>
+        """;
+
+    using var doc = FoDocument.Load(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml)));
+    doc.SavePdf(outputPath);
+}
+
+static void GenerateSvgExternalGraphicExample(string outputPath, string examplesDir)
+{
+    // First, create some sample SVG files
+    var svgDir = Path.Combine(examplesDir, "svg-examples");
+    Directory.CreateDirectory(svgDir);
+
+    // Create a simple logo SVG file
+    var logoSvg = """
+        <?xml version="1.0"?>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+          <defs>
+            <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#8E44AD;stop-opacity:1"/>
+              <stop offset="100%" style="stop-color:#3498DB;stop-opacity:1"/>
+            </linearGradient>
+          </defs>
+          <circle cx="100" cy="100" r="80" fill="url(#logoGrad)"/>
+          <text x="100" y="110" text-anchor="middle" font-size="48" font-weight="bold" fill="white">F</text>
+        </svg>
+        """;
+    File.WriteAllText(Path.Combine(svgDir, "logo.svg"), logoSvg);
+
+    // Create a diagram SVG file
+    var diagramSvg = """
+        <?xml version="1.0"?>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
+          <!-- Process flow diagram -->
+          <rect x="20" y="100" width="100" height="60" fill="#3498DB" stroke="#2C3E50" stroke-width="2" rx="5"/>
+          <text x="70" y="135" text-anchor="middle" font-size="14" fill="white" font-weight="bold">Start</text>
+
+          <path d="M 120 130 L 160 130" stroke="#2C3E50" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+          <rect x="160" y="100" width="100" height="60" fill="#E74C3C" stroke="#2C3E50" stroke-width="2" rx="5"/>
+          <text x="210" y="135" text-anchor="middle" font-size="14" fill="white" font-weight="bold">Process</text>
+
+          <path d="M 260 130 L 300 130" stroke="#2C3E50" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+          <rect x="300" y="100" width="80" height="60" fill="#2ECC71" stroke="#2C3E50" stroke-width="2" rx="5"/>
+          <text x="340" y="135" text-anchor="middle" font-size="14" fill="white" font-weight="bold">End</text>
+
+          <defs>
+            <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+              <polygon points="0 0, 10 3.5, 0 7" fill="#2C3E50"/>
+            </marker>
+          </defs>
+        </svg>
+        """;
+    File.WriteAllText(Path.Combine(svgDir, "process-flow.svg"), diagramSvg);
+
+    var foXml = $"""
+        <?xml version="1.0"?>
+        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+          <fo:layout-master-set>
+            <fo:simple-page-master master-name="simple" page-width="8.5in" page-height="11in" margin="1in">
+              <fo:region-body/>
+            </fo:simple-page-master>
+          </fo:layout-master-set>
+
+          <fo:page-sequence master-reference="simple">
+            <fo:flow flow-name="xsl-region-body">
+              <fo:block font-size="18pt" font-weight="bold" space-after="12pt" color="#2C3E50">
+                SVG Integration with fo:external-graphic
+              </fo:block>
+
+              <fo:block font-size="11pt" space-after="12pt" color="#34495E">
+                This example demonstrates embedding SVG graphics from external files using the
+                fo:external-graphic element. This approach is ideal for reusable graphics, logos,
+                and diagrams that are maintained as separate SVG files.
+              </fo:block>
+
+              <fo:block font-size="14pt" font-weight="bold" space-before="18pt" space-after="8pt" color="#2C3E50">
+                Example 1: Logo from External SVG File
+              </fo:block>
+
+              <fo:block space-after="18pt">
+                <fo:external-graphic src="{Path.Combine(svgDir, "logo.svg")}" content-width="100pt" content-height="100pt"/>
+              </fo:block>
+
+              <fo:block font-size="11pt" space-after="18pt" color="#34495E">
+                The logo above is loaded from an external SVG file and scaled to 100x100 points.
+              </fo:block>
+
+              <fo:block font-size="14pt" font-weight="bold" space-before="18pt" space-after="8pt" color="#2C3E50">
+                Example 2: Process Flow Diagram
+              </fo:block>
+
+              <fo:block space-after="18pt">
+                <fo:external-graphic src="{Path.Combine(svgDir, "process-flow.svg")}" content-width="300pt"/>
+              </fo:block>
+
+              <fo:block font-size="11pt" space-after="18pt" color="#34495E">
+                The process flow diagram is loaded from an SVG file with automatic height scaling
+                to maintain aspect ratio (only width specified).
+              </fo:block>
+
+              <fo:block font-size="14pt" font-weight="bold" space-before="18pt" space-after="8pt" color="#2C3E50">
+                Example 3: Multiple Sizes
+              </fo:block>
+
+              <fo:block font-size="11pt" space-after="8pt" color="#34495E">
+                The same SVG file rendered at different sizes:
+              </fo:block>
+
+              <fo:block space-after="12pt">
+                <fo:external-graphic src="{Path.Combine(svgDir, "logo.svg")}" content-width="50pt" content-height="50pt"/>
+                <fo:inline> </fo:inline>
+                <fo:external-graphic src="{Path.Combine(svgDir, "logo.svg")}" content-width="75pt" content-height="75pt"/>
+                <fo:inline> </fo:inline>
+                <fo:external-graphic src="{Path.Combine(svgDir, "logo.svg")}" content-width="100pt" content-height="100pt"/>
+              </fo:block>
+
+              <fo:block font-size="11pt" space-before="24pt" color="#7F8C8D" border-top="1pt solid #BDC3C7" padding-top="8pt">
+                This example demonstrates the fo:external-graphic element loading SVG files.
+                SVG graphics scale perfectly at any size while maintaining crisp vector quality in the PDF.
+              </fo:block>
+            </fo:flow>
+          </fo:page-sequence>
+        </fo:root>
+        """;
+
+    using var doc = FoDocument.Load(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml)));
+    doc.SavePdf(outputPath);
 }
