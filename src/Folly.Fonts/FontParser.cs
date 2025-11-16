@@ -138,7 +138,12 @@ public class FontParser
                 GposTableParser.Parse(stream, gposTable, font);
             }
 
-            // TODO: Parse 'CFF ' table for OpenType/CFF fonts
+            // Parse 'CFF ' table for OpenType/CFF fonts (PostScript outlines)
+            if (directory.HasTable("CFF "))
+            {
+                var cffTable = directory.GetTable("CFF ")!;
+                CffTableParser.Parse(stream, cffTable, font);
+            }
 
             return font;
         }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Folly.Fonts.CFF;
 using Folly.Fonts.OpenType;
 
 namespace Folly.Fonts.Models;
@@ -152,6 +153,12 @@ public class FontFile
     /// Null if the font does not have a GPOS table.
     /// </summary>
     public GposData? Gpos { get; set; }
+
+    /// <summary>
+    /// CFF (Compact Font Format) table data for OpenType fonts with PostScript outlines.
+    /// Null if the font does not have a CFF table (i.e., it's a TrueType font).
+    /// </summary>
+    public CffData? Cff { get; set; }
 
     /// <summary>
     /// Gets the advance width for a character in font units.
