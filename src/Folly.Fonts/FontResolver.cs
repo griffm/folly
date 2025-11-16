@@ -1,21 +1,26 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Security;
+using System.Threading;
+using Folly;
 
 namespace Folly.Fonts;
 
 /// <summary>
 /// Resolves font families with fallback support and system font discovery.
 /// Handles font family stacks like "Roboto, Arial, Helvetica, sans-serif".
+/// Includes performance optimizations: LRU cache, scan timeout, persistent cache, and platform-specific discovery.
 /// </summary>
 public class FontResolver
 {
     private readonly Dictionary<string, string> _customFonts;
-    private readonly Dictionary<string, string> _systemFontCache;
+    private readonly LruCache<string, string> _systemFontCache;
     private readonly Dictionary<string, string> _genericFamilyMap;
+    private readonly FontCacheOptions _options;
     private readonly object _scanLock = new object();
     private volatile bool _systemFontsScanned;
 
@@ -23,10 +28,14 @@ public class FontResolver
     /// Creates a new font resolver for font-family stack resolution.
     /// </summary>
     /// <param name="customFonts">Dictionary mapping font family names to TTF file paths.</param>
-    public FontResolver(Dictionary<string, string>? customFonts = null)
+    /// <param name="options">Cache and performance options. If null, uses default options.</param>
+    public FontResolver(Dictionary<string, string>? customFonts = null, FontCacheOptions? options = null)
     {
         _customFonts = customFonts ?? new Dictionary<string, string>();
-        _systemFontCache = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        _options = options ?? new FontCacheOptions();
+        _systemFontCache = new LruCache<string, string>(
+            _options.MaxCachedFonts,
+            StringComparer.OrdinalIgnoreCase);
         _genericFamilyMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         _systemFontsScanned = false;
 
@@ -96,13 +105,77 @@ public class FontResolver
 
     /// <summary>
     /// Scans system font directories for available fonts.
+    /// Uses persistent cache, platform-specific optimizations, and scan timeout.
     /// </summary>
     private void ScanSystemFonts()
+    {
+        var stopwatch = Stopwatch.StartNew();
+
+        // Try to load from persistent cache first
+        if (_options.EnablePersistentCache)
+        {
+            var cacheDir = _options.CacheDirectory ?? PersistentFontCache.GetDefaultCacheDirectory();
+            var cachedFonts = PersistentFontCache.TryLoad(cacheDir, _options.CacheMaxAge);
+
+            if (cachedFonts != null && cachedFonts.Count > 0)
+            {
+                // Load from cache
+                foreach (var kvp in cachedFonts)
+                {
+                    _systemFontCache.AddOrUpdate(kvp.Key, kvp.Value);
+                }
+                return;
+            }
+        }
+
+        // Try platform-specific optimizations
+        if (_options.UsePlatformOptimizations)
+        {
+            var timeoutSeconds = (int)_options.ScanTimeout.TotalSeconds;
+            var platformFonts = PlatformFontDiscovery.TryDiscover(timeoutSeconds);
+
+            if (platformFonts != null && platformFonts.Count > 0)
+            {
+                foreach (var kvp in platformFonts)
+                {
+                    _systemFontCache.AddOrUpdate(kvp.Key, kvp.Value);
+                }
+
+                // Save to persistent cache
+                SaveToPersistentCache();
+                return;
+            }
+        }
+
+        // Fall back to filesystem scanning with timeout
+        var timeoutMs = (int)_options.ScanTimeout.TotalMilliseconds;
+        using var cts = new CancellationTokenSource(timeoutMs > 0 ? timeoutMs : Timeout.Infinite);
+
+        try
+        {
+            ScanSystemFontsWithTimeout(cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            // Scan timed out - use what we have so far
+        }
+
+        // Save to persistent cache
+        SaveToPersistentCache();
+    }
+
+    /// <summary>
+    /// Scans system font directories with cancellation support.
+    /// </summary>
+    private void ScanSystemFontsWithTimeout(CancellationToken cancellationToken)
     {
         var fontDirs = GetSystemFontDirectories();
 
         foreach (var dir in fontDirs)
         {
+            if (cancellationToken.IsCancellationRequested)
+                break;
+
             if (!Directory.Exists(dir))
                 continue;
 
@@ -113,6 +186,9 @@ public class FontResolver
 
                 foreach (var fontFile in fontFiles)
                 {
+                    if (cancellationToken.IsCancellationRequested)
+                        break;
+
                     try
                     {
                         // Parse font to get family name
@@ -121,10 +197,10 @@ public class FontResolver
 
                         if (!string.IsNullOrEmpty(familyName))
                         {
-                            // Store first occurrence only (prefer earlier directories)
+                            // Add to LRU cache (will evict LRU items if at capacity)
                             if (!_systemFontCache.ContainsKey(familyName))
                             {
-                                _systemFontCache[familyName] = fontFile;
+                                _systemFontCache.AddOrUpdate(familyName, fontFile);
                             }
                         }
                     }
@@ -147,6 +223,26 @@ public class FontResolver
                 // Skip directories that fail to enumerate (access denied, network issues, etc.)
                 // Silently continue to next directory - this is expected for some system directories
             }
+        }
+    }
+
+    /// <summary>
+    /// Saves the current system font cache to persistent storage.
+    /// </summary>
+    private void SaveToPersistentCache()
+    {
+        if (!_options.EnablePersistentCache)
+            return;
+
+        try
+        {
+            var cacheDir = _options.CacheDirectory ?? PersistentFontCache.GetDefaultCacheDirectory();
+            var snapshot = _systemFontCache.GetSnapshot();
+            PersistentFontCache.TrySave(cacheDir, snapshot);
+        }
+        catch
+        {
+            // Silently fail - persistent cache is optional
         }
     }
 
@@ -219,11 +315,17 @@ public class FontResolver
     {
         if (!_systemFontsScanned)
         {
-            ScanSystemFonts();
-            _systemFontsScanned = true;
+            lock (_scanLock)
+            {
+                if (!_systemFontsScanned)
+                {
+                    ScanSystemFonts();
+                    _systemFontsScanned = true;
+                }
+            }
         }
 
-        return new Dictionary<string, string>(_systemFontCache);
+        return _systemFontCache.GetSnapshot();
     }
 
     /// <summary>
@@ -243,8 +345,14 @@ public class FontResolver
         // Check system fonts
         if (!_systemFontsScanned)
         {
-            ScanSystemFonts();
-            _systemFontsScanned = true;
+            lock (_scanLock)
+            {
+                if (!_systemFontsScanned)
+                {
+                    ScanSystemFonts();
+                    _systemFontsScanned = true;
+                }
+            }
         }
 
         return _systemFontCache.ContainsKey(familyName);
@@ -258,4 +366,45 @@ public class FontResolver
         _systemFontCache.Clear();
         _systemFontsScanned = false;
     }
+
+    /// <summary>
+    /// Gets statistics about the current font cache.
+    /// </summary>
+    /// <returns>Cache statistics.</returns>
+    public FontCacheStatistics GetCacheStatistics()
+    {
+        return new FontCacheStatistics
+        {
+            CachedFontCount = _systemFontCache.Count,
+            MaxCacheCapacity = _systemFontCache.MaxCapacity,
+            CustomFontCount = _customFonts.Count,
+            IsScanCompleted = _systemFontsScanned
+        };
+    }
+}
+
+/// <summary>
+/// Statistics about the font cache.
+/// </summary>
+public class FontCacheStatistics
+{
+    /// <summary>
+    /// Number of system fonts currently cached.
+    /// </summary>
+    public int CachedFontCount { get; set; }
+
+    /// <summary>
+    /// Maximum capacity of the cache (0 = unlimited).
+    /// </summary>
+    public int MaxCacheCapacity { get; set; }
+
+    /// <summary>
+    /// Number of custom fonts registered.
+    /// </summary>
+    public int CustomFontCount { get; set; }
+
+    /// <summary>
+    /// Whether system font scanning has completed.
+    /// </summary>
+    public bool IsScanCompleted { get; set; }
 }

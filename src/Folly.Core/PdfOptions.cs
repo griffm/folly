@@ -72,6 +72,13 @@ public sealed class PdfOptions
     /// Set to 0 to disable the limit (not recommended for production use).
     /// </summary>
     public long MaxFontMemory { get; set; } = 50 * 1024 * 1024; // 50MB
+
+    /// <summary>
+    /// Gets or sets font caching options for performance optimization.
+    /// Controls system font discovery, LRU cache size, scan timeout, and persistent cache.
+    /// If null, uses default options (500 font cache, 10 second timeout, persistent cache enabled).
+    /// </summary>
+    public FontCacheOptions? FontCacheOptions { get; set; }
 }
 
 /// <summary>

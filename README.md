@@ -303,7 +303,7 @@ The core rendering engine is fully operational with extensive feature support:
 - PDF outline/bookmarks for document navigation
 
 **Quality Assurance:**
-- Comprehensive test suite with high success rate
+- Comprehensive test suite: **485 passing tests** (364 unit + 20 spec + 101 font tests)
   - XSL-FO conformance tests (formatting object parsing, repeatable-page-master-reference)
   - Property inheritance tests (comprehensive coverage of inheritable properties)
   - Layout engine tests (line breaking, page breaking, tables, footnotes, text justification, **multi-page tables**, **table row spanning**, **proportional column widths**, **content-based column sizing**, **footer repetition**, **multi-page lists**, **keep-with-next/previous**, **widow/orphan control**, **emergency line breaking**, **absolute positioning**)
@@ -311,7 +311,7 @@ The core rendering engine is fully operational with extensive feature support:
   - **Emergency line breaking tests** (character-level breaking, wrap-option support, narrow columns)
   - **Knuth-Plass line breaking tests** (optimal line breaking, TeX-quality typography, comparison with greedy)
   - **List page breaking tests** (multi-page lists, keep-together support, nested content)
-  - **Font tests** (TrueType parsing, font subsetting, serialization, PDF embedding, ToUnicode CMaps, **font fallback**, **system font discovery**, **kerning support**)
+  - **Font tests** (TrueType parsing, font subsetting, serialization, PDF embedding, ToUnicode CMaps, **font fallback**, **system font discovery**, **kerning support**, **LRU caching**, **persistent cache**, **thread safety**, **performance optimizations**)
   - **BiDi tests** (UAX#9 algorithm, Hebrew, Arabic, mixed LTR/RTL, numbers, punctuation, character types, embedding levels)
   - **SVG tests** (parsing, path commands, transforms, gradients, clipping, text rendering, CSS classes, markers, patterns, opacity)
   - PDF validation tests (structure, fonts, compression, metadata, links)
