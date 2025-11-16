@@ -38,6 +38,11 @@ public sealed class PdfRenderer : IDisposable
         // Write PDF header
         _writer.WriteHeader(_options.PdfVersion);
 
+        // CRITICAL: Reserve catalog (object 1) and pages tree (object 2) FIRST
+        // This must be done before any other objects are created
+        // We'll write the actual catalog content later, after we know structure tree and metadata IDs
+        var catalogId = _writer.WriteCatalog(areaTree.Pages.Count, bookmarkTree, 0, 0, 0);
+
         // Create structure tree if tagged PDF is enabled
         PdfStructureTree? structureTree = null;
         if (_options.EnableTaggedPdf)
@@ -69,7 +74,7 @@ public sealed class PdfRenderer : IDisposable
             pageIds.Add(pageId);
         }
 
-        // Write structure tree if enabled (must be written before catalog)
+        // Write structure tree if enabled
         int structTreeRootId = 0;
         if (structureTree != null)
         {
@@ -92,8 +97,12 @@ public sealed class PdfRenderer : IDisposable
             outputIntentId = _writer.WriteOutputIntent();
         }
 
-        // Write catalog with structure tree reference and PDF/A metadata
-        var catalogId = _writer.WriteCatalog(areaTree.Pages.Count, bookmarkTree, structTreeRootId, xmpMetadataId, outputIntentId);
+        // Update catalog with structure tree and PDF/A metadata references
+        // The catalog object (1) was already reserved, now we update it with final references
+        if (structTreeRootId > 0 || xmpMetadataId > 0 || outputIntentId > 0)
+        {
+            _writer.UpdateCatalog(catalogId, bookmarkTree, structTreeRootId, xmpMetadataId, outputIntentId);
+        }
 
         // Update pages tree
         _writer.WritePages(catalogId + 1, pageIds, areaTree.Pages);

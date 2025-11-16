@@ -77,6 +77,7 @@ internal sealed class PdfWriter : IDisposable
     /// <summary>
     /// Writes the document catalog and returns its object ID.
     /// Also reserves object ID 2 for the pages tree.
+    /// This MUST be called before any other objects are created to ensure correct object numbering.
     /// </summary>
     public int WriteCatalog(int pageCount, Dom.FoBookmarkTree? bookmarkTree = null, int structTreeRootId = 0, int xmpMetadataId = 0, int outputIntentId = 0)
     {
@@ -131,6 +132,60 @@ internal sealed class PdfWriter : IDisposable
         WriteLine("endobj");
 
         return catalogId;
+    }
+
+    /// <summary>
+    /// Updates the catalog object with additional references (structure tree, metadata, etc.)
+    /// that weren't known when the catalog was first written.
+    /// This rewrites object 1 at the current position.
+    /// </summary>
+    public void UpdateCatalog(int catalogId, Dom.FoBookmarkTree? bookmarkTree, int structTreeRootId, int xmpMetadataId, int outputIntentId)
+    {
+        // Write outline (bookmarks) if present and not already written
+        int? outlineId = null;
+        if (bookmarkTree != null && bookmarkTree.Bookmarks.Count > 0)
+        {
+            // Check if outline was already written during initial catalog creation
+            // If _nextObjectId == 3, no outline was written yet
+            // Otherwise, outline was written and we need to get its ID
+            // For simplicity, we'll write a new outline here (this is safe because bookmarks are small)
+            outlineId = WriteOutline(bookmarkTree);
+        }
+
+        // Update catalog at object 1
+        _objectOffsets[0] = _position;  // Update catalog position
+        WriteLine("1 0 obj");
+        WriteLine("<<");
+        WriteLine("  /Type /Catalog");
+        WriteLine($"  /Pages 2 0 R");  // Pages tree will be object 2
+
+        // Add outline reference if bookmarks exist
+        if (outlineId.HasValue)
+        {
+            WriteLine($"  /Outlines {outlineId.Value} 0 R");
+        }
+
+        // Add structure tree root reference if tagged PDF is enabled
+        if (structTreeRootId > 0)
+        {
+            WriteLine($"  /StructTreeRoot {structTreeRootId} 0 R");
+            WriteLine("  /MarkInfo << /Marked true >>");
+        }
+
+        // Add XMP metadata reference for PDF/A compliance
+        if (xmpMetadataId > 0)
+        {
+            WriteLine($"  /Metadata {xmpMetadataId} 0 R");
+        }
+
+        // Add OutputIntents for PDF/A compliance
+        if (outputIntentId > 0)
+        {
+            WriteLine($"  /OutputIntents [ {outputIntentId} 0 R ]");
+        }
+
+        WriteLine(">>");
+        WriteLine("endobj");
     }
 
     /// <summary>
