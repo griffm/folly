@@ -170,19 +170,19 @@ internal sealed class PdfStructureTree
         // Write language if specified
         if (!string.IsNullOrEmpty(element.Language))
         {
-            writer.WriteLine($"  /Lang ({writer.EscapeString(element.Language)})");
+            writer.WriteLine($"  /Lang ({PdfWriter.EscapeString(element.Language)})");
         }
 
         // Write alt text if specified (for images, figures, etc.)
         if (!string.IsNullOrEmpty(element.AltText))
         {
-            writer.WriteLine($"  /Alt ({writer.EscapeString(element.AltText)})");
+            writer.WriteLine($"  /Alt ({PdfWriter.EscapeString(element.AltText)})");
         }
 
         // Write actual text if specified (replacement text for abbreviations, etc.)
         if (!string.IsNullOrEmpty(element.ActualText))
         {
-            writer.WriteLine($"  /ActualText ({writer.EscapeString(element.ActualText)})");
+            writer.WriteLine($"  /ActualText ({PdfWriter.EscapeString(element.ActualText)})");
         }
 
         // Write children (K entry)

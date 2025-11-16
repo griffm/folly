@@ -385,11 +385,12 @@ public sealed class PdfRenderer : IDisposable
             // Create structure element for this block if tagging is enabled
             StructureElement? blockElement = null;
             int mcid = -1;
+            StructureRole role = StructureRole.Paragraph; // Default role
 
             if (structureTree != null && parentElement != null)
             {
                 // Detect structure role based on block properties
-                var role = DetectStructureRole(blockArea);
+                role = DetectStructureRole(blockArea);
 
                 blockElement = structureTree.CreateElement(role, parentElement);
                 mcid = structureTree.RegisterMarkedContent(blockElement, pageIndex);
