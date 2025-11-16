@@ -126,6 +126,27 @@ public abstract class Area
     /// Gets or sets the height in points.
     /// </summary>
     public double Height { get; set; }
+
+    /// <summary>
+    /// Gets or sets the visibility of this area (visible, hidden, collapse).
+    /// Default is "visible". Hidden areas are not rendered but still occupy space.
+    /// Collapsed areas are not rendered and do not occupy space (for table rows/columns).
+    /// </summary>
+    public string Visibility { get; set; } = "visible";
+
+    /// <summary>
+    /// Gets or sets the clip rectangle for this area.
+    /// Format: "rect(top, right, bottom, left)" or "auto" for no clipping.
+    /// Clipping limits rendering to the specified rectangle.
+    /// Default is "auto" (no clipping).
+    /// </summary>
+    public string Clip { get; set; } = "auto";
+
+    /// <summary>
+    /// Gets or sets the overflow behavior (visible, hidden, scroll, auto, error-if-overflow).
+    /// Default is "visible". Hidden overflow clips content to the area bounds.
+    /// </summary>
+    public string Overflow { get; set; } = "visible";
 }
 
 /// <summary>

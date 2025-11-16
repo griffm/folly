@@ -245,6 +245,7 @@ The core rendering engine is fully operational with extensive feature support:
 - **Background images** (background-image, background-repeat, background-position) with support for tiling, positioning, and security validation
 - **Reference orientation** (reference-orientation) for rotating block containers (0°, 90°, 180°, 270°) using PDF transformation matrices
 - **Display-align** (display-align) for vertical alignment of content (center, after/bottom) within block containers
+- **Visibility, Clip, and Overflow** - Full support for visibility (visible, hidden, collapse), clip rectangles (rect() with absolute/percentage values), and overflow handling (overflow:hidden clips to bounds)
 
 **PDF Rendering:**
 - PDF 1.7 output with correct structure

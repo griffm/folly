@@ -970,7 +970,10 @@ internal sealed class LayoutEngine
             BorderTopLeftRadius = foBlock.BorderTopLeftRadius,
             BorderTopRightRadius = foBlock.BorderTopRightRadius,
             BorderBottomLeftRadius = foBlock.BorderBottomLeftRadius,
-            BorderBottomRightRadius = foBlock.BorderBottomRightRadius
+            BorderBottomRightRadius = foBlock.BorderBottomRightRadius,
+            Visibility = foBlock.Visibility,
+            Clip = foBlock.Clip,
+            Overflow = foBlock.Overflow
         };
 
         // Load background image if specified
@@ -4336,6 +4339,9 @@ internal sealed class LayoutEngine
             ZIndex = ParseZIndex(blockContainer.ZIndex),
             ReferenceOrientation = NormalizeRotation(blockContainer.ReferenceOrientation),
             DisplayAlign = blockContainer.DisplayAlign,
+            Visibility = blockContainer.Visibility,
+            Clip = blockContainer.Clip,
+            Overflow = blockContainer.Overflow,
             BackgroundColor = blockContainer.BackgroundColor,
             BackgroundRepeat = blockContainer.BackgroundRepeat,
             BackgroundPositionHorizontal = blockContainer.BackgroundPositionHorizontal,

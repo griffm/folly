@@ -378,6 +378,27 @@ public sealed class FoBlock : FoElement
     }
 
     /// <summary>
+    /// Gets the visibility of this block (visible, hidden, collapse).
+    /// Inherits from parent elements. Default is "visible".
+    /// Hidden blocks are not rendered but still occupy space.
+    /// Collapsed blocks are not rendered and do not occupy space (primarily for table rows/columns).
+    /// </summary>
+    public string Visibility => GetComputedProperty("visibility", "visible") ?? "visible";
+
+    /// <summary>
+    /// Gets the clip rectangle for this block.
+    /// Format: "rect(top, right, bottom, left)" or "auto" for no clipping.
+    /// Default is "auto" (no clipping).
+    /// </summary>
+    public string Clip => Properties.GetString("clip", "auto");
+
+    /// <summary>
+    /// Gets the overflow behavior (visible, hidden, scroll, auto, error-if-overflow).
+    /// Default is "visible". Hidden overflow clips content to the block bounds.
+    /// </summary>
+    public string Overflow => Properties.GetString("overflow", "visible");
+
+    /// <summary>
     /// Gets the footnotes contained in this block.
     /// Footnotes appear inline but are rendered at the bottom of the page.
     /// </summary>
