@@ -1554,12 +1554,6 @@ internal sealed class PdfWriter : IDisposable
         WriteLine("endobj");
     }
 
-    internal void Write(string text)
-    {
-        _writer.Write(text);
-        _position += Encoding.ASCII.GetByteCount(text);
-    }
-
     /// <summary>
     /// Writes document metadata and returns the Info object ID.
     /// </summary>
