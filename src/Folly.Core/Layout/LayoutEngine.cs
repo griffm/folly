@@ -21,6 +21,11 @@ internal sealed class LayoutEngine
     private readonly List<LinkArea> _currentPageLinks = new();
     private Core.Hyphenation.HyphenationEngine? _hyphenationEngine;
 
+    // Index tracking
+    private readonly Dictionary<string, List<IndexEntry>> _indexEntries = new();
+    private readonly Dictionary<string, IndexRangeInfo> _activeIndexRanges = new();
+    private int _currentPageNumber = 0;
+
     public LayoutEngine(LayoutOptions options)
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
@@ -4637,6 +4642,160 @@ internal sealed class LayoutEngine
     }
 
     /// <summary>
+    /// Processes element tree to track index entries (index-range-begin/end).
+    /// This must be called as we traverse the FO tree during layout.
+    /// </summary>
+    private void TrackIndexElements(Dom.FoElement element, int pageNumber)
+    {
+        // Update current page number
+        _currentPageNumber = pageNumber;
+
+        // Handle index-range-begin
+        if (element is Dom.FoIndexRangeBegin rangeBegin)
+        {
+            var id = rangeBegin.Id;
+            var key = rangeBegin.IndexKey;
+            var indexClass = rangeBegin.IndexClass;
+
+            if (!string.IsNullOrEmpty(id) && !string.IsNullOrEmpty(key))
+            {
+                _activeIndexRanges[id] = new IndexRangeInfo
+                {
+                    Key = key,
+                    IndexClass = indexClass,
+                    StartPage = pageNumber
+                };
+            }
+        }
+
+        // Handle index-range-end
+        if (element is Dom.FoIndexRangeEnd rangeEnd)
+        {
+            var refId = rangeEnd.RefId;
+
+            if (!string.IsNullOrEmpty(refId) && _activeIndexRanges.TryGetValue(refId, out var rangeInfo))
+            {
+                // Add index entry for the completed range
+                if (!_indexEntries.ContainsKey(rangeInfo.Key))
+                    _indexEntries[rangeInfo.Key] = new List<IndexEntry>();
+
+                _indexEntries[rangeInfo.Key].Add(new IndexEntry
+                {
+                    Key = rangeInfo.Key,
+                    IndexClass = rangeInfo.IndexClass,
+                    PageNumber = rangeInfo.StartPage,
+                    IsRange = true,
+                    RangeEndPage = pageNumber
+                });
+
+                // Remove from active ranges
+                _activeIndexRanges.Remove(refId);
+            }
+        }
+
+        // Recursively process children
+        foreach (var child in element.Children)
+        {
+            TrackIndexElements(child, pageNumber);
+        }
+    }
+
+    /// <summary>
+    /// Generates index content for an index-key-reference element.
+    /// Returns formatted text with page numbers for the referenced index key.
+    /// </summary>
+    private string GenerateIndexContent(Dom.FoIndexKeyReference keyRef)
+    {
+        var refKey = keyRef.RefIndexKey;
+        var indexClass = keyRef.IndexClass;
+
+        if (string.IsNullOrEmpty(refKey))
+            return "";
+
+        // Get entries for this key
+        if (!_indexEntries.TryGetValue(refKey, out var entries))
+            return "";
+
+        // Filter by index class if specified
+        if (!string.IsNullOrEmpty(indexClass))
+        {
+            entries = entries.Where(e => e.IndexClass == indexClass).ToList();
+        }
+
+        if (entries.Count == 0)
+            return "";
+
+        // Get unique page numbers
+        var pageNumbers = new SortedSet<int>();
+        foreach (var entry in entries)
+        {
+            foreach (var page in entry.GetPageNumbers())
+            {
+                pageNumbers.Add(page);
+            }
+        }
+
+        // Get prefix and suffix
+        var prefix = keyRef.PageNumberPrefixes.FirstOrDefault()?.Text ?? "";
+        var suffix = keyRef.PageNumberSuffixes.FirstOrDefault()?.Text ?? "";
+
+        // Get separators
+        var citationList = keyRef.PageCitationLists.FirstOrDefault();
+        var listSeparator = citationList?.ListSeparators.FirstOrDefault()?.Text ?? ", ";
+        var rangeSeparator = citationList?.RangeSeparators.FirstOrDefault()?.Text ?? "–";
+
+        // Check if we should merge sequential pages into ranges
+        var mergeSequential = citationList?.MergeSequentialPageNumbers == "merge";
+        var mergeMinLength = citationList?.MergeRangesMinimumLength ?? 2;
+
+        List<string> formattedPages = new();
+
+        if (mergeSequential)
+        {
+            // Merge consecutive pages into ranges
+            var sortedPages = pageNumbers.ToList();
+            int i = 0;
+            while (i < sortedPages.Count)
+            {
+                int rangeStart = sortedPages[i];
+                int rangeEnd = rangeStart;
+
+                // Find consecutive pages
+                while (i + 1 < sortedPages.Count && sortedPages[i + 1] == sortedPages[i] + 1)
+                {
+                    rangeEnd = sortedPages[i + 1];
+                    i++;
+                }
+
+                // Format as range or single page
+                if (rangeEnd - rangeStart + 1 >= mergeMinLength)
+                {
+                    formattedPages.Add($"{rangeStart}{rangeSeparator}{rangeEnd}");
+                }
+                else
+                {
+                    // Add individual pages
+                    for (int p = rangeStart; p <= rangeEnd; p++)
+                    {
+                        formattedPages.Add(p.ToString());
+                    }
+                }
+
+                i++;
+            }
+        }
+        else
+        {
+            // List all pages individually
+            formattedPages.AddRange(pageNumbers.Select(p => p.ToString()));
+        }
+
+        // Combine with prefix and suffix
+        var result = string.Join(listSeparator, formattedPages);
+        return prefix + result + suffix;
+    }
+
+    /// <summary>
     /// Tracks which cells occupy which grid positions in a table, handling row and column spanning.
     /// </summary>
     private sealed class TableCellGrid
@@ -4721,5 +4880,43 @@ internal sealed class LayoutEngine
             }
             return null;
         }
+    }
+
+    /// <summary>
+    /// Represents an index entry with page number(s).
+    /// </summary>
+    private sealed class IndexEntry
+    {
+        public required string Key { get; init; }
+        public required string IndexClass { get; init; }
+        public required int PageNumber { get; init; }
+        public bool IsRange { get; init; }
+        public int? RangeEndPage { get; init; }
+
+        /// <summary>
+        /// Gets all page numbers for this entry (single page or range).
+        /// </summary>
+        public IEnumerable<int> GetPageNumbers()
+        {
+            if (IsRange && RangeEndPage.HasValue)
+            {
+                for (int i = PageNumber; i <= RangeEndPage.Value; i++)
+                    yield return i;
+            }
+            else
+            {
+                yield return PageNumber;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Tracks an active index range (from index-range-begin to index-range-end).
+    /// </summary>
+    private sealed class IndexRangeInfo
+    {
+        public required string Key { get; init; }
+        public required string IndexClass { get; init; }
+        public required int StartPage { get; init; }
     }
 }
