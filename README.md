@@ -249,12 +249,14 @@ The core rendering engine is fully operational with extensive feature support:
 - Font metrics from Adobe Font Metrics (AFM) files (14 base PDF fonts, 200+ characters each)
 - **TrueType/OpenType font support** - Embed custom fonts directly in PDFs
 - **Font subsetting** - Only embeds glyphs actually used in the document (dramatically reduces file size)
+- **Font memory management** ✅ (Phase 7) - Configurable MaxFontMemory quota prevents OutOfMemoryException with large CJK fonts
 - **Font fallback & system fonts** - Automatic font resolution with font-family stacks (e.g., "Roboto, Arial, sans-serif")
 - **System font discovery** - Cross-platform support for Windows, macOS, and Linux system fonts
 - **Generic font families** - Automatic mapping of serif, sans-serif, and monospace to system fonts
 - **Kerning support** - Automatic kerning for TrueType fonts using PDF TJ operator for professional typography
 - **Stream compression** - Flate (zlib) compression for optimal PDF file sizes
 - **PDF metadata** - Document Information Dictionary (title, author, subject, keywords, creator, producer, dates)
+- **Image error handling** ✅ (Phase 7) - ImageDecodingException with detailed diagnostics (path, format, reason) replaces silent failures
 - Text positioning with baseline alignment
 - Border rendering (solid, dashed, dotted)
 - Background colors (named and hex formats)

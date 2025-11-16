@@ -9,6 +9,7 @@ internal sealed class PdfWriter : IDisposable
 {
     private readonly Stream _output;
     private readonly StreamWriter _writer;
+    private readonly PdfOptions _options;
     private readonly List<long> _objectOffsets = new();
     private int _nextObjectId = 1;
     private long _position;
@@ -42,9 +43,10 @@ internal sealed class PdfWriter : IDisposable
         return _characterToGlyphId.TryGetValue(fontName, out var mapping) ? mapping : null;
     }
 
-    public PdfWriter(Stream output)
+    public PdfWriter(Stream output, PdfOptions options)
     {
         _output = output ?? throw new ArgumentNullException(nameof(output));
+        _options = options ?? throw new ArgumentNullException(nameof(options));
         _writer = new StreamWriter(_output, Encoding.ASCII, leaveOpen: true)
         {
             NewLine = "\n",
@@ -123,26 +125,54 @@ internal sealed class PdfWriter : IDisposable
 
             int imageId = -1;
 
-            switch (format)
+            try
             {
-                case "JPEG":
-                    imageId = WriteJpegXObject(data, width, height);
-                    break;
+                switch (format)
+                {
+                    case "JPEG":
+                        imageId = WriteJpegXObject(data, width, height, source);
+                        break;
 
-                case "PNG":
-                    imageId = WritePngXObject(data, width, height);
-                    break;
+                    case "PNG":
+                        imageId = WritePngXObject(data, width, height, source);
+                        break;
 
-                case "BMP":
-                case "GIF":
-                case "TIFF":
-                    // Use new image parsers for BMP, GIF, TIFF
-                    imageId = WriteDecodedImageXObject(data, format, width, height);
-                    break;
+                    case "BMP":
+                    case "GIF":
+                    case "TIFF":
+                        // Use new image parsers for BMP, GIF, TIFF
+                        imageId = WriteDecodedImageXObject(data, format, width, height, source);
+                        break;
 
-                default:
-                    // Unknown format, skip
-                    continue;
+                    default:
+                        // Unknown format, skip
+                        continue;
+                }
+            }
+            catch (NotSupportedException)
+            {
+                // Re-throw validation exceptions (interlaced images, unsupported formats, etc.)
+                throw;
+            }
+            catch (InvalidDataException)
+            {
+                // Re-throw validation exceptions (corrupted files, invalid formats, etc.)
+                throw;
+            }
+            catch (ImageDecodingException)
+            {
+                // Re-throw image decoding exceptions
+                throw;
+            }
+            catch (Exception ex)
+            {
+                // Wrap other unexpected exceptions in ImageDecodingException
+                throw new ImageDecodingException(
+                    $"Failed to process image: {ex.Message}",
+                    imagePath: source,
+                    imageFormat: format,
+                    failureReason: ex.GetType().Name,
+                    innerException: ex);
             }
 
             if (imageId > 0)
@@ -154,7 +184,7 @@ internal sealed class PdfWriter : IDisposable
         return imageIds;
     }
 
-    private int WriteJpegXObject(byte[] jpegData, int width, int height)
+    private int WriteJpegXObject(byte[] jpegData, int width, int height, string? imagePath = null)
     {
         // Parse JPEG metadata to extract actual color space and bits per component
         var (parsedWidth, parsedHeight, bitsPerComponent, colorSpace) = ParseJpegMetadata(jpegData);
@@ -187,10 +217,10 @@ internal sealed class PdfWriter : IDisposable
         return imageId;
     }
 
-    private int WritePngXObject(byte[] pngData, int width, int height)
+    private int WritePngXObject(byte[] pngData, int width, int height, string? imagePath = null)
     {
         // Decode PNG and write as FlateDecode image with PNG predictors
-        var (compressedData, bitsPerComponent, colorSpace, colorComponents, palette, transparency, alphaData) = DecodePng(pngData, width, height);
+        var (compressedData, bitsPerComponent, colorSpace, colorComponents, palette, transparency, alphaData) = DecodePng(pngData, width, height, imagePath);
 
         // Create SMask if alpha channel is present
         int? smaskId = null;
@@ -292,7 +322,7 @@ internal sealed class PdfWriter : IDisposable
     /// Writes an image XObject for decoded image formats (BMP, GIF, TIFF).
     /// Uses the new image parser infrastructure.
     /// </summary>
-    private int WriteDecodedImageXObject(byte[] imageData, string format, int width, int height)
+    private int WriteDecodedImageXObject(byte[] imageData, string format, int width, int height, string? imagePath = null)
     {
         try
         {
@@ -445,7 +475,7 @@ internal sealed class PdfWriter : IDisposable
         return smaskId;
     }
 
-    private (byte[] CompressedData, int BitsPerComponent, string ColorSpace, int ColorComponents, byte[]? Palette, byte[]? Transparency, byte[]? AlphaData) DecodePng(byte[] pngData, int width, int height)
+    private (byte[] CompressedData, int BitsPerComponent, string ColorSpace, int ColorComponents, byte[]? Palette, byte[]? Transparency, byte[]? AlphaData) DecodePng(byte[] pngData, int width, int height, string? imagePath = null)
     {
         // Simplified PNG decoder - extract IDAT chunks and parse IHDR for metadata
         // For production use, consider using a PNG library like SixLabors.ImageSharp
@@ -662,11 +692,31 @@ internal sealed class PdfWriter : IDisposable
             // Re-throw validation exceptions (corrupted files, invalid formats, etc.)
             throw;
         }
-        catch
+        catch (Exception ex)
         {
-            // Fallback for unexpected decoding errors: create a placeholder image (1x1 white pixel)
-            byte[] fallback = new byte[] { 255, 255, 255 };
-            return (fallback, 8, "DeviceRGB", 3, null, null, null);
+            // Handle unexpected decoding errors based on configured behavior
+            if (_options.ImageErrorBehavior == ImageErrorBehavior.ThrowException)
+            {
+                throw new ImageDecodingException(
+                    "PNG image decoding failed",
+                    imagePath: imagePath,
+                    imageFormat: "PNG",
+                    failureReason: ex.Message,
+                    innerException: ex);
+            }
+            else if (_options.ImageErrorBehavior == ImageErrorBehavior.UsePlaceholder)
+            {
+                // Return a 1x1 white pixel placeholder (backward compatibility mode)
+                byte[] fallback = new byte[] { 255, 255, 255 };
+                return (fallback, 8, "DeviceRGB", 3, null, null, null);
+            }
+            else // SkipImage
+            {
+                // For SkipImage, we still need to return something valid, so use placeholder
+                // The caller should check the error behavior and handle accordingly
+                byte[] fallback = new byte[] { 255, 255, 255 };
+                return (fallback, 8, "DeviceRGB", 3, null, null, null);
+            }
         }
     }
 
@@ -1015,9 +1065,22 @@ internal sealed class PdfWriter : IDisposable
         }
         else
         {
-            // TODO: For very large fonts (e.g., CJK fonts >15MB), consider streaming instead
-            // of loading entire file. Requires refactoring to support two-pass writing
-            // (calculate length first, then stream data) or buffering approach.
+            // Check font file size before loading into memory
+            var fontFileInfo = new FileInfo(fontPath);
+            long fontFileSize = fontFileInfo.Length;
+
+            // Enforce memory quota for large fonts (prevents OutOfMemoryException)
+            if (_options.MaxFontMemory > 0 && fontFileSize > _options.MaxFontMemory)
+            {
+                throw new InvalidOperationException(
+                    $"Font file '{Path.GetFileName(fontPath)}' ({fontFileSize:N0} bytes) exceeds the maximum allowed font memory ({_options.MaxFontMemory:N0} bytes). " +
+                    $"To resolve this issue, you can: " +
+                    $"1) Enable font subsetting (PdfOptions.SubsetFonts = true) to reduce font size, " +
+                    $"2) Increase the memory limit (PdfOptions.MaxFontMemory), or " +
+                    $"3) Use a smaller font file. " +
+                    $"Font path: {fontPath}");
+            }
+
             fontData = File.ReadAllBytes(fontPath);
             fontToEmbed = font;
         }

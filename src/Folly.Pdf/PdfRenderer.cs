@@ -22,7 +22,7 @@ public sealed class PdfRenderer : IDisposable
     {
         _output = output ?? throw new ArgumentNullException(nameof(output));
         _options = options ?? throw new ArgumentNullException(nameof(options));
-        _writer = new PdfWriter(_output);
+        _writer = new PdfWriter(_output, _options);
     }
 
     /// <summary>

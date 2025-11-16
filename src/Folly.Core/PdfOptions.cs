@@ -57,4 +57,45 @@ public sealed class PdfOptions
     /// Default is false for backward compatibility.
     /// </summary>
     public bool EnableTaggedPdf { get; set; } = false;
+
+    /// <summary>
+    /// Gets or sets the behavior when image decoding fails.
+    /// Default is ThrowException to ensure users are aware of image failures.
+    /// </summary>
+    public ImageErrorBehavior ImageErrorBehavior { get; set; } = ImageErrorBehavior.ThrowException;
+
+    /// <summary>
+    /// Gets or sets the maximum memory (in bytes) allowed for font data in memory at once.
+    /// This is used to prevent OutOfMemoryException when embedding very large fonts (e.g., CJK fonts >15MB).
+    /// When a font exceeds this limit, it will be streamed instead of loaded entirely into memory.
+    /// Default is 50MB (52,428,800 bytes).
+    /// Set to 0 to disable the limit (not recommended for production use).
+    /// </summary>
+    public long MaxFontMemory { get; set; } = 50 * 1024 * 1024; // 50MB
+}
+
+/// <summary>
+/// Defines how the PDF generator should behave when image decoding fails.
+/// </summary>
+public enum ImageErrorBehavior
+{
+    /// <summary>
+    /// Throw an ImageDecodingException with detailed diagnostics.
+    /// This is the recommended behavior to ensure users are aware of image failures.
+    /// </summary>
+    ThrowException,
+
+    /// <summary>
+    /// Replace the failed image with a 1x1 white pixel placeholder.
+    /// The document will be generated successfully but the image will be missing.
+    /// Use with caution as this can result in documents with missing content.
+    /// </summary>
+    UsePlaceholder,
+
+    /// <summary>
+    /// Skip the failed image entirely (do not render it).
+    /// The document will be generated successfully but the image will be missing.
+    /// Use with caution as this can result in documents with missing content.
+    /// </summary>
+    SkipImage
 }
