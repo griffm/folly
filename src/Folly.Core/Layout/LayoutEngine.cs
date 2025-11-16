@@ -3069,7 +3069,8 @@ internal sealed class LayoutEngine
             X = x,
             Y = y + foList.SpaceBefore,
             Width = availableWidth,
-            Height = 0
+            Height = 0,
+            StructureHint = "List" // Mark as list for PDF tagging
         };
 
         var currentY = 0.0;
@@ -3086,46 +3087,76 @@ internal sealed class LayoutEngine
             double labelHeight = 0;
             double bodyHeight = 0;
 
+            // Create list item container
+            var listItemArea = new BlockArea
+            {
+                X = 0,
+                Y = currentY,
+                Width = availableWidth,
+                Height = 0,
+                StructureHint = "ListItem" // Mark as list item for PDF tagging
+            };
+
             // Layout label
             if (foItem.Label != null)
             {
+                // Create label container
+                var labelContainer = new BlockArea
+                {
+                    X = 0,
+                    Y = 0,
+                    Width = labelWidth,
+                    Height = 0,
+                    StructureHint = "ListLabel" // Mark as list label for PDF tagging
+                };
+
                 var labelY = 0.0;
                 foreach (var labelBlock in foItem.Label.Blocks)
                 {
                     var labelBlockArea = LayoutBlock(labelBlock, 0, labelY, labelWidth);
                     if (labelBlockArea != null)
                     {
-                        // Adjust position to be relative to list item
-                        labelBlockArea.X = 0;
-                        labelBlockArea.Y = currentY + labelY;
-                        listArea.AddChild(labelBlockArea);
+                        labelContainer.AddChild(labelBlockArea);
                         labelY += labelBlockArea.Height + labelBlockArea.MarginTop + labelBlockArea.MarginBottom;
                     }
                 }
+                labelContainer.Height = labelY;
                 labelHeight = labelY;
+                listItemArea.AddChild(labelContainer);
             }
 
             // Layout body
             if (foItem.Body != null)
             {
+                // Create body container
+                var bodyContainer = new BlockArea
+                {
+                    X = bodyStartX,
+                    Y = 0,
+                    Width = bodyWidth,
+                    Height = 0,
+                    StructureHint = "ListBody" // Mark as list body for PDF tagging
+                };
+
                 var bodyY = 0.0;
                 foreach (var bodyBlock in foItem.Body.Blocks)
                 {
-                    var bodyBlockArea = LayoutBlock(bodyBlock, bodyStartX, bodyY, bodyWidth);
+                    var bodyBlockArea = LayoutBlock(bodyBlock, 0, bodyY, bodyWidth);
                     if (bodyBlockArea != null)
                     {
-                        // Adjust position to be relative to list item
-                        bodyBlockArea.X = bodyStartX;
-                        bodyBlockArea.Y = currentY + bodyY;
-                        listArea.AddChild(bodyBlockArea);
+                        bodyContainer.AddChild(bodyBlockArea);
                         bodyY += bodyBlockArea.Height + bodyBlockArea.MarginTop + bodyBlockArea.MarginBottom;
                     }
                 }
+                bodyContainer.Height = bodyY;
                 bodyHeight = bodyY;
+                listItemArea.AddChild(bodyContainer);
             }
 
             // List item height is the maximum of label and body heights
             var itemHeight = Math.Max(labelHeight, bodyHeight);
+            listItemArea.Height = itemHeight;
+            listArea.AddChild(listItemArea);
             currentY += itemHeight + foItem.SpaceAfter;
         }
 

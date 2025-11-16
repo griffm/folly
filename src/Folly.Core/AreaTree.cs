@@ -146,6 +146,18 @@ public sealed class BlockArea : Area
     public double FontSize { get; set; } = 12;
 
     /// <summary>
+    /// Gets or sets the font weight (normal, bold, 100-900).
+    /// </summary>
+    public string? FontWeight { get; set; }
+
+    /// <summary>
+    /// Gets or sets the structure hint for PDF tagging.
+    /// Indicates the semantic role of this block (e.g., "List", "ListItem", "ListLabel", "ListBody").
+    /// Used by the PDF renderer to generate appropriate structure tree elements for accessibility.
+    /// </summary>
+    public string? StructureHint { get; set; }
+
+    /// <summary>
     /// Gets or sets the text alignment.
     /// </summary>
     public string TextAlign { get; set; } = "start";
