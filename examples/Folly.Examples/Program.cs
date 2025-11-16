@@ -198,6 +198,10 @@ GenerateSvgTransformsExample(Path.Combine(outputDir, "40-svg-transforms.pdf"), e
 Console.WriteLine("Generating Example 41: SVG Complex Features...");
 GenerateSvgComplexExample(Path.Combine(outputDir, "41-svg-complex.pdf"), examplesDir);
 
+// Example 42: Tagged PDF (Accessibility)
+Console.WriteLine("Generating Example 42: Tagged PDF (Accessibility)...");
+GenerateTaggedPdfExample(Path.Combine(outputDir, "42-tagged-pdf.pdf"));
+
 Console.WriteLine("\n✓ All examples generated successfully!");
 Console.WriteLine($"\nView PDFs in: {outputDir}");
 Console.WriteLine("\nValidate with qpdf:");
@@ -4658,3 +4662,90 @@ static void RenderSvgFilesToPdf(string outputPath, string svgDir, string[] svgFi
 }
 
 static string EscapePdfString(string s) => s.Replace("\\", "\\\\").Replace("(", "\\(").Replace(")", "\\)");
+
+static void GenerateTaggedPdfExample(string outputPath)
+{
+    var foXml = """
+        <?xml version="1.0"?>
+        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+          <fo:layout-master-set>
+            <fo:simple-page-master master-name="A4" page-width="595pt" page-height="842pt">
+              <fo:region-body margin="72pt"/>
+            </fo:simple-page-master>
+          </fo:layout-master-set>
+          <fo:page-sequence master-reference="A4">
+            <fo:flow flow-name="xsl-region-body">
+              <fo:block font-family="Helvetica" font-size="24pt" font-weight="bold" margin-bottom="18pt">
+                Tagged PDF Example (Accessibility)
+              </fo:block>
+              
+              <fo:block font-size="14pt" margin-bottom="12pt">
+                This PDF demonstrates basic tagged PDF structure for accessibility. 
+                When EnableTaggedPdf is set to true, the PDF includes a structure tree 
+                that defines the logical document organization.
+              </fo:block>
+              
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                <fo:inline font-weight="bold">What is Tagged PDF?</fo:inline>
+                Tagged PDF is a PDF with a logical structure tree that enables screen readers 
+                and assistive technologies to understand document content. This is foundational 
+                for PDF/UA (Universal Accessibility) compliance.
+              </fo:block>
+              
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                <fo:inline font-weight="bold">Structure Elements:</fo:inline>
+                The structure tree contains elements like Document, Paragraphs (P), Headings 
+                (H1-H6), Tables, and more. Each element is linked to actual content via marked 
+                content operators (BDC/EMC) in the PDF content stream.
+              </fo:block>
+              
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                <fo:inline font-weight="bold">Current Implementation:</fo:inline>
+                This example tags all blocks as Paragraph elements within a Document root. 
+                The PDF contains BDC (Begin Marked Content) and EMC (End Marked Content) 
+                operators with MCID (Marked Content IDs) linking to the structure tree.
+              </fo:block>
+              
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                <fo:inline font-weight="bold">Viewing Structure:</fo:inline>
+                You can inspect the structure tree using Adobe Acrobat Pro's "Tags" panel 
+                or use command-line tools like pdfinfo to see the StructTreeRoot reference 
+                in the PDF catalog.
+              </fo:block>
+              
+              <fo:block font-size="12pt" margin-bottom="12pt">
+                <fo:inline font-weight="bold">Benefits:</fo:inline>
+                Tagged PDFs improve accessibility for users with disabilities, enable better 
+                content reflow and extraction, and are required for many compliance standards 
+                including Section 508, WCAG 2.0, and PDF/UA.
+              </fo:block>
+              
+              <fo:block font-size="10pt" font-style="italic" margin-top="24pt" 
+                        border-top-style="solid" border-top-width="1pt" 
+                        border-top-color="gray" padding-top="12pt">
+                Note: This is a basic implementation. Future enhancements will include 
+                heading detection (H1-H6), table structure (Table/TR/TD), image alt text 
+                (Figure), and list structure (List/LI).
+              </fo:block>
+            </fo:flow>
+          </fo:page-sequence>
+        </fo:root>
+        """;
+
+    using var doc = FoDocument.Load(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml)));
+    
+    // Enable tagged PDF for accessibility
+    var options = new PdfOptions
+    {
+        EnableTaggedPdf = true,
+        Metadata = new PdfMetadata
+        {
+            Title = "Tagged PDF Example",
+            Author = "Folly PDF Generator",
+            Subject = "Accessibility demonstration with tagged PDF structure",
+            Keywords = "tagged PDF, accessibility, PDF/UA, structure tree, screen reader"
+        }
+    };
+    
+    doc.SavePdf(outputPath, options);
+}
