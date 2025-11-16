@@ -4,14 +4,20 @@ namespace Folly.Layout;
 /// Implements the Knuth-Plass optimal line breaking algorithm from TeX.
 /// Based on "Breaking Paragraphs into Lines" by Knuth and Plass (1981).
 /// This is a pure .NET implementation with zero external dependencies.
+///
+/// All algorithm parameters (stretch, shrink, penalties) are now configurable via LayoutOptions.
 /// </summary>
 internal sealed class KnuthPlassLineBreaker
 {
-    // Constants from TeX (can be tuned for different quality/performance trade-offs)
+    // Constant for infinity badness (not configurable)
     private const double InfinityBadness = 10000.0;
-    private const double LinePenalty = 10.0;         // Penalty for each line break
-    private const double FlaggedDemerit = 100.0;     // Extra penalty for consecutive hyphens or very bad lines
-    private const double FitnessDemerit = 100.0;     // Penalty for different fitness classes in consecutive lines
+
+    // Configurable parameters (passed via constructor from LayoutOptions)
+    private readonly double _linePenalty;
+    private readonly double _flaggedDemerit;
+    private readonly double _fitnessDemerit;
+    private readonly double _spaceStretchRatio;
+    private readonly double _spaceShrinkRatio;
 
     // Fitness classes for line endings (controls looseness/tightness transitions)
     private enum FitnessClass
@@ -76,11 +82,24 @@ internal sealed class KnuthPlassLineBreaker
     private readonly double _lineWidth;
     private readonly double _tolerance;  // How much variation from ideal width we tolerate
 
-    public KnuthPlassLineBreaker(Fonts.FontMetrics fontMetrics, double lineWidth, double tolerance = 1.0)
+    public KnuthPlassLineBreaker(
+        Fonts.FontMetrics fontMetrics,
+        double lineWidth,
+        double tolerance = 1.0,
+        double spaceStretchRatio = 0.5,
+        double spaceShrinkRatio = 0.333,
+        double linePenalty = 10.0,
+        double flaggedDemerit = 100.0,
+        double fitnessDemerit = 100.0)
     {
         _fontMetrics = fontMetrics;
         _lineWidth = lineWidth;
         _tolerance = tolerance;
+        _spaceStretchRatio = spaceStretchRatio;
+        _spaceShrinkRatio = spaceShrinkRatio;
+        _linePenalty = linePenalty;
+        _flaggedDemerit = flaggedDemerit;
+        _fitnessDemerit = fitnessDemerit;
     }
 
     /// <summary>
@@ -111,10 +130,9 @@ internal sealed class KnuthPlassLineBreaker
         var items = new List<Item>();
         var spaceWidth = _fontMetrics.MeasureWidth(" ");
 
-        // TODO: Make stretch and shrink configurable
-        // TeX uses stretch = 0.5 * spaceWidth, shrink = 0.333 * spaceWidth
-        var spaceStretch = spaceWidth * 0.5;
-        var spaceShrink = spaceWidth * 0.333;
+        // Use configurable stretch and shrink ratios (from LayoutOptions)
+        var spaceStretch = spaceWidth * _spaceStretchRatio;
+        var spaceShrink = spaceWidth * _spaceShrinkRatio;
 
         for (int i = 0; i < words.Count; i++)
         {
@@ -372,6 +390,7 @@ internal sealed class KnuthPlassLineBreaker
     /// <summary>
     /// Calculates demerits for a potential line break.
     /// Demerits penalize bad breaks and encourage consistency.
+    /// Uses configurable penalties from LayoutOptions.
     /// </summary>
     private double CalculateDemerits(double badness, double penalty, bool flagged,
         FitnessClass previousFitness, FitnessClass currentFitness)
@@ -381,29 +400,29 @@ internal sealed class KnuthPlassLineBreaker
         if (penalty >= 0)
         {
             // Normal penalty
-            demerits = Math.Pow(LinePenalty + badness + penalty, 2);
+            demerits = Math.Pow(_linePenalty + badness + penalty, 2);
         }
         else if (penalty > -InfinityBadness)
         {
             // Bonus for breaking here
-            demerits = Math.Pow(LinePenalty + badness, 2) - Math.Pow(penalty, 2);
+            demerits = Math.Pow(_linePenalty + badness, 2) - Math.Pow(penalty, 2);
         }
         else
         {
             // Forced break
-            demerits = Math.Pow(LinePenalty + badness, 2);
+            demerits = Math.Pow(_linePenalty + badness, 2);
         }
 
         // Additional penalty for flagged breaks (e.g., consecutive hyphens)
         if (flagged)
         {
-            demerits += FlaggedDemerit;
+            demerits += _flaggedDemerit;
         }
 
         // Penalty for fitness class changes (encourages consistency)
         if (Math.Abs((int)currentFitness - (int)previousFitness) > 1)
         {
-            demerits += FitnessDemerit;
+            demerits += _fitnessDemerit;
         }
 
         return demerits;
