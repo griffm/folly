@@ -1,1432 +1,1198 @@
-# Folly Development Roadmap: Path to Best-in-Class Layout Engine
+# Folly Development Roadmap: Addressing Known Limitations
 
 ## Executive Summary
 
-This roadmap outlines Folly's evolution from a solid XSL-FO foundation (~70% spec compliance) to a best-in-class layout engine with professional-grade typography, advanced pagination, and comprehensive font support.
+This roadmap outlines Folly's path from its current state (~80% XSL-FO 1.1 compliance, 364 passing tests) to a production-hardened layout engine addressing all known limitations cataloged in `docs/guides/limitations.md`.
 
 **Current Status:**
-- Phase 1 (Critical Pagination & Typography) ✅ COMPLETED
-- Phase 2 (Professional Typography) ✅ COMPLETED
-  - Phase 2.1 (Hyphenation Engine) ✅ COMPLETED
-  - Phase 2.2 (Emergency Line Breaking) ✅ COMPLETED
-  - Phase 2.3 (Knuth-Plass Line Breaking) ✅ COMPLETED
-  - Phase 2.4 (List Page Breaking) ✅ COMPLETED
-- Phase 3 (TrueType/OpenType Font Support) ✅ COMPLETE
-  - Phase 3.1 (TTF/OTF Parser) ✅ COMPLETE (37 tests passing)
-  - Phase 3.2 (Font Embedding & Subsetting) ✅ COMPLETE (60 font tests, Example 24)
-  - Phase 3.3 (Font Fallback & System Fonts) ✅ COMPLETE (79 font tests, Example 25)
-  - Phase 3.4 (Basic Kerning) ✅ COMPLETE (85 font tests, Example 26)
-- Phase 4 (Advanced Table Features) ✅ COMPLETE
-  - Phase 4.1 (Table Row Spanning) ✅ COMPLETE (Example 27)
-  - Phase 4.2 (Proportional Column Widths) ✅ COMPLETE (Example 28)
-  - Phase 4.3 (Content-Based Column Sizing) ✅ COMPLETE (Example 29)
-  - Phase 4.4 (Table Footer Repetition) ✅ COMPLETE (Example 30)
-- Phase 5 (Advanced Layout & Positioning) ✅ COMPLETE
-  - Phase 5.1 (Absolute Positioning) ✅ COMPLETE (Example 31)
-  - Phase 5.2 (Region Start/End Sidebars) ✅ COMPLETE (Example 32)
-  - Phase 5.3 (Background Images) ✅ COMPLETE
-  - Phase 5.4 (Reference Orientation - Rotation) ✅ COMPLETE
-  - Phase 5.5 (Display-Align - Vertical Alignment) ✅ COMPLETE
-- Phase 6 (Internationalization & Advanced Features) 🚧 IN PROGRESS
-  - Phase 6.1 (Full Unicode BiDi Algorithm UAX#9) ✅ COMPLETE (Example 35)
-  - Phase 6.2 (Additional Image Formats) ✅ COMPLETE (Example 33)
-  - Phase 6.3 (SVG Support) ✅ COMPLETE (26 SVG examples)
-  - Phase 6.5 (Rounded Corners / Border Radius) ✅ COMPLETE (Example 34)
-- Excellent performance (66x faster than target at ~150ms for 200 pages)
-- ~80% XSL-FO 1.1 compliance (with world-class SVG support as major extension)
-- 364 passing tests (99.5% success rate) - includes 85 font tests, 17 image format tests, 7 border-radius tests, 26 BiDi tests
-- 35 XSL-FO working examples + 26 SVG examples
-- Examples showcase: TrueType fonts, kerning, tables, positioning, sidebars, all image formats (BMP, GIF, TIFF), rounded corners, full Unicode BiDi (Arabic, Hebrew), and comprehensive SVG rendering
+- ~80% XSL-FO 1.1 compliance with world-class SVG support
+- 364 passing tests (99.5% success rate)
+- 35 XSL-FO examples + 26 SVG examples
+- Excellent performance: ~150ms for 200 pages (66x faster than target)
+- Zero runtime dependencies beyond .NET 8
 
-**Target:** Best-in-class layout engine with ~95% spec compliance, professional typography, zero runtime dependencies
+**Known Limitations:**
+- 50+ documented TODOs and simplifications (see `docs/guides/limitations.md`)
+- 2 critical issues (memory exhaustion, silent failures)
+- 8 high-priority features (OpenType, CMYK, PDF/A, interlaced images)
+- 20+ medium-priority edge cases and optimizations
 
-**Timeline:** 6 phases over 12-18 months (Currently in Phase 2-3, approximately 4-5 months into development)
+**Target:** 95% XSL-FO compliance, zero critical issues, production-hardened for enterprise use
+
+**Timeline:** 7 phases over 18-24 months
+
+---
 
 ## Philosophy & Constraints
 
 - **Zero Dependencies**: No runtime dependencies beyond System.* (dev/test dependencies allowed)
-- **Performance First**: Maintain excellent performance (current: 150ms for 200 pages)
+- **Fail Fast**: Replace silent failures with clear error messages
+- **Performance First**: Maintain excellent performance (~150ms for 200 pages)
 - **Incremental Enhancement**: Each phase delivers production value
 - **Backward Compatible**: Existing functionality never breaks
 - **Well-Tested**: Every feature has comprehensive test coverage
 
-## Architecture Assessment
-
-### Current Strengths ✅
-
-**Layout Engine (1,679 lines, 20+ methods)**
-- Clean, modular design with clear separation of concerns
-- Single-pass greedy algorithm (fast, predictable)
-- Multi-column layout, markers, footnotes, floats already working
-- Excellent performance foundation
-- Well-structured for enhancement
-
-**Foundation Already in Place**
-- ✅ Multi-page pagination with conditional page masters
-- ✅ Block and inline formatting
-- ✅ Tables with column spanning
-- ✅ Images (JPEG/PNG/BMP/GIF/TIFF with zero dependencies)
-- ✅ Links and bookmarks
-- ✅ Font subsetting and compression
-- ✅ Static content (headers/footers)
-- ✅ Property inheritance system
-
-### Critical Gaps to Address ⚠️
-
-1. **Tables don't break across pages** - Blocks ~40% of real-world documents
-2. **Only 14 standard fonts** - No TrueType/OpenType support
-3. **No text justification** - Only left/center/right alignment
-4. **No hyphenation** - Poor line breaking in narrow columns
-5. **Greedy line breaking** - Suboptimal typography
-6. **No widow/orphan control** - Unprofessional page breaks
-7. **Limited keep constraints** - No keep-with-next/previous
-8. **Simplified BiDi** - Not full UAX#9 algorithm
-9. **No row spanning** - Complex table layouts impossible
-10. **No absolute positioning** - Limited layout flexibility
-
-### Layout Manager Capability Assessment
-
-**High Confidence (Can Implement with Moderate Effort):**
-- ✅ Table page breaking - Row-by-row iteration straightforward
-- ✅ Text justification - Inter-word spacing adjustment
-- ✅ Keep-with-next/previous - Track relationships, minor refactor
-- ✅ List page breaking - Similar pattern to tables
-- ✅ Widow/orphan control - Lookahead in line breaking
-- ✅ Row spanning - Cell grid tracking
-- ✅ Region-start/end - Similar to before/after (already parsed)
-
-**Medium Confidence (Significant Effort, Zero-Deps Solutions):**
-- ✅ TrueType/OpenType fonts - Implement parser ourselves (substantial but doable)
-- ✅ Hyphenation - Implement Liang algorithm + embed patterns
-- ✅ Knuth-Plass line breaking - Dynamic programming (complex but well-documented)
-- ✅ Absolute positioning - Block-container enhancement
-
-**Lower Confidence (Very High Effort, Consider Scope):**
-- ⚠️ Full BiDi UAX#9 - Complex algorithm with many edge cases
-- ⚠️ SVG support - Requires vector graphics engine
-- ⚠️ Complex script shaping - Arabic/Indic shaping (HarfBuzz-like complexity)
-
-## Phased Roadmap
-
 ---
 
-## Phase 1: Critical Pagination & Typography ✅ COMPLETED
+## Phase 7: Critical Issues & Production Hardening (4-6 weeks)
 
-**Goal:** Fix the most impactful limitations that block real-world document generation
+**Goal:** Fix the 2 critical issues that block production use for certain workloads
 
-**Completion Criteria:** Multi-page tables, justified text, professional page breaks
+**Priority:** 🔴 CRITICAL - Must complete before other phases
 
-**Status:** All deliverables completed. Multi-page tables, text justification, keep-with-next/previous constraints, and widow/orphan control are all implemented and tested.
+### 7.1 Fix Silent Image Failures ⭐ CRITICAL
 
-### 1.1 Table Page Breaking ⭐ CRITICAL ✅ COMPLETED
-
-**Impact:** Enables multi-page data tables (40% of documents currently blocked)
-
-**Implementation:**
-Row-by-row table layout with page breaking has been successfully implemented in `LayoutEngine.LayoutTableWithPageBreaking()`. The implementation supports:
-- Automatic page breaks between table rows
-- Header repetition on new pages (default behavior)
-- `table-omit-header-at-break` property to control header repetition
-- `table-omit-footer-at-break` property for footer handling
-- `keep-together` constraint on table rows (basic support)
-
-**Deliverables:**
-- [x] Refactor `LayoutTable()` to support row-by-row iteration
-- [x] Add page break logic within table layout
-- [x] Implement table header repetition on page breaks
-- [x] Support `table-omit-header-at-break` property
-- [x] Handle keep-together on table rows (basic implementation)
-- [x] Add tests for tables spanning multiple pages
-- [x] Update examples with large table demo (Example 7.5: 100-row table spanning 4 pages)
-
-**Results:**
-- ✅ Tables now break cleanly across pages
-- ✅ Headers automatically repeat on each page
-- ✅ 4 new comprehensive tests added covering multi-page tables
-- ✅ Working demonstration with 100-row table in examples
-- ✅ All existing tests pass without regression
-
-**Complexity:** Medium (Completed)
-
-### 1.2 Text Justification ✅ COMPLETED
-
-**Impact:** Professional documents require justified text
-
-**Implementation:**
+**Current Problem:**
 ```csharp
-private LineArea CreateJustifiedLine(
-    string text,
-    double availableWidth,
-    Fonts.FontMetrics fontMetrics)
-{
-    var words = text.Split(' ');
-    var textWidth = MeasureText(text, fontMetrics);
-    var extraSpace = availableWidth - textWidth;
-    var gaps = words.Length - 1;
-
-    if (gaps > 0)
-    {
-        var spaceAdjustment = extraSpace / gaps;
-        // Apply inter-word spacing adjustment
-    }
-}
+// src/Folly.Pdf/PdfWriter.cs:514-516
+// Fallback for unexpected decoding errors: create a placeholder image (1x1 white pixel)
+byte[] fallback = new byte[] { 255, 255, 255 };
+return (fallback, 8, "DeviceRGB", 3, null, null, null);
 ```
 
+**Impact:**
+- Corrupted images silently render as white pixels
+- Users don't know their images failed to load
+- Documents appear correct but are missing content
+
+**Solution:**
+- Throw `ImageDecodingException` with clear error message
+- Include image path, format, and failure reason
+- Add optional fallback mode via `PdfOptions.ImageErrorBehavior`
+
 **Deliverables:**
-- [x] Implement inter-word spacing adjustment
-- [x] Support `text-align="justify"`
-- [x] Support `text-align-last` property
-- [x] Handle edge cases (single word, last line)
-- [x] Add tests for justified paragraphs
-- [x] Update examples
+- [ ] Create `ImageDecodingException` class with detailed diagnostics
+- [ ] Remove silent fallback, throw exceptions on decode errors
+- [ ] Add `PdfOptions.ImageErrorBehavior` enum (ThrowException, UsePlaceholder, SkipImage)
+- [ ] Add 5+ tests for various image corruption scenarios
+- [ ] Update documentation with error handling guidance
 
 **Complexity:** Low (1-2 weeks)
 
-### 1.3 Keep-With-Next/Previous ✅ COMPLETED
+---
 
-**Impact:** Keeps headings with content, figures with captions
+### 7.2 Fix Large Font Memory Exhaustion ⭐ CRITICAL
 
-**Implementation:**
-The implementation tracks previous blocks during layout and checks keep constraints before page/column breaks. When a block doesn't fit and has a keep relationship with the previous block (either via `keep-with-next` on the previous block or `keep-with-previous` on the current block), both blocks are moved together to the next page/column.
-
+**Current Problem:**
 ```csharp
-// Check for keep-with-next/previous constraints
-var mustKeepWithPrevious = (previousBlock != null && GetKeepStrength(previousBlock.KeepWithNext) > 0) ||
-                          GetKeepStrength(foBlock.KeepWithPrevious) > 0;
-
-// If block doesn't fit and must keep with previous, move both blocks together
-if (!blockFitsInColumn && mustKeepWithPrevious && previousBlockArea != null && currentY > bodyMarginTop)
-{
-    // Remove previous block from current page
-    currentPage.RemoveArea(previousBlockArea);
-    // Move to next page/column
-    // Re-layout both blocks together
-}
+// src/Folly.Pdf/PdfWriter.cs:865-867
+// TODO: For very large fonts (e.g., CJK fonts >15MB), consider streaming
+fontData = File.ReadAllBytes(fontPath);
 ```
 
-**Deliverables:**
-- [x] Track keep relationships between blocks
-- [x] Implement keep-with-next logic
-- [x] Implement keep-with-previous logic
-- [x] Support integer keep strength values (1-999)
-- [x] Add tests for heading + paragraph scenarios (4 comprehensive tests added)
-- [x] Update examples (Example 10 enhanced with keep-with-next/previous demonstrations)
+**Impact:**
+- CJK fonts (15MB+) cause OutOfMemoryException
+- Multiple large fonts crash server scenarios
+- Blocking enterprise adoption in Asian markets
 
-**Results:**
-- ✅ Headings stay with their following paragraphs (no orphaned headings)
-- ✅ Figure titles stay with their captions
-- ✅ Integer keep strength values (1-999) work correctly
-- ✅ break-before/after correctly take precedence over keep constraints
-- ✅ 4 new tests added: KeepWithNext_KeepsHeadingWithParagraph, KeepWithPrevious_KeepsBlocksWithPrevious, KeepWithNext_IntegerStrength_Works, KeepWithNext_WithBreakBefore_BreakTakesPrecedence
-- ✅ Example 10 updated with keep-with-next/previous demonstrations
-- ✅ All existing tests pass without regression
-
-**Complexity:** Medium (Completed)
-
-### 1.4 Widow/Orphan Control ✅ COMPLETED
-
-**Impact:** Professional typography, no lonely lines
-
-**Implementation:**
-```csharp
-private bool WouldCreateWidow(
-    LineArea[] lines,
-    int breakAtLine,
-    int widowThreshold)
-{
-    var linesAfterBreak = lines.Length - breakAtLine;
-    return linesAfterBreak < widowThreshold;
-}
-```
+**Solution:**
+- Stream font data instead of loading entire file
+- Refactor to two-pass writing (calculate length first, then stream)
+- Add memory limits and quota tracking
 
 **Deliverables:**
-- [x] Implement widow detection (last line alone on new page)
-- [x] Implement orphan detection (first line alone on old page)
-- [x] Support `widows` and `orphans` properties
-- [x] Add lookahead to avoid widow/orphan situations
-- [x] Add tests (4 comprehensive tests added)
-- [x] Update examples
+- [ ] Implement streaming font embedder with chunked reading
+- [ ] Add `PdfOptions.MaxFontMemory` quota (default: 50MB)
+- [ ] Refactor PDF writer to support deferred content streams
+- [ ] Add tests with large synthetic fonts (20MB+)
+- [ ] Benchmark memory usage before/after
 
-**Results:**
-- ✅ Widows constraint prevents too few lines at top of new page (minimum 2 lines by default)
-- ✅ Orphans constraint prevents too few lines at bottom of old page (minimum 2 lines by default)
-- ✅ Both constraints work together to find optimal split points
-- ✅ keep-together constraint correctly overrides widow/orphan control
-- ✅ Block splitting preserves formatting (borders, padding, margins split appropriately)
-- ✅ 4 new tests added: Widows_PreventsLonelyLinesAtTopOfPage, Orphans_PreventsLonelyLinesAtBottomOfPage, WidowsAndOrphans_RespectsBothConstraints, KeepTogether_OverridesWidowOrphanControl
-- ✅ All existing tests pass without regression
-
-**Complexity:** Medium (Completed)
-
-**Phase 1 Success Metrics:**
-- ✅ Tables of 100+ rows render correctly across pages (Completed in 1.1)
-- ✅ Justified text looks professional with even spacing (Completed in 1.2)
-- ✅ No headings orphaned at bottom of page (Completed in 1.3)
-- ✅ No widow/orphan lines in paragraphs (Completed in 1.4)
-- ✅ 95% of documents that currently fail now succeed (Achieved - Phase 1 Complete)
-- ✅ Performance: Still under 300ms for 200 pages (Maintained at ~150ms)
-- ✅ 15+ new passing tests (Achieved: 4 tests from 1.1 + 4 tests from 1.3 + 4 tests from 1.4 = 12+ tests)
+**Complexity:** High (3-4 weeks)
 
 ---
 
-## Phase 2: Professional Typography (10-12 weeks) ✅ COMPLETED
-
-**Goal:** Implement professional-grade typography and line breaking
-
-**Completion Criteria:** Hyphenation working, Knuth-Plass optional, better line breaking
-
-**Status:** All deliverables completed. Phase 2.1 (Hyphenation Engine), Phase 2.2 (Emergency Line Breaking), Phase 2.3 (Knuth-Plass Line Breaking), and Phase 2.4 (List Page Breaking) are all completed and tested.
-
-### 2.1 Hyphenation Engine (Zero Dependencies) ✅ COMPLETED
-
-**Impact:** Better line breaking, professional appearance
-
-**Zero-Deps Strategy:** Implement Frank Liang's TeX hyphenation algorithm ourselves
-
-**Implementation:**
-Successfully implemented using source generators! Hyphenation patterns are parsed at build time and compiled directly into the assembly, providing zero-overhead runtime performance.
-
-```csharp
-// Pure .NET implementation of Liang's algorithm
-public class HyphenationEngine
-{
-    private Dictionary<string, int[]>? _patterns;
-
-    public HyphenationEngine(string languageCode, ...)
-    {
-        // Load patterns from source-generated code
-        _patterns = HyphenationPatterns.GetPatterns(languageCode);
-    }
-
-    public int[] FindHyphenationPoints(string word)
-    {
-        // Applies Liang's algorithm
-        // Returns valid hyphenation positions
-    }
-}
-```
-
-**Pattern Files (Source Generator Embedded Resources):**
-- English (en-US): 4,465 patterns from TeX (31KB)
-- German (de-DE): ~12,000 patterns (266KB)
-- French (fr-FR): ~8,000 patterns (9.5KB)
-- Spanish (es-ES): ~4,000 patterns (40KB)
-
-**Deliverables:**
-- [x] Implement Liang's TeX hyphenation algorithm (pure .NET) - `HyphenationEngine.cs`
-- [x] Use source generators to embed patterns at build time - `Folly.SourceGenerators.Hyphenation`
-- [x] Support multiple languages (en-US, de-DE, fr-FR, es-ES)
-- [x] Add hyphenation to `BreakLines()` method in LayoutEngine
-- [x] Configurable min word length, min left/right chars
-- [x] Support custom hyphenation character (default: '-', can use soft hyphen U+00AD)
-- [x] Add comprehensive tests (19 passing tests)
-- [x] Integration with LayoutOptions for easy configuration
-
-**Results:**
-- ✅ Hyphenation engine implemented with zero runtime dependencies
-- ✅ Source generators compile patterns at build time (no runtime parsing)
-- ✅ 19 comprehensive tests covering English, German, French, Spanish
-- ✅ Integrated into layout engine with opt-in via `LayoutOptions.EnableHyphenation`
-- ✅ Respects min word length and min left/right character constraints
-- ✅ All tests passing
-
-**Complexity:** High (Completed)
-
-**References:**
-- Frank Liang's thesis: "Word Hy-phen-a-tion by Com-put-er" (1983)
-- TeX hyphenation patterns (public domain)
-- Pure .NET implementation, no native dependencies
-
-### 2.2 Emergency Line Breaking ✅ COMPLETED
-
-**Impact:** Handles overflow gracefully
-
-**Implementation:**
-Successfully implemented with comprehensive character-level breaking for words that are too long to fit on a line. The implementation includes:
-
-- **Emergency Breaking Logic**: When a word is too wide for the available width, it is automatically broken character-by-character to fit
-- **wrap-option Support**: Full support for "wrap" (default) and "no-wrap" modes
-- **Post-Processing**: A final check ensures all lines fit within the available width, catching edge cases
-- **Graceful Degradation**: Even if a single character is too wide, the layout continues without crashing
-
-**Deliverables:**
-- [x] Character-level breaking for overflow words - Implemented in `BreakWordByCharacter()` method
-- [x] Support `wrap-option="no-wrap"` - Prevents all line breaking, text overflows
-- [x] Support `wrap-option="wrap"` - Default behavior with emergency breaking as fallback
-- [ ] Ellipsis for truncated text (optional) - Deferred to future release
-- [x] Add tests with very narrow columns - 5 comprehensive tests added to LayoutEngineTests
-- [x] Update examples - Example 22 demonstrates all emergency breaking features
-
-**Results:**
-- ✅ Very long words (e.g., "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789") are broken character-by-character
-- ✅ wrap-option="no-wrap" correctly prevents line breaking
-- ✅ wrap-option="wrap" works with emergency breaking as last resort
-- ✅ Multiple overflow words in sequence are handled correctly
-- ✅ Extremely narrow columns (even too narrow for single characters) don't crash
-- ✅ 5 new tests passing: EmergencyBreaking_VeryLongWord_BreaksAtCharacterLevel, WrapOption_NoWrap_PreventLineBreaking, WrapOption_Wrap_AllowsNormalLineBreaking, EmergencyBreaking_NarrowColumn_HandlesMultipleOverflows, EmergencyBreaking_ExtremelyNarrowColumn_DoesNotCrash
-- ✅ Example 22 demonstrates all features with visual examples
-- ✅ All existing tests pass without regression (268 total tests passing)
-
-**Complexity:** Low (Completed)
-
-### 2.3 Knuth-Plass Line Breaking (Optional Quality Mode) ✅ COMPLETED
-
-**Impact:** Optimal paragraph layout (like TeX)
-
-**Implementation:**
-Successfully implemented using the Knuth-Plass algorithm from the classic "Breaking Paragraphs into Lines" paper (1981). The implementation provides TeX-quality line breaking as an opt-in feature via `LayoutOptions.LineBreaking`.
-
-```csharp
-public enum LineBreakingAlgorithm
-{
-    Greedy,   // Fast, single-pass (current - default)
-    Optimal   // Knuth-Plass, slower but better quality
-}
-
-public class LayoutOptions
-{
-    // Keep greedy as default for performance
-    public LineBreakingAlgorithm LineBreaking { get; set; }
-        = LineBreakingAlgorithm.Greedy;
-}
-```
-
-**Key Features:**
-- Box-glue-penalty model (classic TeX approach)
-- Dynamic programming to minimize total badness across entire paragraph
-- Fitness classes for consistent line looseness/tightness
-- Demerits calculation with penalties for bad breaks
-- O(n²) complexity (slower than greedy but produces superior typography)
-- Greedy remains default for best performance
-
-**Deliverables:**
-- [x] Implement Knuth-Plass algorithm (pure .NET) - `KnuthPlassLineBreaker.cs`
-- [x] Make it opt-in via `LayoutOptions.LineBreaking` - `LineBreakingAlgorithm` enum added
-- [x] Calculate badness/penalty for each break - Badness formula: 100 * |r|³
-- [x] Minimize total badness via dynamic programming - Active nodes with fitness classes
-- [x] Keep greedy as default (performance) - `LineBreakingAlgorithm.Greedy` is default
-- [ ] Add benchmarks comparing both algorithms - Deferred to future iteration
-- [x] Add tests for optimal line breaking - 7 comprehensive tests added
-- [x] Update documentation - README.md and PLAN.md updated
-
-**Results:**
-- ✅ Knuth-Plass algorithm fully implemented with zero runtime dependencies
-- ✅ Opt-in via `LayoutOptions` preserves existing performance
-- ✅ 7 new tests passing: basic line breaking, comparison with greedy, long paragraphs, justification, empty text, long words
-- ✅ All existing tests pass (255 total tests passing, 2 skipped)
-- ✅ Works seamlessly with text justification and emergency breaking
-
-**Complexity:** Very High (Completed)
-
-**References:**
-- Knuth & Plass: "Breaking Paragraphs into Lines" (1981)
-- TeX implementation reference
-- Pure .NET implementation
-
-### 2.4 List Page Breaking ✅ COMPLETED
-
-**Impact:** Long lists can span pages
-
-**Implementation:**
-Successfully implemented using the `LayoutListBlockWithPageBreaking` method, following the same pattern as table page breaking. The implementation includes:
-
-- **Item-by-Item Breaking**: List items are laid out one at a time, with automatic page breaks inserted when an item doesn't fit
-- **keep-together Support**: List items can have `keep-together="always"` to prevent breaking across pages
-- **Proper Spacing**: space-before and space-after properties are preserved across page boundaries
-- **Nested Content**: List items with nested blocks (multiple paragraphs in body) are handled correctly
-
-**Deliverables:**
-- [x] Refactor list layout for item-by-item breaking - `LayoutListBlockWithPageBreaking` method implemented
-- [x] Support keep-together on list items - `KeepTogether` property added to `FoListItem`
-- [x] Add tests for long lists - 5 comprehensive tests added to LayoutEngineTests
-- [x] Update examples - Example 23 demonstrates multi-page lists with 100 items
-
-**Results:**
-- ✅ Lists with 100+ items break correctly across multiple pages
-- ✅ keep-together constraint works on list items
-- ✅ Proper spacing maintained across page boundaries
-- ✅ 5 new tests passing: ListPageBreaking_LongList_SpansMultiplePages, ListPageBreaking_KeepTogether_KeepsItemOnSamePage, ListPageBreaking_MultipleItems_BreakCorrectly, ListPageBreaking_EmptyList_HandlesGracefully, ListPageBreaking_NestedContent_WorksCorrectly
-- ✅ Example 23 (23-multi-page-lists.pdf) demonstrates all features with 100 items
-- ✅ All existing tests pass without regression
-
-**Complexity:** Medium (Completed)
-
-**Phase 2 Success Metrics:**
-- ✅ Text in narrow columns (3-column layout) looks professional (Achieved with hyphenation in 2.1)
-- ✅ Hyphenation reduces ragged edges by 60%+ (Achieved in 2.1)
-- ✅ Emergency line breaking handles overflow gracefully (Achieved in 2.2)
-- ✅ wrap-option property controls line wrapping behavior (Achieved in 2.2)
-- ✅ Knuth-Plass (opt-in) produces TeX-quality output (Achieved in 2.3)
-- ✅ Long lists (100+ items) span multiple pages correctly (Achieved in 2.4)
-- ✅ Performance: Greedy still <300ms (Maintained at ~150ms, Knuth-Plass is opt-in and does not affect default performance)
-- ✅ 20+ new passing tests (Achieved: 19 hyphenation tests from 2.1 + 5 emergency breaking tests from 2.2 + 7 Knuth-Plass tests from 2.3 + 5 list page breaking tests from 2.4 = 36 tests)
+**Phase 7 Success Metrics:**
+- ✅ Zero silent failures - all errors reported clearly
+- ✅ 100MB+ CJK fonts work without OOM
+- ✅ Memory usage stays under 200MB even with 5 large fonts
+- ✅ All existing tests still pass
+- ✅ New tests cover error scenarios
 
 ---
 
-## Phase 3: TrueType/OpenType Font Support (12-14 weeks) ✅ COMPLETE
+## Phase 8: Font System Completion (10-12 weeks)
 
-**Goal:** Support custom fonts while maintaining zero dependencies
+**Goal:** Address all font-related limitations for professional typography
 
-**Completion Criteria:** Load and embed TTF/OTF fonts, basic kerning
+**Priority:** 🟡 HIGH - Required for professional publishing workflows
 
-**Status:** ✅ **COMPLETE** - All four sub-phases (3.1-3.4) are complete with 85 font tests passing. The font infrastructure now supports TrueType/OpenType parsing, font embedding with subsetting, system font fallback, and automatic kerning for professional typography.
+### 8.1 OpenType Advanced Features (GPOS/GSUB)
 
-### 3.1 TTF/OTF Parser (Zero Dependencies Implementation) 🚧 IN PROGRESS
+**Current Gap:** No support for ligatures, contextual alternates, advanced positioning
 
-**Zero-Deps Strategy:** Implement our own TrueType/OpenType parser using published specs
-
-**Why No External Library:**
-- Most font libraries (FreeType, HarfBuzz) are native C/C++ with P/Invoke
-- Pure .NET libraries exist but add dependencies
-- Font parsing is well-documented in published specs
-- We control the implementation quality and features
+**Impact:**
+- Professional fonts don't render correctly
+- Ligatures (fi, fl, ffi, ffl) missing
+- Arabic contextual forms broken
+- No small caps, stylistic sets, or swashes
 
 **Implementation:**
 ```csharp
-namespace Folly.Fonts
+namespace Folly.Fonts.OpenType
 {
-    /// <summary>
-    /// Pure .NET TrueType/OpenType font parser.
-    /// Zero runtime dependencies.
-    /// </summary>
-    public class TrueTypeFontParser
+    public class GposTableParser
     {
-        public FontData ParseFont(Stream fontStream)
-        {
-            // Parse TTF/OTF according to spec
-            // https://docs.microsoft.com/en-us/typography/opentype/spec/
-
-            // 1. Read font header (offset table)
-            // 2. Parse required tables:
-            //    - 'head' - Font header
-            //    - 'hhea' - Horizontal header
-            //    - 'hmtx' - Horizontal metrics
-            //    - 'maxp' - Maximum profile
-            //    - 'name' - Font name
-            //    - 'cmap' - Character to glyph mapping
-            //    - 'loca' - Glyph location
-            //    - 'glyf' - Glyph data (TrueType)
-            //    - 'CFF ' - Compact Font Format (OpenType)
-            //    - 'post' - PostScript info
-            //    - 'OS/2' - OS/2 metrics
-
-            return new FontData
-            {
-                FamilyName = ...,
-                Glyphs = ...,
-                Metrics = ...,
-                CmapTable = ...
-            };
-        }
+        // Parse GPOS table for advanced glyph positioning
+        public GposData Parse(Stream fontStream) { }
     }
 
-    public class FontData
+    public class GsubTableParser
     {
-        public string FamilyName { get; set; }
-        public Dictionary<char, GlyphInfo> CharToGlyph { get; set; }
-        public Dictionary<int, GlyphMetrics> GlyphMetrics { get; set; }
-        // Add kerning pairs later
+        // Parse GSUB table for glyph substitution
+        public GsubData Parse(Stream fontStream) { }
+    }
+
+    public class OpenTypeShaper
+    {
+        // Apply OpenType features to text
+        public GlyphRun Shape(string text, FontFile font, string[] features) { }
     }
 }
 ```
 
-**Tables to Parse (Phase 3.1):**
-
-**Required Tables:**
-- `head` - Font header (units per em, bounding box)
-- `hhea` - Horizontal header (ascent, descent, line gap)
-- `hmtx` - Horizontal metrics (character widths)
-- `maxp` - Maximum profile (glyph count)
-- `name` - Font naming (family, style)
-- `cmap` - Character-to-glyph mapping (Unicode support)
-- `loca` - Glyph data location index
-- `glyf` - Glyph outlines (TrueType format)
-- `CFF ` - Glyph outlines (OpenType/CFF format)
-- `post` - PostScript information
-
 **Deliverables:**
-- [x] Implement TrueType table parser (pure .NET) - `Folly.Fonts` project created with 11 table parsers
-- [x] Parse required tables: head, hhea, hmtx, maxp, name, cmap, loca, glyf, post, OS/2, kern - All implemented and tested
-- [ ] Parse CFF table for OpenType/CFF fonts - Deferred (most common fonts are TrueType)
-- [x] Build character-to-glyph mapping - `CmapTableParser` with format 4 and 12 support
-- [x] Extract glyph metrics (width, height, bearings) - `HmtxTableParser` and `GlyfTableParser` with robust error handling
-- [x] Support Unicode cmap (format 4, format 12) - Fully implemented and tested
-- [x] Add kerning support - `KernTableParser` implemented with pair kerning
-- [x] Fix HmtxTableParser IndexOutOfRangeException - Fixed with proper bounds checking
-- [ ] Add font caching mechanism - Not yet implemented (deferred to Phase 3.3)
-- [x] Add tests with real TTF/OTF files - 37 comprehensive tests with Liberation Sans and Roboto fonts (100% passing)
-- [ ] Support Windows, macOS, Linux font directories - Not yet implemented (deferred to Phase 3.3)
-
-**Current Implementation Status:**
-- ✅ Core table parsing infrastructure complete (`FontFileReader`, `BigEndianBinaryReader`)
-- ✅ All required TrueType tables parsed: head, hhea, hmtx, maxp, name, cmap, loca, glyf, post, OS/2, kern
-- ✅ Kerning support via kern table parser
-- ✅ Character-to-glyph mapping working (cmap formats 4 and 12)
-- ✅ Glyph metrics extraction complete with bounds checking
-- ✅ All 37 font parsing tests passing (100% success rate)
-- ✅ Font subsetting infrastructure complete (`FontSubsetter.cs` with full glyph mapping and serialization)
-- ✅ TrueType font serialization complete (`TrueTypeFontSerializer.cs` with all table serializers)
-- ✅ Binary writer for TrueType format (`BigEndianBinaryWriter.cs`)
-- ✅ PDF font embedding infrastructure complete (`TrueTypeFontEmbedder.cs`)
-- ✅ ToUnicode CMap generation for text extraction
-- ✅ Font descriptor and font stream creation
-- ✅ 60 total font tests passing: 37 parsing + 13 subsetting + 10 embedding (100% success rate)
-- ⏳ CFF table parser needed for OpenType/CFF fonts (deferred - most fonts are TrueType)
-- ⏳ Integration with PdfRenderer and layout engine (pending)
-- ⏳ Font caching and system font discovery pending
+- [ ] Implement GPOS table parser (kerning, mark positioning, cursive attachment)
+- [ ] Implement GSUB table parser (ligatures, contextual alternates, stylistic sets)
+- [ ] Create OpenType shaping engine (feature application pipeline)
+- [ ] Support standard features: liga, clig, kern, mark, mkmk
+- [ ] Support Arabic features: init, medi, fina, isol
+- [ ] Add 20+ tests with real OpenType fonts
+- [ ] Update examples with ligature demonstration
 
 **Complexity:** Very High (6-7 weeks)
 
 **References:**
-- OpenType Spec: https://docs.microsoft.com/en-us/typography/opentype/spec/
-- TrueType Reference: https://developer.apple.com/fonts/TrueType-Reference-Manual/
-- Pure .NET implementation
+- OpenType Layout Spec: https://docs.microsoft.com/en-us/typography/opentype/spec/gpos
+- HarfBuzz implementation (for reference, not dependencies)
 
-### 3.2 Font Embedding & Subsetting 🚧 IN PROGRESS
+---
+
+### 8.2 CFF/OpenType Font Support
+
+**Current Gap:** CFF fonts cannot be parsed or embedded
+
+**Impact:**
+- Many Adobe fonts use CFF format
+- Professional PostScript-based fonts unsupported
+- Font compatibility limited to TrueType only
 
 **Implementation:**
-Successfully implemented font subsetting with TrueType serialization! The `FontSubsetter` class creates minimal font files containing only used glyphs, and `TrueTypeFontSerializer` generates valid TrueType font data.
-
 ```csharp
-public class FontSubsetter
+namespace Folly.Fonts.CFF
 {
-    public static byte[] CreateSubset(
-        FontFile font,
-        HashSet<char> usedCharacters)
+    public class CffTableParser
     {
-        // 1. Build glyph mapping (old index -> new index)
-        var glyphMapping = BuildGlyphMapping(font, usedCharacters);
-
-        // 2. Create subset font with remapped glyphs
-        var subsetFont = CreateSubsetFontFile(font, glyphMapping);
-
-        // 3. Serialize to TrueType format
-        return TrueTypeFontSerializer.Serialize(subsetFont);
+        public CffData Parse(Stream fontStream) { }
     }
-}
 
-public class TrueTypeFontSerializer
-{
-    public static byte[] Serialize(FontFile font)
+    public class CffSubsetter
     {
-        // Generates all required tables:
-        // head, hhea, maxp, hmtx, name, cmap, loca, glyf, post, OS/2
-        // Calculates checksums and creates valid TrueType font file
+        public byte[] CreateSubset(CffData font, HashSet<char> usedChars) { }
     }
 }
 ```
 
 **Deliverables:**
-- [x] Design font subsetting infrastructure - `FontSubsetter.cs` with full implementation
-- [x] Implement TrueType font serialization - `TrueTypeFontSerializer.cs` with all table serializers
-- [x] Binary writer for big-endian TrueType data - `BigEndianBinaryWriter.cs`
-- [x] Add tests for subsetting - 13 comprehensive tests (all passing)
-- [x] Embed TrueType fonts in PDF - `TrueTypeFontEmbedder.cs` with font descriptor and font stream
-- [x] Generate ToUnicode CMap for text extraction - Complete implementation with proper Unicode mapping
-- [x] Add tests for embedding - 10 comprehensive tests for ToUnicode CMap generation (all passing)
-- [x] Integrate with PdfRenderer and layout engine - Complete with TrueTypeFonts dictionary in PdfOptions
-- [x] Update examples with custom fonts - Example 24 demonstrates Roboto and Liberation Sans fonts
-- [x] Documentation updates - README and PLAN updated with Phase 3.2 completion
-- [ ] Support CIDFont for large character sets (CJK) - For fonts with >256 glyphs (deferred to future phase)
+- [ ] Implement CFF table parser (Type 2 CharStrings)
+- [ ] Support CFF font subsetting
+- [ ] Add PDF CIDFont support for CFF fonts
+- [ ] Handle CFF-based OpenType fonts (.otf)
+- [ ] Add 10+ tests with real CFF fonts
+- [ ] Update examples with CFF font embedding
 
-**Results:**
-- ✅ Font subsetting reduces glyph count to only used characters + .notdef
-- ✅ Generated subsets are valid TrueType fonts (can be reparsed)
-- ✅ Metrics preserved (advance widths, side bearings, kerning)
-- ✅ Unique subset PostScript names (6-character tag prefix)
-- ✅ PDF embedding infrastructure complete with font descriptors and font streams
-- ✅ ToUnicode CMap generation for proper text extraction from PDFs
-- ✅ Compressed font streams using Flate compression
-- ✅ All 60 font tests passing (37 parsing + 13 subsetting + 10 embedding)
-- ✅ Full integration with PDF rendering pipeline
-- ✅ Example 24 demonstrates TrueType font embedding (8.7KB with subsetting)
-- ✅ Graceful fallback to Type1 fonts if TrueType fails
+**Complexity:** Very High (4-5 weeks)
 
-**Complexity:** High (4-5 weeks) - ✅ COMPLETE
+---
 
-### 3.3 Font Fallback & Family Stacks
+### 8.3 Font Metadata Accuracy
 
-**Implementation:**
+**Current Gap:** Font metadata uses placeholder/default values
+
+**Impact:**
+- Font matching may fail in PDF readers
+- Timestamps incorrect (1904-01-01)
+- Style detection (bold, italic) broken
+
+**Fixes:**
 ```csharp
-public class FontResolver
-{
-    private Dictionary<string, FontData> _loadedFonts;
+// src/Folly.Fonts/TrueTypeFontSerializer.cs
+// BEFORE: writer.WriteUInt32(0x00010000); // fontRevision - TODO
+// AFTER:  writer.WriteUInt32(font.Head.FontRevision);
 
-    public FontData ResolveFontFamily(string fontFamilyStack)
-    {
-        // Parse: "Roboto, Arial, Helvetica, sans-serif"
-        var families = fontFamilyStack.Split(',');
+// BEFORE: long macEpochSeconds = 0;       // TODO: Use proper timestamps
+// AFTER:  long macEpochSeconds = ConvertToMacTime(DateTime.UtcNow);
 
-        foreach (var family in families)
-        {
-            if (_loadedFonts.TryGetValue(family.Trim(), out var font))
-                return font;
-        }
-
-        // Fall back to generic family
-        return ResolveGenericFamily("sans-serif");
-    }
-}
+// BEFORE: ushort macStyle = 0;            // TODO: Derive from font properties
+// AFTER:  ushort macStyle = CalculateMacStyle(font);
 ```
 
 **Deliverables:**
-- [x] Support font family stacks
-- [x] Font fallback mechanism
-- [x] Generic family mapping (serif, sans-serif, monospace)
-- [x] System font discovery (Windows, macOS, Linux)
-- [x] Add tests for font fallback
-- [x] Update examples
-
-**Complexity:** Medium (2-3 weeks) - ✅ COMPLETE
-
-### 3.4 Basic Kerning
-
-**Implementation:**
-```csharp
-// Parse 'kern' table from font
-private Dictionary<(int, int), int> LoadKerningPairs(FontData font)
-{
-    // Read kern table from TTF/OTF
-    // Build dictionary of glyph pair adjustments
-}
-
-private double ApplyKerning(char prev, char curr, FontData font)
-{
-    var prevGlyph = font.CharToGlyph[prev];
-    var currGlyph = font.CharToGlyph[curr];
-
-    if (font.KerningPairs.TryGetValue((prevGlyph, currGlyph), out var adjustment))
-        return adjustment;
-
-    return 0;
-}
-```
-
-**Deliverables:**
-- [x] Parse `kern` table from fonts
-- [x] Apply kerning during text measurement (note: kerning applied during PDF rendering only)
-- [x] Apply kerning during PDF rendering using TJ operator
-- [x] Add tests for kerned text (6 integration tests)
-- [x] Update examples (Example 26: Kerning Demonstration)
+- [ ] Extract and preserve font revision from head table
+- [ ] Implement proper Mac epoch timestamp conversion
+- [ ] Calculate macStyle from font properties (bold, italic flags)
+- [ ] Calculate hhea metrics correctly (minRightSideBearing, xMaxExtent)
+- [ ] Clone OS/2 and Post tables instead of referencing
+- [ ] Add tests verifying metadata accuracy
+- [ ] Add PDF/A subset naming convention (6-char tag)
 
 **Complexity:** Medium (2-3 weeks)
 
-**Phase 3 Success Metrics:**
-- ✅ Can load any TTF/OTF font file
-- ✅ Custom fonts embed correctly in PDF
-- ✅ Font subsetting reduces file size by 90%+
-- ✅ Font fallback works (try list, use first available)
-- ✅ Basic kerning improves appearance
-- ✅ No external dependencies added
-- ✅ 25+ new passing tests
-- ✅ Examples showcase 10+ custom fonts
+---
 
-**Note:** All font parsing is pure .NET, zero dependencies
+### 8.4 Kerning Pair Remapping in Subsets
+
+**Current Gap:** Kerning pairs not correctly remapped in subset fonts
+
+**Impact:**
+- Kerning incorrect in subset fonts
+- Text spacing wrong for character pairs
+
+**Fix:**
+```csharp
+// src/Folly.Fonts/FontSubsetter.cs
+public Dictionary<(int, int), int> RemapKerningPairs(
+    Dictionary<(int, int), int> originalPairs,
+    Dictionary<int, int> glyphMapping)
+{
+    var remapped = new Dictionary<(int, int), int>();
+    foreach (var ((left, right), value) in originalPairs)
+    {
+        if (glyphMapping.TryGetValue(left, out var newLeft) &&
+            glyphMapping.TryGetValue(right, out var newRight))
+        {
+            remapped[(newLeft, newRight)] = value;
+        }
+    }
+    return remapped;
+}
+```
+
+**Deliverables:**
+- [ ] Verify current kerning remapping logic is correct
+- [ ] Add explicit tests for kerning in subset fonts
+- [ ] Validate kerning works in generated PDFs
+- [ ] Document kerning pair remapping algorithm
+
+**Complexity:** Low (1 week)
 
 ---
 
-## Phase 4: Advanced Table Features (6-8 weeks)
-
-**Goal:** Complete table implementation with row spanning and advanced features
-
-**Completion Criteria:** Row spanning, proportional widths, content-based sizing
-
-### 4.1 Row Spanning Implementation
-
-**Impact:** Complex table layouts (merged cells vertically)
-
-**Implementation:**
-```csharp
-private class TableCellGrid
-{
-    private Dictionary<(int row, int col), TableCellPlacement> _occupied;
-
-    public int GetNextAvailableColumn(int row)
-    {
-        int col = 0;
-        while (_occupied.ContainsKey((row, col)))
-            col++;
-        return col;
-    }
-
-    public void ReserveCells(int row, int col, int rowSpan, int colSpan)
-    {
-        for (int r = 0; r < rowSpan; r++)
-            for (int c = 0; c < colSpan; c++)
-                _occupied[(row + r, col + c)] = ...;
-    }
-}
-
-private TableArea? LayoutTableWithSpanning(Dom.FoTable table, ...)
-{
-    var grid = new TableCellGrid();
-
-    foreach (var row in table.Body.Rows)
-    {
-        int colIndex = 0;
-        foreach (var cell in row.Cells)
-        {
-            colIndex = grid.GetNextAvailableColumn(rowIndex);
-            grid.ReserveCells(rowIndex, colIndex, cell.RowSpan, cell.ColSpan);
-
-            // Calculate cell height to span multiple rows
-            var cellHeight = rowHeights[rowIndex];
-            for (int i = 1; i < cell.RowSpan; i++)
-                cellHeight += rowHeights[rowIndex + i];
-
-            LayoutCell(cell, colIndex, cellHeight);
-            colIndex += cell.ColSpan;
-        }
-        rowIndex++;
-    }
-}
-```
-
-**Deliverables:**
-- [x] Implement cell grid tracking
-- [x] Support `number-rows-spanned` property
-- [x] Calculate merged cell dimensions correctly
-- [x] Handle row spanning with page breaks
-- [x] Add tests for complex row/column spanning (4 comprehensive tests)
-- [x] Update examples with merged cells (Example 27)
-
-**Complexity:** Medium-High (3-4 weeks) - ✅ **COMPLETE**
-
-### 4.2 Proportional Column Widths
-
-**Impact:** Better control over column sizing
-
-**Implementation:**
-```csharp
-private List<double> CalculateProportionalWidths(
-    Dom.FoTable table,
-    double availableWidth)
-{
-    var columns = table.Columns;
-    var fixedWidth = 0.0;
-    var proportionalSum = 0.0;
-
-    // First pass: sum fixed widths and proportional values
-    foreach (var col in columns)
-    {
-        if (col.ColumnWidth.EndsWith("pt"))
-            fixedWidth += ParseLength(col.ColumnWidth);
-        else if (col.ColumnWidth.StartsWith("proportional-column-width("))
-            proportionalSum += ParseProportional(col.ColumnWidth);
-    }
-
-    // Second pass: distribute remaining width proportionally
-    var remainingWidth = availableWidth - fixedWidth;
-    var widths = new List<double>();
-    foreach (var col in columns)
-    {
-        if (col.ColumnWidth.StartsWith("proportional-column-width("))
-        {
-            var proportion = ParseProportional(col.ColumnWidth);
-            widths.Add(remainingWidth * (proportion / proportionalSum));
-        }
-        else
-        {
-            widths.Add(ParseLength(col.ColumnWidth));
-        }
-    }
-
-    return widths;
-}
-```
-
-**Deliverables:**
-- [x] Support `proportional-column-width()` function
-- [x] Mix fixed and proportional widths
-- [x] Add tests for proportional layouts (4 comprehensive tests)
-- [x] Update examples (Example 28)
-
-**Complexity:** Medium (2-3 weeks) - ✅ **COMPLETE**
-
-### 4.3 Content-Based Column Sizing
-
-**Impact:** Auto columns sized to content
-
-**Implementation:**
-```csharp
-private double CalculateContentBasedWidth(Dom.FoTableColumn column)
-{
-    var maxWidth = 0.0;
-
-    // Measure all cells in this column
-    foreach (var row in table.AllRows)
-    {
-        var cell = row.GetCellInColumn(columnIndex);
-        var cellMinWidth = MeasureCellMinimumWidth(cell);
-        var cellMaxWidth = MeasureCellMaximumWidth(cell);
-        maxWidth = Math.Max(maxWidth, cellMinWidth);
-    }
-
-    return maxWidth;
-}
-```
-
-**Deliverables:**
-- [x] Measure cell content to determine minimum width - `MeasureColumnContentWidths`, `MeasureCellMinimumWidth`, `MeasureBlockMinimumWidth`
-- [x] Two-pass layout: measure, then render - Content measurement happens during `CalculateColumnWidths`
-- [x] Balance content-based and auto columns - Auto columns distribute space proportionally based on content width ratios
-- [x] Add tests for auto-sized columns - 4 comprehensive tests covering equal content, different content, mixed with fixed, and multi-row scenarios
-- [x] Update examples - Example 29 demonstrates content-based sizing with product catalog use case
-
-**Complexity:** High (3-4 weeks) ✅ **Completed**
-
-### 4.4 Table Footer Repetition
-
-**Implementation:**
-```csharp
-private void RenderTableWithFooter(
-    Dom.FoTable table,
-    bool repeatFooterOnBreak)
-{
-    // Render header
-    // Render body rows
-    // When page break occurs:
-    if (repeatFooterOnBreak)
-    {
-        RenderTableFooter();  // On current page
-        // New page
-        RenderTableHeader();  // On new page
-    }
-    else
-    {
-        // Footer only at end
-    }
-}
-```
-
-**Deliverables:**
-- [x] Support `table-omit-footer-at-break` property - Property already existed, now properly implemented
-- [x] Render footer at page breaks (if enabled) - Implemented `RenderTableFooter` helper method called before page breaks
-- [x] Add tests - 3 comprehensive tests covering default repetition, omit-at-break, and always-at-end
-- [x] Update examples - Example 30 demonstrates both behaviors (default repetition and omit-at-break)
-
-**Complexity:** Low (1-2 weeks) ✅ **Completed**
-
-**Phase 4 Success Metrics:**
-- ✅ Row spanning works correctly (including with page breaks)
-- ✅ Proportional column widths distribute space correctly
-- ✅ Content-based columns sized optimally
-- ✅ Complex tables (10x10 with spanning) render correctly
-- ✅ 20+ new passing tests
-- ✅ Examples showcase advanced table features
+**Phase 8 Success Metrics:**
+- ✅ Ligatures render correctly (fi, fl, ffi, ffl)
+- ✅ Arabic contextual forms work
+- ✅ CFF/OpenType fonts embed successfully
+- ✅ Font metadata accurate (timestamps, style, metrics)
+- ✅ Kerning correct in all subset fonts
+- ✅ 30+ new passing tests
+- ✅ Examples showcase OpenType features
 
 ---
 
-## Phase 5: Advanced Layout & Positioning (8-10 weeks)
+## Phase 9: Image Format Completion (6-8 weeks)
 
-**Goal:** Absolute positioning, region-start/end, advanced layout features
+**Goal:** Support all common image formats with proper error handling
 
-**Completion Criteria:** Absolute positioning works, all regions render
+**Priority:** 🟡 HIGH - Required for real-world document generation
 
-### 5.1 Absolute Positioning
+### 9.1 Interlaced Image Support
 
-**Impact:** Enables letterheads, watermarks, complex forms
-
-**Implementation:**
+**Current Gap:**
 ```csharp
-public class AbsolutePositionedArea : Area
-{
-    public string Position { get; set; }  // "absolute" | "fixed"
-    public double Top { get; set; }
-    public double Left { get; set; }
-    public double Right { get; set; }
-    public double Bottom { get; set; }
-    public int ZIndex { get; set; } = 0;
-}
-
-private BlockArea? LayoutAbsoluteBlockContainer(
-    Dom.FoBlockContainer container,
-    Dom.FoSimplePageMaster pageMaster)
-{
-    if (container.AbsolutePosition == "absolute")
-    {
-        var area = new AbsolutePositionedArea();
-
-        // Calculate position relative to page
-        area.X = ResolvePosition(container.Left, pageMaster.PageWidth);
-        area.Y = ResolvePosition(container.Top, pageMaster.PageHeight);
-
-        // Layout content within container
-        LayoutBlockContent(container, area);
-
-        return area;
-    }
-
-    return LayoutBlockContainerNormal(container);
-}
+// src/Folly.Pdf/PdfWriter.cs:357
+throw new NotSupportedException($"Interlaced PNG images (Adam7) are not supported.");
 ```
 
-**Deliverables:**
-- [x] Implement `fo:block-container` with `absolute-position="absolute"` - Complete with LayoutBlockContainer method
-- [x] Support `top`, `left`, `right`, `bottom` properties - Implemented in CalculateAbsolutePosition
-- [x] Support `z-index` for layering - Implemented with z-index sorting in PDF renderer
-- [x] Render absolute elements after flow (correct z-order) - Complete with AbsoluteAreas collection and OrderBy z-index
-- [x] Add tests for overlapping content - Added tests in LayoutEngineTests (basic positioning, z-index ordering)
-- [x] Add examples: letterhead, watermark, form - Example 31 demonstrates professional letterhead
-
-**Complexity:** High (4-5 weeks) - ✅ COMPLETE
-
-### 5.2 Region Start/End (Left/Right Sidebars)
-
-**Impact:** Enables margin notes, sidebars
+**Impact:**
+- Progressive PNGs cause errors (common web optimization)
+- Interlaced GIFs fail
+- Users must pre-process images
 
 **Implementation:**
 ```csharp
-private void AddRegionStartContent(
-    PageViewport page,
-    Dom.FoSimplePageMaster pageMaster,
-    Dom.FoPageSequence pageSequence)
+public class Adam7Deinterlacer
 {
-    foreach (var staticContent in pageSequence.StaticContents)
+    public byte[] Deinterlace(byte[] interlacedData, int width, int height)
     {
-        if (staticContent.FlowName == "xsl-region-start"
-            && pageMaster.RegionStart != null)
-        {
-            var extent = pageMaster.RegionStart.Extent;
-            var x = pageMaster.MarginLeft;
-            var y = pageMaster.MarginTop + regionBeforeExtent;
-            var width = extent;
-            var height = pageMaster.PageHeight - y - bodyMarginBottom;
-
-            // Layout content in left sidebar region
-            foreach (var block in staticContent.Blocks)
-            {
-                var blockArea = LayoutBlock(block, x, y, width);
-                page.AddArea(blockArea);
-                y += blockArea.Height;
-            }
-        }
+        // Implement Adam7 deinterlacing algorithm
+        // 7 passes with specific pixel patterns
     }
 }
 ```
 
 **Deliverables:**
-- [x] Implement `fo:region-start` layout (already parsed) - Complete with AddStaticContent method in LayoutEngine.cs:146
-- [x] Implement `fo:region-end` layout (already parsed) - Complete with AddStaticContent method in LayoutEngine.cs:187
-- [x] Support `extent` property for region width - Implemented for both region-start and region-end
-- [x] Layout static-content for xsl-region-start/end - Full support with marker retrieval
-- [x] Add tests for sidebars - 4 comprehensive tests added to LayoutEngineTests.cs
-- [x] Add examples with margin notes - Example 32 demonstrates both academic margin notes and magazine-style dual sidebars
+- [ ] Implement Adam7 deinterlacing for PNG
+- [ ] Support interlaced GIF decoding
+- [ ] Add 5+ tests with interlaced images
+- [ ] Update examples with progressive images
 
-**Complexity:** Medium (2-3 weeks) - ✅ COMPLETE
+**Complexity:** Medium (2-3 weeks)
 
-### 5.3 Background Images
+---
 
-**Impact:** Enables professional letterheads, watermarks, decorative backgrounds
+### 9.2 Indexed PNG Transparency
 
-**Implementation:**
-Background images are fully integrated into both `BlockArea` and `AbsolutePositionedArea`. The implementation includes:
-- Security validation to prevent path traversal attacks
-- Image size limits to prevent DoS attacks
-- Automatic format detection (JPEG, PNG)
-- Full support for all repeat modes and positioning
+**Current Gap:**
+```csharp
+// src/Folly.Pdf/PdfWriter.cs:235
+// TODO: Handle indexed color with tRNS (requires SMask or palette expansion)
+```
 
-**Deliverables:**
-- [x] Support `background-image` property - Implemented in FoBlock and FoBlockContainer
-- [x] Support `background-repeat` property (repeat, repeat-x, repeat-y, no-repeat) - Full PDF rendering support
-- [x] Support `background-position-horizontal` and `background-position-vertical` properties - Keywords, percentages, and lengths
-- [x] Render backgrounds in PDF (tiled or positioned) - Complete with clipping and transformation matrices
-- [ ] Add tests for background images
-- [ ] Add examples with letterhead backgrounds
-
-**Complexity:** Medium (2-3 weeks) - ✅ COMPLETE
-
-### 5.4 Reference Orientation (Rotation)
-
-**Impact:** Enables rotated text for table headers, sideways labels, creative layouts
+**Impact:**
+- Palette-based PNGs with transparency render incorrectly
+- Common for optimized web graphics
+- Transparency lost
 
 **Implementation:**
-Rotation is implemented using PDF transformation matrices that rotate content around the center of absolutely positioned block containers. The implementation:
-- Normalizes rotation angles (handles negative rotations like -90°)
-- Supports 0°, 90°, 180°, and 270° rotations
-- Applies proper translation to rotate around center point
-- Uses PDF `cm` operator for transformation matrix
+```csharp
+public byte[] ExpandIndexedWithTransparency(
+    byte[] indexedData,
+    byte[] palette,
+    byte[] transparency)
+{
+    // Expand indexed to RGBA, applying tRNS chunk
+    var rgba = new byte[width * height * 4];
+    for (int i = 0; i < indexedData.Length; i++)
+    {
+        var paletteIndex = indexedData[i];
+        rgba[i * 4 + 0] = palette[paletteIndex * 3 + 0]; // R
+        rgba[i * 4 + 1] = palette[paletteIndex * 3 + 1]; // G
+        rgba[i * 4 + 2] = palette[paletteIndex * 3 + 2]; // B
+        rgba[i * 4 + 3] = transparency[paletteIndex];     // A
+    }
+    return rgba;
+}
+```
 
 **Deliverables:**
-- [x] Support `reference-orientation` property - Already present in FoBlockContainer
-- [x] Rotate block containers (0, 90, 180, 270 degrees) - Normalized with NormalizeRotation helper
-- [x] Adjust dimensions for rotated content - Transformation matrix handles all coordinate adjustments
-- [x] Render rotated content in PDF - Complete with ApplyRotationTransformation method
-- [ ] Add tests for rotated blocks
-- [ ] Add examples with rotated table headers
-
-**Complexity:** Medium (2-3 weeks) - ✅ COMPLETE
-
-### 5.5 Display-Align (Vertical Alignment)
-
-**Impact:** Professional vertical centering for title pages, balanced layouts
-
-**Implementation:**
-Display-align controls vertical alignment of content within block containers. The implementation:
-- Calculates total content height after all children are laid out
-- For "center": adds (available - used) / 2 to all child Y positions
-- For "after": adds (available - used) to all child Y positions
-- Works seamlessly with rotation and other layout features
-
-**Deliverables:**
-- [x] Support `display-align` property on block containers - Already present in FoBlockContainer, added to AbsolutePositionedArea
-- [x] Implement vertical centering ("center") - Complete with ApplyDisplayAlign method
-- [x] Implement bottom alignment ("after") - Complete with ApplyDisplayAlign method
-- [ ] Add tests
+- [ ] Parse tRNS chunk from PNG
+- [ ] Expand indexed color with transparency to RGBA
+- [ ] Generate PDF SMask for transparency
+- [ ] Add 5+ tests with indexed transparent PNGs
 - [ ] Update examples
 
-**Complexity:** Low (1-2 weeks) - ✅ COMPLETE
-
-**Phase 5 Success Metrics:**
-- ✅ Can position blocks at exact (x,y) coordinates
-- ✅ Z-index controls rendering order
-- ✅ Region-start/end (sidebars) render correctly
-- ✅ Background images tile/position correctly
-- ✅ Content can be rotated 90/180/270 degrees
-- ✅ Vertical alignment works in containers
-- ✅ 25+ new passing tests
-- ✅ Examples: letterhead, form, sidebar document
+**Complexity:** Medium (2-3 weeks)
 
 ---
 
-## Phase 6: Internationalization & Advanced Features (10-12 weeks)
+### 9.3 DPI Detection and Scaling
 
-**Goal:** Full BiDi support, additional image formats, polish
+**Current Gap:**
+```csharp
+// docs/limitations/images.md:207
+// - Assumes 72 DPI for all JPEG images
+// - pHYs chunk extracted but not yet applied (TODO)
+```
 
-**Completion Criteria:** UAX#9 BiDi, SVG support, accessibility foundations
-
-### 6.1 Full Unicode BiDi Algorithm (UAX#9) ✅ COMPLETE
-
-**Impact:** Correct rendering of RTL languages (Arabic, Hebrew)
-
-**Zero-Deps Strategy:** Implement UAX#9 ourselves ✅ Completed
-
-**Status:** ✅ **COMPLETE** - Full UAX#9 implementation with 26 passing tests and Example 35 demonstrating Hebrew, Arabic, and mixed LTR/RTL content.
+**Impact:**
+- Images without DPI metadata sized incorrectly
+- High-res images appear too large
+- Print layouts wrong
 
 **Implementation:**
 ```csharp
-namespace Folly.BiDi
+public (double widthInPoints, double heightInPoints) CalculateImageSize(
+    int widthPixels, int heightPixels, int? dpiX, int? dpiY)
 {
-    /// <summary>
-    /// Pure .NET implementation of Unicode Bidirectional Algorithm (UAX#9).
-    /// Zero runtime dependencies.
-    /// </summary>
-    public class UnicodeBidiAlgorithm
-    {
-        public string ReorderText(string text, Direction baseDirection)
-        {
-            // Phase 1: Resolve character types (L, R, AL, EN, ES, etc.)
-            var types = ResolveCharacterTypes(text);
+    var effectiveDpiX = dpiX ?? 72;
+    var effectiveDpiY = dpiY ?? 72;
 
-            // Phase 2: Resolve explicit embeddings and overrides
-            var levels = ResolveExplicitLevels(types);
-
-            // Phase 3: Resolve weak types
-            ResolveWeakTypes(types, levels);
-
-            // Phase 4: Resolve neutral types
-            ResolveNeutralTypes(types, levels);
-
-            // Phase 5: Resolve implicit levels
-            ResolveImplicitLevels(types, levels);
-
-            // Phase 6: Reorder text by levels
-            return ReorderByLevels(text, levels);
-        }
-
-        private CharacterType[] ResolveCharacterTypes(string text)
-        {
-            // Classify each character as L, R, AL, EN, etc.
-            // Use Unicode character database data
-        }
-    }
-
-    public enum CharacterType
-    {
-        L,   // Left-to-Right
-        R,   // Right-to-Left
-        AL,  // Right-to-Left Arabic
-        EN,  // European Number
-        ES,  // European Separator
-        ET,  // European Terminator
-        AN,  // Arabic Number
-        CS,  // Common Separator
-        NSM, // Non-Spacing Mark
-        BN,  // Boundary Neutral
-        B,   // Paragraph Separator
-        S,   // Segment Separator
-        WS,  // Whitespace
-        ON   // Other Neutral
-    }
+    return (
+        widthPixels * 72.0 / effectiveDpiX,
+        heightPixels * 72.0 / effectiveDpiY
+    );
 }
 ```
 
-**Unicode Data (Embedded Resources):**
-- Bidi character types: ~30KB embedded data
-- Bidi mirroring pairs: ~5KB embedded data
-- No external dependencies
-
 **Deliverables:**
-- [x] Implement UAX#9 algorithm phases P1-P3, W1-W7, N0-N2, I1-I2, L1-L4 (pure .NET) - `UnicodeBidiAlgorithm.cs`
-- [x] Embed Unicode BiDi character data (zero dependencies) - `UnicodeBidiData.cs` with hardcoded ranges and .NET fallback
-- [x] Replace simple character reversal with proper algorithm - Integrated into `LayoutEngine.cs:1001-1004`
-- [x] Support BiDi control characters (LRE, RLE, PDF, LRO, RLO, LRI, RLI, FSI, PDI) - Full support in explicit level resolution
-- [x] Support block-level direction property via fo:bidi-override - Fully functional
-- [x] Support mixed LTR/RTL content - Seamless mixing of English/Hebrew/Arabic
-- [x] Handle numbers in RTL text correctly - European (EN) and Arabic-Indic (AN) digits properly handled
-- [x] Handle punctuation in RTL text correctly - Neutral type resolution working
-- [x] Add comprehensive BiDi tests (Arabic, Hebrew, mixed) - 26 passing tests in `BiDiTests.cs`
-- [x] Add examples with RTL documents - Example 35: Full BiDi demonstration
+- [ ] Extract DPI from JPEG JFIF segment
+- [ ] Apply PNG pHYs chunk to image scaling
+- [ ] Extract DPI from BMP, TIFF, GIF metadata
+- [ ] Add configurable default DPI (72, 96, 150, 300)
+- [ ] Add tests with various DPI values
+- [ ] Update examples with high-DPI images
 
-**Results:**
-- ✅ Full UAX#9 compliance with all algorithm phases
-- ✅ 26 comprehensive BiDi tests (100% passing)
-- ✅ Zero dependencies - pure .NET implementation
-- ✅ Example 35 demonstrates Hebrew, Arabic, and mixed LTR/RTL content
-- ✅ Proper handling of numbers, punctuation, and special characters
-- ✅ 364 total tests passing (up from 331)
+**Complexity:** Medium (2-3 weeks)
 
-**Complexity:** Very High ✅ Completed
+---
 
-**References:**
-- Unicode Standard Annex #9: https://www.unicode.org/reports/tr9/
-- Pure .NET implementation, no native dependencies
+### 9.4 CMYK Color Support
 
-### 6.2 Additional Image Formats ✅ COMPLETE
+**Current Gap:**
+```csharp
+// docs/limitations/images.md:244
+// - All images assumed sRGB
+```
 
-**Strategy:** Zero dependencies with custom parsers (no System.Drawing)
-
-**Deliverables:**
-- [x] Add GIF support (custom LZW decompression, 5 tests passing)
-- [x] Add TIFF support (baseline uncompressed RGB, little/big-endian, 6 tests passing)
-- [x] Add BMP support (24-bit and 32-bit RGB with alpha, 6 tests passing)
-- [x] DPI/resolution detection (BMP, TIFF parsers extract DPI from metadata)
-- [x] Add tests for each format (17 new tests, 331 total tests passing)
-- [x] Update examples (Example 33: All Image Formats demonstration)
-- [x] Integration with LayoutEngine and PdfWriter (full PDF embedding support)
-- [x] Alpha channel support (SMask for BMP 32-bit, GIF transparency)
-- [x] Indexed color spaces (GIF palettes embedded in PDF)
-- [ ] WebP support (deferred - requires complex codec)
-- [ ] EXIF orientation support (deferred to Phase 6.5)
-
-**Implementation Details:**
-- **BmpParser:** 24/32-bit RGB with alpha channel extraction, DPI from pixels-per-meter, BGR→RGB conversion
-- **GifParser:** Full LZW decompression (custom implementation), global/local color tables, transparency
-- **TiffParser:** IFD parsing, strip-based images, little/big-endian support, DPI from XResolution/YResolution
-
-**Test Coverage:**
-- 6 BMP tests (24-bit, 32-bit with alpha, DPI extraction)
-- 5 GIF tests (GIF87a, GIF89a, LZW decompression, transparency)
-- 6 TIFF tests (little-endian, big-endian, baseline RGB)
-
-**Complexity:** Medium (completed in ~4 hours with AI assistance)
-
-**Note:** Achieved zero dependencies by implementing custom parsers - no System.Drawing required!
-
-### 6.5 Rounded Corners (Border Radius) ✅ COMPLETE
-
-**Impact:** Modern, polished visual design with smooth rounded corners
-
-**Strategy:** Implement border-radius using PDF Bezier curves (zero dependencies)
-
-**Deliverables:**
-- [x] Add border-radius properties to DOM model (FoBlock, FoBlockContainer, BlockArea, AbsolutePositionedArea)
-- [x] Implement rounded rectangle rendering in PDF using Bezier curves (curveto operator)
-- [x] Support uniform radius (border-radius property)
-- [x] Support individual corner radii (border-top-left-radius, border-top-right-radius, border-bottom-right-radius, border-bottom-left-radius)
-- [x] Automatic radius clamping to prevent overlap (max: half of box dimension)
-- [x] Support for solid, dashed, and dotted border styles with rounded corners
-- [x] Integration with BlockArea borders
-- [x] Integration with AbsolutePositionedArea borders
-- [x] Create comprehensive tests (7 tests for various scenarios)
-- [x] Create Example 34 demonstrating rounded corners
-- [x] Update documentation (README.md, PLAN.md)
-
-**Implementation Details:**
-- **Bezier Curves:** Uses cubic Bezier curves with kappa = 0.552284749831 (4/3 * (sqrt(2) - 1)) to approximate quarter circles
-- **RenderRoundedBorder():** New method in PdfRenderer that constructs rounded rectangle path using moveto, lineto, and curveto PDF operators
-- **Radius Clamping:** Automatically limits radii to half the smaller dimension to prevent geometric impossibilities
-- **Border Style Support:** Works with existing solid, dashed, and dotted border styles
-- **Zero Dependencies:** Pure PDF path operators, no external graphics libraries required
-
-**Test Coverage:**
-- 7 border-radius tests (uniform radius, individual corners, border styles, absolute positioning, radius clamping, zero radius, partial corners)
-
-**Example:**
-- Example 34: Comprehensive demonstration of border-radius with various use cases (uniform radii, individual corners, different border styles, absolutely positioned elements, practical UI patterns)
-
-**Complexity:** Low to Medium (completed in ~3 hours)
-
-**Note:** Implementation uses standard PDF graphics operators (m, l, c, S) for maximum compatibility. Rounded corners are not part of XSL-FO 1.1 spec but are a common extension.
-
-### 6.3 SVG Support ✅ COMPLETE
-
-**Impact:** Vector graphics, scalable logos, professional diagrams - **WORLD-CLASS IMPLEMENTATION**
-
-**Strategy:** Parse SVG, convert to PDF graphics operators - **ZERO DEPENDENCIES**
-
-**Status:** ✅ **COMPLETE** - 100% production-ready SVG rendering with comprehensive feature coverage
-
-**Implementation:**
-Successfully implemented a world-class SVG rendering engine with zero external dependencies. The implementation includes comprehensive parsing (~5,500 lines of SVG code across 20+ files) and complete rendering to PDF graphics operators.
-
-**Architecture:**
-- `SvgParser.cs` - Comprehensive SVG parsing with full element support
-- `SvgToPdf.cs` - Main rendering engine converting SVG to PDF operators
-- `SvgPathParser.cs` - 2,317 lines supporting all 14 SVG path commands including elliptical arcs
-- `SvgGradientToPdf.cs` - 600 lines of gradient-to-PDF conversion (Type 2 Axial, Type 3 Radial)
-- `SvgTransformParser.cs` - Full transform system with matrix multiplication
-- `SvgCssParser.cs` - 305 lines of CSS class support for web-generated SVGs
-- `SvgColorParser.cs` - 147 named SVG colors + hex + RGB functions
-- `SvgMarker.cs` - 227 lines of path vertex extraction for arrow heads
-- `SvgPattern.cs` - 85 lines of tiling pattern support
-- `SvgClipPath.cs` - Clipping path support with W/W* operators
-
-**Deliverables:**
-- [x] Parse all SVG elements (rect, circle, ellipse, line, polyline, polygon, path) - **100% COMPLETE**
-- [x] Convert SVG paths to PDF path operators - All 14 commands (M, m, L, l, H, h, V, v, C, c, S, s, Q, q, T, t, A, a, Z, z)
-- [x] Support all transforms (translate, rotate, scale, skewX, skewY, matrix) - **100% COMPLETE**
-- [x] Support fills and strokes with all properties - **100% COMPLETE**
-- [x] Support text elements - **100% COMPLETE** including:
-  - Basic text positioning (x, y)
-  - text-anchor (start, middle, end)
-  - text-decoration (underline, overline, line-through)
-  - textLength and lengthAdjust
-  - Advanced tspan positioning (dx, dy, x, y)
-  - tspan rotate
-  - **textPath** - Text on curved paths (per-character positioning along arbitrary paths)
-  - **Vertical text** (writing-mode: vertical-rl, vertical-lr) - Japanese/Chinese/Mongolian support
-- [x] Gradients - **100% COMPLETE**
-  - linearGradient and radialGradient on ALL elements
-  - objectBoundingBox and userSpaceOnUse coordinates
-  - gradientTransform, spread methods, focal points
-- [x] Clipping paths - **100% COMPLETE** with PDF W/W* operators
-- [x] CSS classes - **100% COMPLETE** - Enables web-generated SVGs
-- [x] Markers - **100% COMPLETE** - Arrow heads and path decorations
-- [x] Opacity - **100% COMPLETE** - Fill, stroke, and text transparency
-- [x] Patterns - **100% COMPLETE** - Tiling patterns for textures/backgrounds
-- [x] Images - **60% COMPLETE** - Data URI embedding (PNG, JPEG, GIF, any format)
-- [x] Basic filters - **20% COMPLETE** - feDropShadow with offset and opacity
-- [x] Element reuse - **100% COMPLETE** - `<use>`, `<symbol>`, `<defs>`
-- [x] ViewBox and coordinate systems - **95% COMPLETE**
-- [x] Add comprehensive examples - **26 SVG example files** in examples/svg-examples/
-- [x] Document capabilities and limitations - See SVG_PRODUCTION_READY.md
-
-**Results:**
-- ✅ 100% text rendering (all features including textPath and vertical text)
-- ✅ All 14 SVG path commands with full elliptical arc algorithm
-- ✅ Gradients work on ALL elements (rect, circle, ellipse, polygon, polyline, path)
-- ✅ Pattern fills enable repeating textures
-- ✅ CSS class support enables web-generated SVGs
-- ✅ Marker rendering enables diagrams with arrows
-- ✅ Opacity support across all elements
-- ✅ 26 comprehensive SVG examples demonstrating all features
-- ✅ Zero build warnings, zero build errors
-- ✅ Production-ready code quality with complete documentation
-- ✅ Zero runtime dependencies (pure .NET 8)
-- ✅ 339 lines for final 1% (textPath + vertical text)
-
-**Complexity:** Very High ✅ **Completed**
-
-**Feature Coverage:**
-- **Parsing:** 95% (excellent)
-- **Rendering:** 100% (COMPLETE)
-- **Architecture:** 100% (clean)
-- **Dependencies:** 0 (zero)
-- **Production Ready:** YES for 100% of use cases
-
-### 6.4 Tagged PDF Foundations (Accessibility)
-
-**Impact:** Accessibility, screen reader support
+**Impact:**
+- CMYK images render incorrectly
+- No ICC profile support
+- Print PDFs have wrong colors
 
 **Implementation:**
 ```csharp
-public class PdfStructureTree
+public class ColorSpaceHandler
 {
-    public void AddStructureElement(
-        string type,  // "Document", "H1", "P", "Table", etc.
-        int contentId)
+    public string GetPdfColorSpace(ImageColorSpace colorSpace, byte[]? iccProfile)
     {
-        // Build PDF structure tree
-        // Tag content with structure types
+        return colorSpace switch
+        {
+            ImageColorSpace.RGB => "DeviceRGB",
+            ImageColorSpace.CMYK => "DeviceCMYK",
+            ImageColorSpace.Gray => "DeviceGray",
+            ImageColorSpace.ICCBased => EmbedIccProfile(iccProfile),
+            _ => "DeviceRGB"
+        };
     }
 }
 ```
 
 **Deliverables:**
-- [ ] Create PDF structure tree
-- [ ] Tag basic elements (paragraphs, headings)
-- [ ] Tag tables with proper structure
-- [ ] Add alt text for images
-- [ ] Mark reading order
-- [ ] Add language tags
-- [ ] Test with screen readers
-- [ ] Document accessibility features
+- [ ] Detect CMYK JPEG images
+- [ ] Support DeviceCMYK color space in PDF
+- [ ] Parse ICC profiles from images
+- [ ] Embed ICC profiles in PDF
+- [ ] Add CMYK conversion utilities (RGB ↔ CMYK)
+- [ ] Add 5+ tests with CMYK images
+- [ ] Update examples with CMYK printing
 
 **Complexity:** High (3-4 weeks)
 
-**Scope:** Foundation only - full PDF/UA compliance is Phase 7+
+---
 
-**Phase 6 Success Metrics:**
-- ✅ Arabic and Hebrew text render correctly (Phase 6.1 - BiDi UAX#9)
-- ✅ Mixed LTR/RTL documents work perfectly (Phase 6.1 - BiDi UAX#9)
-- ✅ BMP, TIFF, GIF images supported (Phase 6.2 - Zero dependencies image parsing)
-- ✅ **SVG files render with world-class quality** (Phase 6.3 - 100% complete, 26 examples)
-  - ✅ All basic shapes, paths (14 commands), transforms
-  - ✅ Gradients, clipping, patterns, markers, opacity
-  - ✅ 100% text rendering including textPath and vertical text
-  - ✅ CSS classes for web-generated SVGs
-  - ✅ ~5,500 lines of production-ready SVG code
-- ✅ Rounded corners for modern design (Phase 6.5 - border-radius)
-- ⚠️ Basic tagged PDF structure (Phase 6.4 - Not yet started)
-- ✅ 50+ new passing tests (26 BiDi + 17 image + 7 border-radius)
-- ✅ Examples: RTL document (35), All image formats (33), Rounded corners (34), 26 SVG examples
+**Phase 9 Success Metrics:**
+- ✅ Interlaced PNGs and GIFs work
+- ✅ Indexed PNGs with transparency render correctly
+- ✅ DPI detection works for all formats
+- ✅ CMYK images supported
+- ✅ ICC profiles embedded
+- ✅ 20+ new passing tests
+- ✅ Examples showcase all image capabilities
 
 ---
 
-## Phase 7+: Future Enhancements (Post 1.0)
+## Phase 10: Text Layout & Typography Enhancements (8-10 weeks)
 
-**Goal:** Advanced features for specialized workflows
+**Goal:** Complete text layout features for international and professional use
 
-### Future Considerations
+**Priority:** 🟢 MEDIUM - Enhances typography quality
 
-**Performance Optimizations:**
-- Multi-threaded layout (page-level parallelization)
-- Streaming support (constant memory for huge documents)
-- Incremental layout (interactive editors)
+### 10.1 CJK Line Breaking
 
-**Advanced PDF:**
-- PDF/A compliance (archival)
-- PDF/UA compliance (full accessibility)
-- CMYK color space (professional printing)
-- ICC color profiles
-- Spot colors (Pantone)
+**Current Gap:**
+```csharp
+// docs/limitations/line-breaking-text-layout.md:243
+// - `line-break` - Not implemented (for CJK)
+```
 
-**Advanced Graphics:**
-- Gradients (linear, radial)
-- Rounded corners
-- Transparency/opacity
-- Clipping paths
-- Filters and effects
+**Impact:**
+- Chinese, Japanese, Korean text breaks incorrectly
+- Line breaks occur at prohibited positions (kinsoku)
+- Punctuation handling wrong
 
-**Advanced Typography:**
-- OpenType features (liga, smcp, onum, swsh, calt, ss01-ss20)
-- Complex script shaping (Arabic contextual forms, Indic scripts)
-- Variable fonts
-- Advanced kerning (GPOS table)
+**Implementation:**
+```csharp
+public class CjkLineBreaker
+{
+    // Unicode Line Breaking Algorithm UAX#14
+    public int[] FindBreakOpportunities(string text, string language)
+    {
+        // Implement UAX#14 with CJK-specific rules
+        // - Kinsoku shori (禁則処理) for Japanese
+        // - Inseparable characters (。、など)
+        // - Hanging punctuation
+    }
+}
+```
 
-**Advanced Layout:**
-- Drop caps (initial-property-set)
-- Multi-switch elements
-- Index generation
-- Change bars
-- Better float text wrapping
+**Deliverables:**
+- [ ] Implement Unicode Line Breaking Algorithm (UAX#14)
+- [ ] Support `line-break` property (auto, loose, normal, strict)
+- [ ] Add kinsoku rules for Japanese
+- [ ] Add Chinese/Korean specific rules
+- [ ] Support hanging punctuation
+- [ ] Add 15+ tests with CJK text
+- [ ] Update examples with CJK documents
 
-**Developer Experience:**
-- Visual diff tool
-- CLI tool for FO→PDF
-- Live preview server
-- VS Code extension
+**Complexity:** Very High (4-5 weeks)
+
+**References:**
+- Unicode Standard Annex #14: https://www.unicode.org/reports/tr14/
+- JIS X 4051 (Japanese line breaking)
+
+---
+
+### 10.2 BiDi Paired Bracket Algorithm
+
+**Current Gap:**
+```csharp
+// src/Folly.Core/BiDi/UnicodeBidiAlgorithm.cs:363
+// TODO: Implement full paired bracket algorithm for complete UAX#9 compliance
+```
+
+**Impact:**
+- Complex paired bracket mirroring may not work perfectly
+- Example: `(hello)` in RTL may not become `(olleh)` correctly
+
+**Implementation:**
+```csharp
+public class PairedBracketAlgorithm
+{
+    // UAX#9 BD16 - Paired Bracket Algorithm
+    public void ResolvePairedBrackets(
+        char[] text,
+        int[] levels,
+        CharacterType[] types)
+    {
+        // 1. Identify bracket pairs
+        // 2. Determine embedding direction
+        // 3. Apply bracket type based on context
+    }
+}
+```
+
+**Deliverables:**
+- [ ] Implement UAX#9 BD16 paired bracket algorithm
+- [ ] Support all Unicode bracket pairs ((), [], {}, etc.)
+- [ ] Add 10+ tests with nested brackets in RTL
+- [ ] Update BiDi examples with bracket cases
+
+**Complexity:** High (2-3 weeks)
+
+---
+
+### 10.3 Configurable Knuth-Plass Parameters
+
+**Current Gap:**
+```csharp
+// src/Folly.Core/Layout/KnuthPlassLineBreaker.cs:114-117
+// TODO: Make stretch and shrink configurable
+var spaceStretch = spaceWidth * 0.5;
+var spaceShrink = spaceWidth * 0.333;
+```
+
+**Impact:**
+- Cannot customize line breaking behavior
+- Different fonts/sizes may need different parameters
+- No per-language customization
+
+**Implementation:**
+```csharp
+public class LineBreakingOptions
+{
+    public double SpaceStretchRatio { get; set; } = 0.5;   // TeX default
+    public double SpaceShrinkRatio { get; set; } = 0.333;  // TeX default
+    public double HyphenPenalty { get; set; } = 50;
+    public double ExcessPenalty { get; set; } = 100;
+    public double FitnessPenalty { get; set; } = 3000;
+}
+```
+
+**Deliverables:**
+- [ ] Add `LineBreakingOptions` class
+- [ ] Make stretch/shrink ratios configurable
+- [ ] Add penalty configuration
+- [ ] Support per-language defaults
+- [ ] Add tests with various parameter values
+- [ ] Update documentation with tuning guide
+
+**Complexity:** Low (1-2 weeks)
+
+---
+
+### 10.4 Additional Hyphenation Languages
+
+**Current Status:** English, German, French, Spanish only
+
+**Goal:** Add 10+ more languages
+
+**Implementation:**
+- Use TeX hyphenation patterns (public domain)
+- Embed patterns at build time via source generators
+
+**Languages to Add:**
+- [ ] Italian (it-IT)
+- [ ] Portuguese (pt-PT, pt-BR)
+- [ ] Dutch (nl-NL)
+- [ ] Swedish (sv-SE)
+- [ ] Norwegian (nb-NO)
+- [ ] Danish (da-DK)
+- [ ] Polish (pl-PL)
+- [ ] Czech (cs-CZ)
+- [ ] Russian (ru-RU)
+- [ ] Greek (el-GR)
+
+**Deliverables:**
+- [ ] Add 10 new language pattern files
+- [ ] Update source generator to embed new patterns
+- [ ] Add tests for each language
+- [ ] Update examples with multilingual documents
+
+**Complexity:** Low (2-3 weeks)
+
+---
+
+**Phase 10 Success Metrics:**
+- ✅ CJK text breaks correctly with kinsoku rules
+- ✅ BiDi paired brackets work perfectly
+- ✅ Knuth-Plass fully customizable
+- ✅ 14+ languages with hyphenation support
+- ✅ 35+ new passing tests
+- ✅ Examples showcase international typography
+
+---
+
+## Phase 11: Layout Engine Enhancements (6-8 weeks)
+
+**Goal:** Address layout engine simplifications and missing features
+
+**Priority:** 🟢 MEDIUM - Improves XSL-FO compliance
+
+### 11.1 Advanced Marker Retrieval
+
+**Current Gap:**
+```csharp
+// src/Folly.Core/Layout/LayoutEngine.cs:152
+// Simplified implementation: support first-starting-within-page and last-ending-within-page
+```
+
+**Impact:**
+- Limited header/footer marker support
+- Some XSL-FO marker positions not implemented
+- Complex running headers won't work
+
+**Missing Positions:**
+- `first-including-carryover`
+- `last-starting-within-page`
+- `page-content`
+
+**Deliverables:**
+- [ ] Implement all 6 XSL-FO marker retrieve positions
+- [ ] Track marker carryover across pages
+- [ ] Support marker scoping (page, page-sequence)
+- [ ] Add 10+ tests for marker retrieval
+- [ ] Update examples with complex running headers
+
+**Complexity:** Medium (2-3 weeks)
+
+---
+
+### 11.2 Proportional and Auto Column Widths
+
+**Current Gap:**
+```csharp
+// src/Folly.Core/Layout/LayoutEngine.cs:2035
+// Handle column width (simplified - support pt values)
+```
+
+**Status:** Partially implemented in Phase 4.2-4.3
+
+**Remaining Work:**
+- [ ] Full percentage width support in nested tables
+- [ ] Auto column balancing across table
+- [ ] Min/max width constraints
+- [ ] Add 5+ tests for complex column scenarios
+
+**Complexity:** Medium (2-3 weeks)
+
+---
+
+### 11.3 Content-Based Float Sizing
+
+**Current Gap:**
+```csharp
+// src/Folly.Core/Layout/LayoutEngine.cs:2516
+// Calculate float width (default to 200pt, or 1/3 of body width)
+var floatWidth = Math.Min(200, bodyWidth / 3);
+```
+
+**Impact:**
+- Floats without explicit width wrong size
+- No content-based sizing
+
+**Implementation:**
+```csharp
+private double CalculateFloatAutoWidth(FoFloat foFloat, double bodyWidth)
+{
+    // Measure content minimum and maximum widths
+    var minWidth = MeasureFloatMinimumWidth(foFloat);
+    var maxWidth = MeasureFloatMaximumWidth(foFloat);
+
+    // Use minimum width, but don't exceed 1/3 of body
+    return Math.Min(maxWidth, bodyWidth / 3);
+}
+```
+
+**Deliverables:**
+- [ ] Implement content-based float width calculation
+- [ ] Support `width="auto"` for floats
+- [ ] Add min/max width constraints
+- [ ] Add 5+ tests with auto-sized floats
+- [ ] Update examples
+
+**Complexity:** Medium (2-3 weeks)
+
+---
+
+### 11.4 Additional Keep/Break Controls
+
+**Current Gap:**
+```csharp
+// Implemented: widows, orphans, keep-with-next, keep-with-previous, keep-together (binary)
+// Not implemented: keep-together with integer strength, force-page-count, span
+```
+
+**Deliverables:**
+- [ ] Implement `keep-together` with integer strength (1-999)
+- [ ] Implement `force-page-count` (even, odd, end-on-even, end-on-odd)
+- [ ] Implement `span` property for column balancing
+- [ ] Add 10+ tests for advanced keep/break scenarios
+- [ ] Update examples
+
+**Complexity:** Medium (3-4 weeks)
+
+---
+
+**Phase 11 Success Metrics:**
+- ✅ All 6 marker retrieve positions work
+- ✅ Proportional/auto columns fully functional
+- ✅ Floats size to content correctly
+- ✅ All keep/break controls implemented
+- ✅ 30+ new passing tests
+- ✅ XSL-FO compliance reaches ~90%
+
+---
+
+## Phase 12: PDF Generation Enhancements (8-10 weeks)
+
+**Goal:** Modern PDF features and performance optimization
+
+**Priority:** 🟢 MEDIUM - Improves output quality and standards compliance
+
+### 12.1 PDF/A Compliance
+
+**Current Gap:** Cannot generate PDF/A-1, PDF/A-2, or PDF/A-3
+
+**Impact:**
+- Archival documents not supported
+- Government/legal requirements not met
+- Long-term preservation impossible
+
+**Requirements for PDF/A:**
+- All fonts embedded and subset
+- sRGB or ICC-based color only
+- XMP metadata required
+- No encryption
+- No external references
+- OutputIntent with ICC profile
+
+**Implementation:**
+```csharp
+public enum PdfALevel
+{
+    None,
+    PdfA1b,  // PDF/A-1 Level B (basic)
+    PdfA2b,  // PDF/A-2 Level B (based on PDF 1.7)
+    PdfA3b   // PDF/A-3 Level B (allows attachments)
+}
+
+public class PdfOptions
+{
+    public PdfALevel PdfACompliance { get; set; } = PdfALevel.None;
+}
+```
+
+**Deliverables:**
+- [ ] Implement PDF/A-2b compliance (based on PDF 1.7)
+- [ ] Embed all required metadata (XMP)
+- [ ] Add OutputIntent with sRGB ICC profile
+- [ ] Validate: no encryption, external refs, or non-embedded fonts
+- [ ] Add PDF/A validation with preflight checks
+- [ ] Add 10+ tests for PDF/A compliance
+- [ ] Update examples with archival PDF
+
+**Complexity:** High (4-5 weeks)
+
+**References:**
+- ISO 19005-2 (PDF/A-2)
+- XMP Specification
+
+---
+
+### 12.2 PDF 2.0 Support
+
+**Current Gap:**
+```csharp
+// src/Folly.Core/PdfOptions.cs:9
+// Gets or sets the PDF version. Currently only 1.7 is supported.
+```
+
+**Impact:**
+- Cannot use modern PDF features
+- No access to newer compression (JPEG 2000 XL)
+- No Unicode text markup
+- No AES-256 encryption
+
+**New Features in PDF 2.0:**
+- AES-256 encryption
+- Improved compression
+- Better accessibility (tagged PDF improvements)
+- Unicode text strings
+- Page-level output intents
+
+**Deliverables:**
+- [ ] Add PDF 2.0 header support
+- [ ] Implement AES-256 encryption
+- [ ] Support Unicode text strings
+- [ ] Add page-level output intents
+- [ ] Add tests for PDF 2.0 features
+- [ ] Update examples
+
+**Complexity:** Medium (3-4 weeks)
+
+---
+
+### 12.3 Digital Signatures
+
+**Current Gap:** No PDF signature support
+
+**Impact:**
+- Cannot sign documents
+- Legal/compliance requirements not met
+- Document authenticity not verifiable
+
+**Implementation:**
+```csharp
+public class PdfSigner
+{
+    public void SignDocument(
+        Stream pdfStream,
+        X509Certificate2 certificate,
+        SignatureOptions options)
+    {
+        // Create signature dictionary
+        // Calculate byte range
+        // Create PKCS#7 signature
+        // Embed in PDF
+    }
+}
+```
+
+**Deliverables:**
+- [ ] Implement PDF signature infrastructure
+- [ ] Support PKCS#7 detached signatures
+- [ ] Support timestamp authorities (TSA)
+- [ ] Support multiple signatures
+- [ ] Add signature validation
+- [ ] Add 5+ tests with test certificates
+- [ ] Update examples with signing demo
+
+**Complexity:** High (3-4 weeks)
+
+---
+
+### 12.4 Streaming PDF Generation
+
+**Current Gap:**
+```csharp
+// docs/limitations/performance.md:79
+// Entire PDF built in memory before writing
+```
+
+**Impact:**
+- Large documents (1000+ pages) cause memory issues
+- Cannot start sending PDF before complete generation
+- High memory usage in server scenarios
+
+**Implementation:**
+```csharp
+public class StreamingPdfWriter
+{
+    public void BeginDocument(Stream output) { }
+
+    public void AddPage(PageViewport page)
+    {
+        // Write page immediately to stream
+        // Don't hold in memory
+    }
+
+    public void EndDocument()
+    {
+        // Write cross-reference table
+        // Write trailer
+    }
+}
+```
+
+**Deliverables:**
+- [ ] Implement streaming PDF writer
+- [ ] Two-pass approach for page references
+- [ ] Incremental cross-reference table
+- [ ] Add memory usage tests (1000+ pages)
+- [ ] Benchmark memory improvement
+- [ ] Update documentation
+
+**Complexity:** Very High (4-5 weeks)
+
+---
+
+**Phase 12 Success Metrics:**
+- ✅ PDF/A-2b compliance validated
+- ✅ PDF 2.0 features working
+- ✅ Documents can be digitally signed
+- ✅ 1000-page documents under 100MB memory
+- ✅ 20+ new passing tests
+- ✅ Examples showcase PDF features
+
+---
+
+## Phase 13: Missing XSL-FO Features (10-12 weeks)
+
+**Goal:** Implement remaining XSL-FO elements for full spec compliance
+
+**Priority:** 🟢 LOW - Nice to have, not blocking production use
+
+### 13.1 Table Captions
+
+**Elements:**
+- `fo:table-and-caption`
+- `fo:table-caption`
+
+**Deliverables:**
+- [ ] Implement table-and-caption parsing
+- [ ] Layout table with caption (above/below/before/after)
+- [ ] Support caption formatting properties
+- [ ] Add 5+ tests
+- [ ] Update examples
+
+**Complexity:** Low (1-2 weeks)
+
+---
+
+### 13.2 Retrieve Table Marker
+
+**Element:**
+- `fo:retrieve-table-marker`
+
+**Purpose:** Access markers within table context
+
+**Deliverables:**
+- [ ] Implement table marker scope
+- [ ] Support retrieve-table-marker
+- [ ] Add 3+ tests
+- [ ] Update examples
+
+**Complexity:** Medium (2-3 weeks)
+
+---
+
+### 13.3 Multi-Property Elements
+
+**Elements:**
+- `fo:multi-switch`
+- `fo:multi-case`
+- `fo:multi-toggle`
+- `fo:multi-properties`
+- `fo:multi-property-set`
+
+**Purpose:** Interactive content selection (primarily for screen output)
+
+**Note:** Low priority as these are rarely used in print PDFs
+
+**Deliverables:**
+- [ ] Parse multi-* elements
+- [ ] Implement static rendering (select first case)
+- [ ] Add 3+ tests
+- [ ] Document limitations (no interactivity in PDF)
+
+**Complexity:** Medium (2-3 weeks)
+
+---
+
+### 13.4 Index Generation
+
+**Elements:**
+- `fo:index-page-number-prefix`
+- `fo:index-page-number-suffix`
+- `fo:index-range-begin`
+- `fo:index-range-end`
+- `fo:index-key-reference`
+- `fo:index-page-citation-list`
+- `fo:index-page-citation-list-separator`
+- `fo:index-page-citation-range-separator`
+
+**Purpose:** Automatic index generation
+
+**Deliverables:**
+- [ ] Implement index tracking infrastructure
+- [ ] Parse all index-* elements
+- [ ] Generate sorted index entries
+- [ ] Support page number ranges
+- [ ] Add 5+ tests
+- [ ] Update examples with index demo
+
+**Complexity:** High (4-5 weeks)
+
+---
+
+### 13.5 Visibility, Clip, and Overflow
+
+**Properties:**
+- `visibility` (visible, hidden, collapse)
+- `clip` (auto, rect)
+- `overflow` (visible, hidden, scroll, auto)
+
+**Deliverables:**
+- [ ] Implement visibility property
+- [ ] Implement clip regions
+- [ ] Implement overflow handling
+- [ ] Add 10+ tests
+- [ ] Update examples
+
+**Complexity:** Medium (3-4 weeks)
+
+---
+
+**Phase 13 Success Metrics:**
+- ✅ Table captions work
+- ✅ Retrieve-table-marker implemented
+- ✅ Multi-* elements supported (static mode)
+- ✅ Index generation working
+- ✅ Visibility/clip/overflow implemented
+- ✅ 30+ new passing tests
+- ✅ XSL-FO compliance reaches ~95%
+
+---
+
+## Phase 14: Performance Optimization (6-8 weeks)
+
+**Goal:** Optimize memory usage and throughput for high-volume scenarios
+
+**Priority:** 🟢 LOW - Performance already excellent, this is refinement
+
+### 14.1 Memory Pooling
+
+**Current Gap:**
+```csharp
+// PERFORMANCE.md:79
+// 2. **Memory Pooling**: Use `ArrayPool<T>` for temporary buffers
+```
+
+**Impact:**
+- High GC pressure with many allocations
+- Slower performance for high-throughput scenarios
+
+**Implementation:**
+```csharp
+using System.Buffers;
+
+public class LayoutEngine
+{
+    private static readonly ArrayPool<byte> BytePool = ArrayPool<byte>.Shared;
+    private static readonly ArrayPool<char> CharPool = ArrayPool<char>.Shared;
+
+    private void ProcessImage(...)
+    {
+        var buffer = BytePool.Rent(bufferSize);
+        try
+        {
+            // Use buffer
+        }
+        finally
+        {
+            BytePool.Return(buffer);
+        }
+    }
+}
+```
+
+**Deliverables:**
+- [ ] Use ArrayPool for image buffers
+- [ ] Use ArrayPool for text processing buffers
+- [ ] Use ArrayPool for font data buffers
+- [ ] Benchmark GC pressure improvement
+- [ ] Add memory allocation tests
+
+**Complexity:** Medium (2-3 weeks)
+
+---
+
+### 14.2 Font Caching
+
+**Current Gap:** Fonts loaded from disk every time
+
+**Impact:**
+- Repeated font parsing for same font
+- Slower in multi-document scenarios
+
+**Implementation:**
+```csharp
+public class FontCache
+{
+    private readonly ConcurrentDictionary<string, FontFile> _cache = new();
+    private readonly long _maxCacheSize = 100 * 1024 * 1024; // 100MB
+
+    public FontFile GetOrLoad(string fontPath)
+    {
+        return _cache.GetOrAdd(fontPath, LoadFont);
+    }
+}
+```
+
+**Deliverables:**
+- [ ] Implement thread-safe font cache
+- [ ] Add configurable cache size limit
+- [ ] Add cache eviction (LRU)
+- [ ] Add cache statistics
+- [ ] Benchmark performance improvement
+- [ ] Add tests for concurrent access
+
+**Complexity:** Medium (2-3 weeks)
+
+---
+
+### 14.3 Parallel Page Layout
+
+**Goal:** Layout pages in parallel for multi-core scaling
+
+**Implementation:**
+```csharp
+public class ParallelLayoutEngine
+{
+    public List<PageViewport> LayoutPages(FoPageSequence pageSequence)
+    {
+        // First pass: determine page breaks (sequential)
+        var pageBreaks = DeterminePageBreaks(pageSequence);
+
+        // Second pass: layout pages in parallel
+        var pages = new PageViewport[pageBreaks.Count];
+        Parallel.For(0, pageBreaks.Count, i =>
+        {
+            pages[i] = LayoutPage(pageBreaks[i]);
+        });
+
+        return pages.ToList();
+    }
+}
+```
+
+**Deliverables:**
+- [ ] Implement two-pass layout (breaks, then render)
+- [ ] Parallelize page rendering
+- [ ] Ensure thread safety of shared resources
+- [ ] Benchmark performance on multi-core systems
+- [ ] Add tests for correctness with parallel layout
+
+**Complexity:** High (3-4 weeks)
+
+---
+
+**Phase 14 Success Metrics:**
+- ✅ 50% reduction in GC allocations
+- ✅ Font caching reduces load time by 80%+
+- ✅ Parallel layout scales to 4+ cores
+- ✅ 200-page document under 100ms (from current 150ms)
+- ✅ All existing tests still pass
+- ✅ Benchmarks show measurable improvements
 
 ---
 
@@ -1456,6 +1222,7 @@ public class PdfStructureTree
 **4. Documentation (Throughout)**
 - Update PLAN.md with progress
 - Update README.md with new features
+- Update docs/guides/limitations.md (remove fixed items)
 - Add examples demonstrating features
 - Write API documentation
 
@@ -1465,6 +1232,8 @@ public class PdfStructureTree
 - Create release notes
 - Publish to NuGet
 - Announce on GitHub
+
+---
 
 ### Testing Strategy
 
@@ -1484,24 +1253,34 @@ public class PdfStructureTree
 6. **Fuzzing Tests** - Malformed input
 7. **Visual Tests** - PDF output inspection
 
+---
+
 ### Performance Targets
 
 **Must Maintain:**
-- 200-page document: <500ms (currently 150ms)
-- Memory: <100MB for 200 pages (currently 22MB)
+- 200-page document: <500ms (currently 150ms, target <100ms by Phase 14)
+- Memory: <200MB for 200 pages (currently 22MB)
 - Throughput: >400 pages/second (currently 1,333/sec)
 
-**Rationale:** Some features (Knuth-Plass, hyphenation) add overhead, but should remain fast
+**Phase 7 Special:**
+- 100MB+ CJK fonts must work without OOM
+
+**Phase 12 Special:**
+- 1000-page document: <100MB memory (with streaming)
+
+---
 
 ### Versioning Strategy
 
 **Semantic Versioning:**
-- **Phase 1:** v1.1.0 - Critical Pagination & Typography
-- **Phase 2:** v1.2.0 - Professional Typography
-- **Phase 3:** v2.0.0 - TrueType/OpenType Support (breaking: font API changes)
-- **Phase 4:** v2.1.0 - Advanced Table Features
-- **Phase 5:** v2.2.0 - Advanced Layout & Positioning
-- **Phase 6:** v3.0.0 - Internationalization (breaking: BiDi API changes)
+- **Phase 7:** v3.1.0 - Critical Fixes (patch existing major version)
+- **Phase 8:** v4.0.0 - Font System (breaking: font API changes)
+- **Phase 9:** v4.1.0 - Image Formats
+- **Phase 10:** v4.2.0 - Text Layout
+- **Phase 11:** v4.3.0 - Layout Engine
+- **Phase 12:** v5.0.0 - PDF Generation (breaking: PDF options changes)
+- **Phase 13:** v5.1.0 - XSL-FO Features
+- **Phase 14:** v5.2.0 - Performance
 
 **Release Cadence:** Every 2-3 months
 
@@ -1513,18 +1292,18 @@ public class PdfStructureTree
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|-----------|--------|------------|
-| TrueType parsing complexity exceeds estimate | High | High | Implement in phases, focus on required tables first |
-| Knuth-Plass performance unacceptable | Medium | Medium | Make it optional, keep greedy as default |
-| BiDi UAX#9 complexity too high | High | Medium | Start with simplified algorithm, iterate |
-| Font subsetting bugs corrupt PDFs | Medium | High | Extensive testing, validate output with qpdf |
-| Table page breaking breaks existing layouts | Low | High | Comprehensive regression tests |
+| OpenType shaping complexity exceeds estimate | High | High | Implement in phases, focus on common features first |
+| CFF parsing too complex | Medium | Medium | Use existing parsers as reference, simplify if needed |
+| Streaming PDF breaks page references | Medium | High | Two-pass approach, extensive testing |
+| CJK line breaking has too many edge cases | High | Medium | Start with basic rules, iterate with test data |
+| PDF/A validation too strict | Medium | Medium | Use industry validators, fix incrementally |
 
 ### Project Risks
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|-----------|--------|------------|
 | Scope creep (too many features) | Medium | High | Strict phase boundaries, defer non-critical items |
-| Zero-deps constraint blocks solutions | Medium | Medium | Research pure .NET alternatives before starting |
+| Zero-deps constraint blocks solutions | Low | Medium | Research pure .NET alternatives before starting |
 | Performance regresses significantly | Low | High | CI performance tests, benchmark every PR |
 | Breaking changes disrupt users | Medium | High | Semantic versioning, deprecation warnings |
 
@@ -1542,21 +1321,22 @@ Each phase must meet ALL criteria before moving to next:
 - ✅ Code review approved
 - ✅ No critical bugs
 - ✅ Released to NuGet
+- ✅ docs/guides/limitations.md updated
 
-### Overall Success (End of Phase 6)
+### Overall Success (End of Phase 14)
 
 **XSL-FO Compliance:**
-- Target: 95% of XSL-FO 1.1 specification (up from initial 70%, currently ~75%)
+- Target: 95% of XSL-FO 1.1 specification (up from current ~80%)
 - Measured by: Conformance test suite passage rate
-- Progress: Phase 1 and Phase 2.1 completed, adding multi-page tables, text justification, keep constraints, widow/orphan control, and hyphenation
 
 **Real-World Usability:**
-- Target: 95% of common documents render correctly (up from current ~60%)
+- Target: 99% of common documents render correctly (up from current ~85%)
 - Measured by: User-submitted documents, issue reports
 
 **Performance:**
-- Target: <500ms for 200-page document (currently 150ms, allow some overhead)
+- Target: <100ms for 200-page document (currently 150ms)
 - Target: <200MB memory for 200-page document (currently 22MB)
+- Target: <100MB memory for 1000-page document (with streaming)
 - Measured by: BenchmarkDotNet suite
 
 **Zero Dependencies:**
@@ -1564,13 +1344,13 @@ Each phase must meet ALL criteria before moving to next:
 - Measured by: Package analysis, dependency graph
 
 **Test Coverage:**
-- Target: 200+ passing tests ✅ ACHIEVED (currently 218 tests, 99% success rate)
+- Target: 500+ passing tests (currently 364)
 - Target: 85%+ code coverage
 - Measured by: Test suite, coverage tools
 
 **User Adoption:**
 - Target: 10,000+ NuGet downloads/month
-- Target: 50+ GitHub stars
+- Target: 100+ GitHub stars
 - Target: Active community (issues, PRs)
 - Measured by: NuGet stats, GitHub metrics
 
@@ -1582,10 +1362,13 @@ Each phase must meet ALL criteria before moving to next:
 
 - **XSL-FO 1.1:** https://www.w3.org/TR/xsl11/
 - **PDF 1.7:** https://opensource.adobe.com/dc-acrobat-sdk-docs/pdfstandards/PDF32000_2008.pdf
+- **PDF 2.0:** ISO 32000-2:2020
 - **OpenType Spec:** https://docs.microsoft.com/en-us/typography/opentype/spec/
 - **TrueType Reference:** https://developer.apple.com/fonts/TrueType-Reference-Manual/
 - **Unicode BiDi UAX#9:** https://www.unicode.org/reports/tr9/
+- **Unicode Line Breaking UAX#14:** https://www.unicode.org/reports/tr14/
 - **SVG 1.1:** https://www.w3.org/TR/SVG11/
+- **PDF/A-2:** ISO 19005-2
 
 ### Academic Papers
 
@@ -1598,43 +1381,46 @@ Each phase must meet ALL criteria before moving to next:
 - TeX source code (line breaking, hyphenation)
 - Apache FOP (XSL-FO implementation in Java)
 - pdfTeX (PDF generation)
+- HarfBuzz (OpenType shaping)
 
 ---
 
 ## Conclusion
 
-This roadmap transforms Folly from a solid foundation into a best-in-class layout engine while maintaining its core values: **zero dependencies**, **excellent performance**, and **production quality**.
+This roadmap transforms Folly from a solid foundation (~80% XSL-FO compliance, 364 tests) into a production-hardened, enterprise-ready layout engine while maintaining its core values: **zero dependencies**, **excellent performance**, and **production quality**.
 
 **Key Strengths of This Plan:**
-1. **Phased Approach** - Each phase delivers real value
-2. **Zero Dependencies** - All implementations are pure .NET
-3. **Performance Focus** - Speed remains excellent throughout
-4. **Comprehensive** - Addresses all major limitations
-5. **Realistic** - Complexity estimates are honest
-6. **Tested** - Quality maintained via extensive testing
+1. **Issue-Driven** - Addresses all 50+ documented limitations
+2. **Prioritized** - Critical issues first, nice-to-haves last
+3. **Zero Dependencies** - All implementations are pure .NET
+4. **Performance Focus** - Speed remains excellent throughout
+5. **Comprehensive** - Covers fonts, images, text, layout, PDF, and XSL-FO
+6. **Realistic** - Complexity estimates are honest
+7. **Tested** - Quality maintained via extensive testing
 
-**Current Achievements (Phases 1 & 2.1):**
-- ✅ Multi-page table page breaking with header repetition
-- ✅ Text justification with proper inter-word spacing
-- ✅ Keep-with-next/previous constraints for professional pagination
-- ✅ Widow/orphan control for professional typography
-- ✅ Professional hyphenation engine (Liang's algorithm, 4 languages)
-- ✅ ~75% XSL-FO 1.1 compliance (up from ~70%)
-- ✅ 218 passing tests (99% success rate)
-- ✅ Performance maintained at ~150ms for 200 pages
+**Current State:**
+- ✅ ~80% XSL-FO 1.1 compliance
+- ✅ 364 passing tests (99.5% success rate)
+- ✅ Excellent performance (~150ms for 200 pages)
+- ⚠️ 2 critical issues (memory, silent failures)
+- ⚠️ 8 high-priority gaps (OpenType, CMYK, PDF/A, etc.)
+- ⚠️ 20+ medium-priority improvements
 
-**After Phase 6 Completion:**
+**After Phase 14 Completion:**
 - ~95% XSL-FO 1.1 compliance
-- Professional typography (justification ✅, hyphenation ✅, Knuth-Plass pending)
-- Custom fonts (TrueType/OpenType in progress)
-- Advanced tables (page breaking, row spanning)
-- Internationalization (full BiDi UAX#9)
-- Absolute positioning
-- Basic SVG support
-- Accessibility foundations (tagged PDF)
+- 500+ passing tests
+- Zero critical issues
+- Professional typography (OpenType features, CJK support)
+- All image formats (including CMYK, ICC profiles)
+- Modern PDF (PDF/A, PDF 2.0, signatures)
+- Excellent performance (<100ms for 200 pages)
 - Still zero runtime dependencies
-- Still excellent performance
 
-**Timeline:** 12-18 months for phases 1-6
+**Timeline:** 7 phases over 18-24 months
 
-**Ready to Begin:** Phase 1 can start immediately - the layout engine is well-positioned for these enhancements.
+**Immediate Next Steps:**
+1. Start Phase 7 (Critical Issues) - 4-6 weeks
+2. Fix silent image failures
+3. Implement font streaming for large CJK fonts
+
+**Ready to Begin:** Phase 7 can start immediately - the issues are well-documented and solutions are clear.
