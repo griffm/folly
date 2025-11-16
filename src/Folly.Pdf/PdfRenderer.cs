@@ -375,8 +375,7 @@ public sealed class PdfRenderer : IDisposable
         }
         else if (area is TableArea tableArea)
         {
-            // TODO: Tag tables with Table/TR/TD structure
-            RenderTable(tableArea, content, fontIds, imageIds, pageHeight);
+            RenderTable(tableArea, content, fontIds, imageIds, pageHeight, structureTree, parentElement, pageIndex);
         }
         else if (area is LeaderArea leaderArea)
         {
@@ -390,13 +389,15 @@ public sealed class PdfRenderer : IDisposable
 
             if (structureTree != null && parentElement != null)
             {
-                // For now, tag all blocks as paragraphs
-                // TODO: Detect headings, lists, etc. based on block properties
-                blockElement = structureTree.CreateElement(StructureRole.Paragraph, parentElement);
+                // Detect structure role based on block properties
+                var role = DetectStructureRole(blockArea);
+
+                blockElement = structureTree.CreateElement(role, parentElement);
                 mcid = structureTree.RegisterMarkedContent(blockElement, pageIndex);
 
-                // Begin marked content
-                content.AppendLine($"/P <</MCID {mcid}>> BDC");
+                // Begin marked content with appropriate tag
+                var roleTag = GetRoleTag(role);
+                content.AppendLine($"/{roleTag} <</MCID {mcid}>> BDC");
             }
 
             // Render background color
@@ -1455,26 +1456,52 @@ public sealed class PdfRenderer : IDisposable
         content.AppendLine("Q");
     }
 
-    private void RenderTable(TableArea table, StringBuilder content, Dictionary<string, int> fontIds, Dictionary<string, int> imageIds, double pageHeight)
+    private void RenderTable(TableArea table, StringBuilder content, Dictionary<string, int> fontIds, Dictionary<string, int> imageIds, double pageHeight, PdfStructureTree? structureTree, StructureElement? parentElement, int pageIndex)
     {
+        // Create Table structure element if tagging is enabled
+        StructureElement? tableElement = null;
+        if (structureTree != null && parentElement != null)
+        {
+            tableElement = structureTree.CreateElement(StructureRole.Table, parentElement);
+        }
+
         // Render each row in the table
         foreach (var row in table.Rows)
         {
-            RenderTableRow(row, table, content, fontIds, imageIds, pageHeight);
+            RenderTableRow(row, table, content, fontIds, imageIds, pageHeight, structureTree, tableElement, pageIndex);
         }
     }
 
-    private void RenderTableRow(TableRowArea row, TableArea table, StringBuilder content, Dictionary<string, int> fontIds, Dictionary<string, int> imageIds, double pageHeight)
+    private void RenderTableRow(TableRowArea row, TableArea table, StringBuilder content, Dictionary<string, int> fontIds, Dictionary<string, int> imageIds, double pageHeight, PdfStructureTree? structureTree, StructureElement? tableElement, int pageIndex)
     {
+        // Create TR (table row) structure element if tagging is enabled
+        StructureElement? rowElement = null;
+        if (structureTree != null && tableElement != null)
+        {
+            rowElement = structureTree.CreateElement(StructureRole.TableRow, tableElement);
+        }
+
         // Render each cell in the row
         foreach (var cell in row.Cells)
         {
-            RenderTableCell(cell, table, row, content, fontIds, imageIds, pageHeight);
+            RenderTableCell(cell, table, row, content, fontIds, imageIds, pageHeight, structureTree, rowElement, pageIndex);
         }
     }
 
-    private void RenderTableCell(TableCellArea cell, TableArea table, TableRowArea row, StringBuilder content, Dictionary<string, int> fontIds, Dictionary<string, int> imageIds, double pageHeight)
+    private void RenderTableCell(TableCellArea cell, TableArea table, TableRowArea row, StringBuilder content, Dictionary<string, int> fontIds, Dictionary<string, int> imageIds, double pageHeight, PdfStructureTree? structureTree, StructureElement? rowElement, int pageIndex)
     {
+        // Create TD (table data) structure element if tagging is enabled
+        StructureElement? cellElement = null;
+        int mcid = -1;
+        if (structureTree != null && rowElement != null)
+        {
+            cellElement = structureTree.CreateElement(StructureRole.TableData, rowElement);
+            mcid = structureTree.RegisterMarkedContent(cellElement, pageIndex);
+
+            // Begin marked content for table cell
+            content.AppendLine($"/TD <</MCID {mcid}>> BDC");
+        }
+
         // Calculate absolute position
         var absoluteX = table.X + cell.X;
         var absoluteY = table.Y + row.Y + cell.Y;
@@ -1526,6 +1553,7 @@ public sealed class PdfRenderer : IDisposable
         // Render cell content (blocks)
         // For table cells, we need to handle coordinate conversion differently
         // We'll render children with absolute coordinates, not using PDF transformation matrix
+        // Don't pass structure tree to cell children - they're part of the cell's marked content
         foreach (var child in cell.Children)
         {
             // Create a temporary copy of the area with adjusted coordinates
@@ -1538,7 +1566,7 @@ public sealed class PdfRenderer : IDisposable
                 blockArea.X = absoluteX + originalX;
                 blockArea.Y = absoluteY + originalY;
 
-                RenderArea(child, content, fontIds, imageIds, pageHeight);
+                RenderArea(child, content, fontIds, imageIds, pageHeight, null, null, pageIndex);
 
                 // Restore original position
                 blockArea.X = originalX;
@@ -1547,8 +1575,14 @@ public sealed class PdfRenderer : IDisposable
             else
             {
                 // Pass the absolute position offsets for non-BlockArea children
-                RenderArea(child, content, fontIds, imageIds, pageHeight, absoluteX, absoluteY);
+                RenderArea(child, content, fontIds, imageIds, pageHeight, null, null, pageIndex, absoluteX, absoluteY);
             }
+        }
+
+        // End marked content for table cell
+        if (mcid >= 0)
+        {
+            content.AppendLine("EMC");
         }
     }
 
@@ -1777,6 +1811,87 @@ public sealed class PdfRenderer : IDisposable
             '\n' => "\\n",
             '\t' => "\\t",
             _ => outputChar.ToString()
+        };
+    }
+
+    /// <summary>
+    /// Detects the appropriate structure role for a block area based on its properties.
+    /// Uses font size and font weight heuristics to identify headings.
+    /// </summary>
+    private static StructureRole DetectStructureRole(BlockArea blockArea)
+    {
+        var fontSize = blockArea.FontSize;
+        var fontWeight = blockArea.FontWeight?.ToLowerInvariant();
+        var isBold = fontWeight == "bold" || fontWeight == "700" || fontWeight == "800" || fontWeight == "900";
+
+        // Heading detection based on font size and weight
+        // H1: Large text (24pt+) or bold large text (20pt+)
+        if (fontSize >= 24 || (isBold && fontSize >= 20))
+        {
+            return StructureRole.Heading1;
+        }
+        // H2: Medium-large text (18pt+) or bold medium text (16pt+)
+        else if (fontSize >= 18 || (isBold && fontSize >= 16))
+        {
+            return StructureRole.Heading2;
+        }
+        // H3: Medium text (14pt+) or bold small-medium text (13pt+)
+        else if (fontSize >= 14 || (isBold && fontSize >= 13))
+        {
+            return StructureRole.Heading3;
+        }
+        // H4: Small-medium text (12pt) if bold
+        else if (isBold && fontSize >= 12)
+        {
+            return StructureRole.Heading4;
+        }
+
+        // Default to paragraph for regular text
+        return StructureRole.Paragraph;
+    }
+
+    /// <summary>
+    /// Gets the PDF marked content tag string for a structure role.
+    /// </summary>
+    private static string GetRoleTag(StructureRole role)
+    {
+        return role switch
+        {
+            StructureRole.Document => "Document",
+            StructureRole.Part => "Part",
+            StructureRole.Section => "Sect",
+            StructureRole.Division => "Div",
+            StructureRole.Paragraph => "P",
+            StructureRole.Heading => "H",
+            StructureRole.Heading1 => "H1",
+            StructureRole.Heading2 => "H2",
+            StructureRole.Heading3 => "H3",
+            StructureRole.Heading4 => "H4",
+            StructureRole.Heading5 => "H5",
+            StructureRole.Heading6 => "H6",
+            StructureRole.List => "L",
+            StructureRole.ListItem => "LI",
+            StructureRole.ListLabel => "Lbl",
+            StructureRole.ListBody => "LBody",
+            StructureRole.Table => "Table",
+            StructureRole.TableRow => "TR",
+            StructureRole.TableHeader => "TH",
+            StructureRole.TableData => "TD",
+            StructureRole.TableBody => "TBody",
+            StructureRole.TableHead => "THead",
+            StructureRole.TableFoot => "TFoot",
+            StructureRole.Figure => "Figure",
+            StructureRole.Formula => "Formula",
+            StructureRole.Form => "Form",
+            StructureRole.Link => "Link",
+            StructureRole.Annotation => "Annot",
+            StructureRole.Quote => "BlockQuote",
+            StructureRole.Note => "Note",
+            StructureRole.Reference => "Reference",
+            StructureRole.BibliographyEntry => "BibEntry",
+            StructureRole.Code => "Code",
+            StructureRole.Span => "Span",
+            _ => "P" // Default to paragraph
         };
     }
 
