@@ -190,24 +190,31 @@ public class TrueTypeFontSerializer
 
         // head table version 1.0
         writer.WriteUInt32(0x00010000); // version (Fixed: 16.16)
-        writer.WriteUInt32(0x00010000); // fontRevision (Fixed: 16.16) - TODO: parse from font
+
+        // Font revision - use from original font if available, otherwise default to 1.0
+        uint fontRevision = font.Head?.FontRevision ?? 0x00010000;
+        writer.WriteUInt32(fontRevision); // fontRevision (Fixed: 16.16)
+
         writer.WriteUInt32(0); // checksumAdjustment - placeholder, will be set to 0
         writer.WriteUInt32(0x5F0F3CF5); // magicNumber (required constant)
 
-        // flags
-        ushort flags = 0;
-        flags |= (1 << 0); // Baseline at y=0
-        flags |= (1 << 1); // Left sidebearing at x=0
-        flags |= (1 << 3); // Force ppem to integer values
+        // Flags - use from original font if available, otherwise use sensible defaults
+        ushort flags = font.Head?.Flags ?? 0;
+        if (flags == 0)
+        {
+            // Default flags if not available
+            flags |= (1 << 0); // Baseline at y=0
+            flags |= (1 << 1); // Left sidebearing at x=0
+            flags |= (1 << 3); // Force ppem to integer values
+        }
         writer.WriteUInt16(flags);
 
         writer.WriteUInt16(font.UnitsPerEm);
 
-        // created and modified timestamps (Mac epoch: seconds since 1904-01-01)
-        // TODO: Use proper timestamps
-        long macEpochSeconds = 0;
-        writer.WriteInt64(macEpochSeconds); // created
-        writer.WriteInt64(macEpochSeconds); // modified
+        // Timestamps - use current time for subset fonts
+        long currentMacTime = HeadTable.ConvertDateTimeToMacEpoch(DateTime.UtcNow);
+        writer.WriteInt64(currentMacTime); // created
+        writer.WriteInt64(currentMacTime); // modified
 
         // Font bounding box
         writer.WriteInt16(font.XMin);
@@ -215,8 +222,8 @@ public class TrueTypeFontSerializer
         writer.WriteInt16(font.XMax);
         writer.WriteInt16(font.YMax);
 
-        // macStyle
-        ushort macStyle = 0; // TODO: Derive from font properties (bold, italic, etc.)
+        // macStyle - calculate from font properties
+        ushort macStyle = CalculateMacStyle(font);
         writer.WriteUInt16(macStyle);
 
         writer.WriteUInt16(9); // lowestRecPPEM - minimum readable size
@@ -225,6 +232,39 @@ public class TrueTypeFontSerializer
         writer.WriteInt16(0); // glyphDataFormat (0 for current format)
 
         return new TableEntry { Tag = "head", Data = ms.ToArray() };
+    }
+
+    /// <summary>
+    /// Calculates the macStyle flags from font properties.
+    /// Bit 0: Bold
+    /// Bit 1: Italic
+    /// </summary>
+    private static ushort CalculateMacStyle(FontFile font)
+    {
+        ushort macStyle = 0;
+
+        // First try to use macStyle from original head table
+        if (font.Head != null)
+        {
+            macStyle = font.Head.MacStyle;
+        }
+        else
+        {
+            // Calculate from OS/2 and Post tables if available
+            // Bold: OS/2 WeightClass >= 700
+            if (font.OS2 != null && font.OS2.WeightClass >= 700)
+            {
+                macStyle |= 0x01; // Bold
+            }
+
+            // Italic: Post table ItalicAngle != 0 or OS/2 fsSelection bit 0
+            if (font.Post != null && Math.Abs(font.Post.ItalicAngle) > 0.01)
+            {
+                macStyle |= 0x02; // Italic
+            }
+        }
+
+        return macStyle;
     }
 
     private static TableEntry CreateHheaTable(FontFile font)
@@ -249,11 +289,14 @@ public class TrueTypeFontSerializer
             : (short)0;
         writer.WriteInt16(minLsb);
 
-        // minRightSideBearing - TODO: Calculate properly
-        writer.WriteInt16(0);
+        // minRightSideBearing - calculate from glyph data
+        short minRsb = CalculateMinRightSideBearing(font);
+        writer.WriteInt16(minRsb);
 
-        // xMaxExtent - TODO: Calculate properly from glyph data
-        writer.WriteInt16(font.XMax);
+        // xMaxExtent - calculate from glyph data
+        // xMaxExtent = max(lsb + (xMax - xMin)) for all glyphs
+        short xMaxExtent = CalculateXMaxExtent(font);
+        writer.WriteInt16(xMaxExtent);
 
         writer.WriteInt16(1); // caretSlopeRise (vertical caret)
         writer.WriteInt16(0); // caretSlopeRun
@@ -266,6 +309,76 @@ public class TrueTypeFontSerializer
         writer.WriteUInt16((ushort)font.GlyphAdvanceWidths.Length); // numberOfHMetrics
 
         return new TableEntry { Tag = "hhea", Data = ms.ToArray() };
+    }
+
+    /// <summary>
+    /// Calculates the minimum right side bearing from glyph data.
+    /// minRightSideBearing = min(advanceWidth - lsb - (xMax - xMin))
+    /// </summary>
+    private static short CalculateMinRightSideBearing(FontFile font)
+    {
+        if (font.Glyphs == null || font.Glyphs.Length == 0)
+            return 0;
+
+        short minRsb = short.MaxValue;
+
+        for (int i = 0; i < font.GlyphCount && i < font.Glyphs.Length; i++)
+        {
+            var glyph = font.Glyphs[i];
+            if (glyph == null || glyph.IsEmptyGlyph)
+                continue;
+
+            // Get metrics for this glyph
+            ushort advanceWidth = i < font.GlyphAdvanceWidths.Length
+                ? font.GlyphAdvanceWidths[i]
+                : (ushort)0;
+            short lsb = i < font.GlyphLeftSideBearings.Length
+                ? font.GlyphLeftSideBearings[i]
+                : (short)0;
+
+            // Calculate right side bearing
+            // rsb = advanceWidth - lsb - (xMax - xMin)
+            short glyphWidth = (short)(glyph.XMax - glyph.XMin);
+            short rsb = (short)(advanceWidth - lsb - glyphWidth);
+
+            if (rsb < minRsb)
+                minRsb = rsb;
+        }
+
+        return minRsb == short.MaxValue ? (short)0 : minRsb;
+    }
+
+    /// <summary>
+    /// Calculates the maximum extent in the x direction.
+    /// xMaxExtent = max(lsb + (xMax - xMin)) for all glyphs
+    /// </summary>
+    private static short CalculateXMaxExtent(FontFile font)
+    {
+        if (font.Glyphs == null || font.Glyphs.Length == 0)
+            return font.XMax;
+
+        short maxExtent = 0;
+
+        for (int i = 0; i < font.GlyphCount && i < font.Glyphs.Length; i++)
+        {
+            var glyph = font.Glyphs[i];
+            if (glyph == null || glyph.IsEmptyGlyph)
+                continue;
+
+            // Get left side bearing for this glyph
+            short lsb = i < font.GlyphLeftSideBearings.Length
+                ? font.GlyphLeftSideBearings[i]
+                : (short)0;
+
+            // Calculate extent: lsb + (xMax - xMin)
+            short glyphWidth = (short)(glyph.XMax - glyph.XMin);
+            short extent = (short)(lsb + glyphWidth);
+
+            if (extent > maxExtent)
+                maxExtent = extent;
+        }
+
+        return maxExtent > 0 ? maxExtent : font.XMax;
     }
 
     private static TableEntry CreateMaxpTable(FontFile font)
@@ -614,10 +727,25 @@ public class TrueTypeFontSerializer
 
         // Use format 3.0 (no PostScript glyph names)
         writer.WriteUInt32(0x00030000); // version 3.0
-        writer.WriteInt32(0); // italicAngle (Fixed)
-        writer.WriteInt16(0); // underlinePosition
-        writer.WriteInt16(0); // underlineThickness
-        writer.WriteUInt32(0); // isFixedPitch
+
+        // Use values from Post table if available, otherwise use defaults
+        if (font.Post != null)
+        {
+            // Convert italic angle to Fixed 16.16 format
+            int italicAngleFixed = (int)(font.Post.ItalicAngle * 65536.0);
+            writer.WriteInt32(italicAngleFixed); // italicAngle (Fixed)
+            writer.WriteInt16(font.Post.UnderlinePosition); // underlinePosition
+            writer.WriteInt16(font.Post.UnderlineThickness); // underlineThickness
+            writer.WriteUInt32(font.Post.IsFixedPitch); // isFixedPitch
+        }
+        else
+        {
+            writer.WriteInt32(0); // italicAngle (Fixed)
+            writer.WriteInt16(0); // underlinePosition
+            writer.WriteInt16(0); // underlineThickness
+            writer.WriteUInt32(0); // isFixedPitch
+        }
+
         writer.WriteUInt32(0); // minMemType42
         writer.WriteUInt32(0); // maxMemType42
         writer.WriteUInt32(0); // minMemType1

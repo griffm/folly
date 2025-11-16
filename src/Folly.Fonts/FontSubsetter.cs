@@ -76,7 +76,7 @@ public class FontSubsetter
             FamilyName = originalFont.FamilyName,
             SubfamilyName = originalFont.SubfamilyName,
             FullName = originalFont.FullName,
-            // TODO: Add subset tag to PostScript name (e.g., "ABCDEF+FontName")
+            // Add PDF/A compliant 6-character subset tag to PostScript name (e.g., "ABCDEF+FontName")
             PostScriptName = GenerateSubsetPostScriptName(originalFont.PostScriptName),
             Version = originalFont.Version,
             UnitsPerEm = originalFont.UnitsPerEm,
@@ -90,8 +90,10 @@ public class FontSubsetter
             IndexToLocFormat = originalFont.IndexToLocFormat,
             IsTrueType = true,
             GlyphCount = (ushort)glyphMapping.Count,
-            OS2 = originalFont.OS2, // TODO: Clone instead of reference
-            Post = originalFont.Post, // TODO: Clone instead of reference
+            // Clone tables instead of referencing to ensure independent subset
+            Head = CloneHeadTable(originalFont.Head),
+            OS2 = CloneOS2Table(originalFont.OS2),
+            Post = ClonePostTable(originalFont.Post),
         };
 
         // Build reverse mapping for character lookups
@@ -160,6 +162,7 @@ public class FontSubsetter
     /// <summary>
     /// Generates a subset PostScript name with a unique 6-character tag prefix.
     /// Format: "ABCDEF+OriginalName"
+    /// PDF/A spec requires 6 uppercase letters (A-Z) followed by "+" and the original name.
     /// </summary>
     private static string GenerateSubsetPostScriptName(string originalName)
     {
@@ -173,6 +176,65 @@ public class FontSubsetter
         }
 
         return new string(tag) + "+" + originalName;
+    }
+
+    /// <summary>
+    /// Clones a HeadTable to ensure subset font has independent metadata.
+    /// </summary>
+    private static HeadTable? CloneHeadTable(HeadTable? source)
+    {
+        if (source == null)
+            return null;
+
+        return new HeadTable
+        {
+            FontRevision = source.FontRevision,
+            Created = source.Created,
+            Modified = source.Modified,
+            Flags = source.Flags,
+            MacStyle = source.MacStyle
+        };
+    }
+
+    /// <summary>
+    /// Clones an OS2Table to ensure subset font has independent metrics.
+    /// </summary>
+    private static OS2Table? CloneOS2Table(OS2Table? source)
+    {
+        if (source == null)
+            return null;
+
+        return new OS2Table
+        {
+            Version = source.Version,
+            XAvgCharWidth = source.XAvgCharWidth,
+            WeightClass = source.WeightClass,
+            WidthClass = source.WidthClass,
+            Type = source.Type,
+            TypoAscender = source.TypoAscender,
+            TypoDescender = source.TypoDescender,
+            TypoLineGap = source.TypoLineGap,
+            WinAscent = source.WinAscent,
+            WinDescent = source.WinDescent
+        };
+    }
+
+    /// <summary>
+    /// Clones a PostTable to ensure subset font has independent PostScript info.
+    /// </summary>
+    private static PostTable? ClonePostTable(PostTable? source)
+    {
+        if (source == null)
+            return null;
+
+        return new PostTable
+        {
+            Version = source.Version,
+            ItalicAngle = source.ItalicAngle,
+            UnderlinePosition = source.UnderlinePosition,
+            UnderlineThickness = source.UnderlineThickness,
+            IsFixedPitch = source.IsFixedPitch
+        };
     }
 
     /// <summary>

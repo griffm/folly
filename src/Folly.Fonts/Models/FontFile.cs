@@ -133,6 +133,11 @@ public class FontFile
     public bool IsTrueType { get; set; }
 
     /// <summary>
+    /// Font header ('head') table data.
+    /// </summary>
+    public HeadTable? Head { get; set; }
+
+    /// <summary>
     /// OS/2 table metrics (Windows-specific font metrics).
     /// </summary>
     public OS2Table? OS2 { get; set; }

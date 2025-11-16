@@ -118,6 +118,23 @@ public class BigEndianBinaryReader : IDisposable
     }
 
     /// <summary>
+    /// Reads a signed 64-bit integer in big-endian format (LONGDATETIME in OpenType spec).
+    /// </summary>
+    public long ReadInt64()
+    {
+        byte b1 = ReadByte();
+        byte b2 = ReadByte();
+        byte b3 = ReadByte();
+        byte b4 = ReadByte();
+        byte b5 = ReadByte();
+        byte b6 = ReadByte();
+        byte b7 = ReadByte();
+        byte b8 = ReadByte();
+        return ((long)b1 << 56) | ((long)b2 << 48) | ((long)b3 << 40) | ((long)b4 << 32) |
+               ((long)b5 << 24) | ((long)b6 << 16) | ((long)b7 << 8) | b8;
+    }
+
+    /// <summary>
     /// Reads a 32-bit fixed-point number (16.16 format) in big-endian format (Fixed in OpenType spec).
     /// </summary>
     public double ReadFixed()
