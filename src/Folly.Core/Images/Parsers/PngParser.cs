@@ -200,6 +200,12 @@ public sealed class PngParser : IImageParser
             compressedData = ms.ToArray();
         }
 
+        // Apply default DPI if no metadata was found
+        if (horizontalDpi == 0)
+            horizontalDpi = 72;
+        if (verticalDpi == 0)
+            verticalDpi = 72;
+
         return new ImageInfo
         {
             Format = "PNG",
