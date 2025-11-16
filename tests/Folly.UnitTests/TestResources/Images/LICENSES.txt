@@ -1,0 +1,51 @@
+# Test Image Licenses
+
+All test images in this directory were **generated programmatically** using the TestResourceGenerator tool located in `tests/TestResourceGenerator/`.
+
+## License
+
+These test images are released into the **Public Domain (CC0 1.0 Universal)**.
+
+To the extent possible under law, the Folly project has waived all copyright and related or neighboring rights to these test images. This work is published from: United States.
+
+You can copy, modify, distribute and perform the work, even for commercial purposes, all without asking permission.
+
+## Images Included
+
+### DPI Test Images
+- `test-72dpi.jpg` - 100×100px JPEG at 72 DPI
+- `test-96dpi.jpg` - 100×100px JPEG at 96 DPI
+- `test-150dpi.jpg` - 100×100px JPEG at 150 DPI
+- `test-300dpi.jpg` - 100×100px JPEG at 300 DPI
+- `test-300dpi.png` - 100×100px PNG with pHYs chunk at 300 DPI
+- `no-dpi-metadata.jpg` - 100×100px JPEG without DPI metadata
+
+### CMYK and ICC Profile Test Images
+- `test-cmyk.jpg` - 200×200px CMYK JPEG
+- `jpeg-with-icc.jpg` - 200×200px RGB JPEG with embedded sRGB ICC profile
+- `png-with-iccp.png` - 200×200px PNG with iCCP chunk
+- `test-rgb.jpg` - 200×200px RGB JPEG without ICC profile
+
+## Generation Method
+
+These images were created using pure C# code with zero external dependencies:
+
+1. **JPEG files**: Minimal valid JPEG structure with JFIF APP0 markers for DPI, Adobe APP14 markers for CMYK
+2. **PNG files**: Valid PNG structure with pHYs chunks for DPI and iCCP chunks for ICC profiles
+3. **Image content**: Simple solid color pixels (blue for RGB, varied for CMYK)
+4. **ICC profiles**: Minimal sRGB ICC profile headers for testing
+
+## Regenerating Images
+
+To regenerate these test images:
+
+```bash
+cd tests/TestResourceGenerator
+dotnet run
+```
+
+The generator will create all test images in this directory.
+
+## Purpose
+
+These images are used exclusively for unit testing DPI detection, CMYK color space handling, and ICC profile support in the Folly PDF library. They are intentionally minimal in size (~5 KB total) to keep the repository lightweight.
