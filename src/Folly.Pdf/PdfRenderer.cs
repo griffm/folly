@@ -38,6 +38,13 @@ public sealed class PdfRenderer : IDisposable
         // Write PDF header
         _writer.WriteHeader(_options.PdfVersion);
 
+        // Create structure tree if tagged PDF is enabled
+        PdfStructureTree? structureTree = null;
+        if (_options.EnableTaggedPdf)
+        {
+            structureTree = new PdfStructureTree();
+        }
+
         // Collect fonts used in the document and track character usage
         var (fonts, characterUsage) = CollectFonts(areaTree);
 
@@ -47,21 +54,30 @@ public sealed class PdfRenderer : IDisposable
         // Collect images used in the document
         var images = CollectImages(areaTree);
 
-        var catalogId = _writer.WriteCatalog(areaTree.Pages.Count, bookmarkTree);
-
         // Write font resources with subsetting if enabled
         var fontIds = _writer.WriteFonts(fonts, characterUsage, _options.SubsetFonts, _options.TrueTypeFonts, _options.EnableFontFallback);
 
         // Write image resources
         var imageIds = _writer.WriteImages(images);
 
-        // Render pages
+        // Render pages and build structure tree
         var pageIds = new List<int>();
-        foreach (var page in areaTree.Pages)
+        for (int pageIndex = 0; pageIndex < areaTree.Pages.Count; pageIndex++)
         {
-            var pageId = RenderPage(page, fontIds, imageIds);
+            var page = areaTree.Pages[pageIndex];
+            var pageId = RenderPage(page, fontIds, imageIds, structureTree, pageIndex);
             pageIds.Add(pageId);
         }
+
+        // Write structure tree if enabled (must be written before catalog)
+        int structTreeRootId = 0;
+        if (structureTree != null)
+        {
+            structTreeRootId = structureTree.WriteToPdf(_writer, pageIds.ToArray());
+        }
+
+        // Write catalog with structure tree reference
+        var catalogId = _writer.WriteCatalog(areaTree.Pages.Count, bookmarkTree, structTreeRootId);
 
         // Update pages tree
         _writer.WritePages(catalogId + 1, pageIds, areaTree.Pages);
@@ -317,8 +333,15 @@ public sealed class PdfRenderer : IDisposable
         }
     }
 
-    private int RenderPage(PageViewport page, Dictionary<string, int> fontIds, Dictionary<string, int> imageIds)
+    private int RenderPage(PageViewport page, Dictionary<string, int> fontIds, Dictionary<string, int> imageIds, PdfStructureTree? structureTree, int pageIndex)
     {
+        // Create Document structure element if this is the first page and tagged PDF is enabled
+        StructureElement? documentElement = null;
+        if (structureTree != null && pageIndex == 0)
+        {
+            documentElement = structureTree.CreateElement(StructureRole.Document);
+        }
+
         // Build content stream
         var content = new StringBuilder();
 
@@ -326,7 +349,7 @@ public sealed class PdfRenderer : IDisposable
         // Pass page height for coordinate conversion (PDF uses bottom-up coordinates)
         foreach (var area in page.Areas)
         {
-            RenderArea(area, content, fontIds, imageIds, page.Height);
+            RenderArea(area, content, fontIds, imageIds, page.Height, structureTree, documentElement, pageIndex);
         }
 
         // Render absolutely positioned areas (after normal flow, sorted by z-index)
@@ -337,20 +360,22 @@ public sealed class PdfRenderer : IDisposable
 
         foreach (var absoluteArea in sortedAbsoluteAreas)
         {
-            RenderAbsoluteArea(absoluteArea, content, fontIds, imageIds, page.Height);
+            RenderAbsoluteArea(absoluteArea, content, fontIds, imageIds, page.Height, structureTree, documentElement, pageIndex);
         }
 
         return _writer.WritePage(page, content.ToString(), fontIds, imageIds, _options.CompressStreams);
     }
 
-    private void RenderArea(Area area, StringBuilder content, Dictionary<string, int> fontIds, Dictionary<string, int> imageIds, double pageHeight, double offsetX = 0, double offsetY = 0)
+    private void RenderArea(Area area, StringBuilder content, Dictionary<string, int> fontIds, Dictionary<string, int> imageIds, double pageHeight, PdfStructureTree? structureTree, StructureElement? parentElement, int pageIndex, double offsetX = 0, double offsetY = 0)
     {
         if (area is ImageArea imageArea)
         {
+            // TODO: Tag images as Figure elements with alt text
             RenderImage(imageArea, content, imageIds, pageHeight, offsetX, offsetY);
         }
         else if (area is TableArea tableArea)
         {
+            // TODO: Tag tables with Table/TR/TD structure
             RenderTable(tableArea, content, fontIds, imageIds, pageHeight);
         }
         else if (area is LeaderArea leaderArea)
@@ -359,6 +384,21 @@ public sealed class PdfRenderer : IDisposable
         }
         else if (area is BlockArea blockArea)
         {
+            // Create structure element for this block if tagging is enabled
+            StructureElement? blockElement = null;
+            int mcid = -1;
+
+            if (structureTree != null && parentElement != null)
+            {
+                // For now, tag all blocks as paragraphs
+                // TODO: Detect headings, lists, etc. based on block properties
+                blockElement = structureTree.CreateElement(StructureRole.Paragraph, parentElement);
+                mcid = structureTree.RegisterMarkedContent(blockElement, pageIndex);
+
+                // Begin marked content
+                content.AppendLine($"/P <</MCID {mcid}>> BDC");
+            }
+
             // Render background color
             if (blockArea.BackgroundColor != "transparent" && !string.IsNullOrWhiteSpace(blockArea.BackgroundColor))
             {
@@ -387,14 +427,22 @@ public sealed class PdfRenderer : IDisposable
 
             // Render child areas (lines and images) with offset
             // Children have coordinates relative to the block, so we offset them by the block's absolute position
+            // Don't create new structure elements for child lines - they're part of the parent block's content
             foreach (var child in blockArea.Children)
             {
-                RenderArea(child, content, fontIds, imageIds, pageHeight, offsetX + blockArea.X, offsetY + blockArea.Y);
+                RenderArea(child, content, fontIds, imageIds, pageHeight, structureTree, null, pageIndex, offsetX + blockArea.X, offsetY + blockArea.Y);
+            }
+
+            // End marked content
+            if (mcid >= 0)
+            {
+                content.AppendLine("EMC");
             }
         }
         else if (area is LineArea lineArea)
         {
             // Render inline areas (text)
+            // Lines are not tagged separately - they're part of the parent block's marked content
             foreach (var inline in lineArea.Inlines)
             {
                 RenderInline(inline, lineArea, content, fontIds, pageHeight, offsetX, offsetY);
@@ -593,7 +641,8 @@ public sealed class PdfRenderer : IDisposable
     }
 
     private void RenderAbsoluteArea(AbsolutePositionedArea absoluteArea, StringBuilder content,
-        Dictionary<string, int> fontIds, Dictionary<string, int> imageIds, double pageHeight)
+        Dictionary<string, int> fontIds, Dictionary<string, int> imageIds, double pageHeight,
+        PdfStructureTree? structureTree, StructureElement? parentElement, int pageIndex)
     {
         // Apply rotation transformation if specified
         bool hasRotation = absoluteArea.ReferenceOrientation != 0;
@@ -677,7 +726,7 @@ public sealed class PdfRenderer : IDisposable
         // Render child areas within the absolute container
         foreach (var child in absoluteArea.Children)
         {
-            RenderArea(child, content, fontIds, imageIds, pageHeight);
+            RenderArea(child, content, fontIds, imageIds, pageHeight, structureTree, parentElement, pageIndex);
         }
 
         // Restore graphics state if rotation was applied
