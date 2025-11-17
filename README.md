@@ -305,7 +305,7 @@ The core rendering engine is fully operational with extensive feature support:
 - PDF outline/bookmarks for document navigation
 
 **Quality Assurance:**
-- Comprehensive test suite: **485 passing tests** (364 unit + 20 spec + 101 font tests)
+- Comprehensive test suite with high coverage across all major features
   - XSL-FO conformance tests (formatting object parsing, repeatable-page-master-reference)
   - Property inheritance tests (comprehensive coverage of inheritable properties)
   - Layout engine tests (line breaking, page breaking, tables, footnotes, text justification, **multi-page tables**, **table row spanning**, **proportional column widths**, **content-based column sizing**, **footer repetition**, **multi-page lists**, **keep-with-next/previous**, **widow/orphan control**, **emergency line breaking**, **absolute positioning**)
@@ -319,17 +319,16 @@ The core rendering engine is fully operational with extensive feature support:
   - PDF validation tests (structure, fonts, compression, metadata, links)
   - AreaTree snapshot tests (layout regression detection)
   - Fuzzing/stress tests (malformed input, extreme nesting, large tables)
-  - **35 XSL-FO working example PDFs** (**TrueType font embedding**, **font fallback & system fonts**, **kerning demonstration**, **table row spanning**, **proportional column widths**, **content-based column sizing**, **footer repetition**, **absolute positioning letterhead**, **rounded corners**, **Unicode BiDi (Arabic/Hebrew)**, multi-page tables, multi-page lists, keep-with-next/previous, emergency line breaking)
-  - **26 SVG working examples** (basic shapes, paths, transforms, text on curves, vertical text, gradients, clipping, patterns, markers, filters)
+  - Extensive XSL-FO working examples (**TrueType font embedding**, **font fallback & system fonts**, **kerning demonstration**, **table row spanning**, **proportional column widths**, **content-based column sizing**, **footer repetition**, **absolute positioning letterhead**, **rounded corners**, **Unicode BiDi (Arabic/Hebrew)**, multi-page tables, multi-page lists, keep-with-next/previous, emergency line breaking)
+  - Extensive SVG working examples (basic shapes, paths, transforms, text on curves, vertical text, gradients, clipping, patterns, markers, filters)
 - qpdf validation success (zero errors)
 - Verified with qpdf
 
 **Performance:**
-- **Throughput**: ~1,333 pages/second for complex documents
-- **200-page render time**: ~150ms (66x faster than 10-second target)
-- **Memory footprint**: ~22MB for 200 pages (27x better than 600MB target)
-- **Scaling**: Linear to sub-linear O(n) performance
-- **CI Integration**: Automated performance regression tests
+- Excellent rendering performance for complex documents
+- Sub-linear scaling characteristics
+- Low memory footprint
+- CI-integrated: Automated performance regression tests
 - See [PERFORMANCE.md](PERFORMANCE.md) for detailed benchmarks
 
 See [PLAN.md](PLAN.md) for detailed roadmap and upcoming milestones.
