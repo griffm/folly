@@ -125,9 +125,10 @@ public sealed class PngParser : IImageParser
                                 deflateStream.CopyTo(decompressedStream);
                                 iccProfile = decompressedStream.ToArray();
                             }
-                            catch
+                            catch (Exception)
                             {
-                                // ICC profile decompression failed - ignore
+                                // ICC profile decompression failed - non-critical, image can still be processed
+                                // Profile may be corrupted or use an unsupported compression method
                                 iccProfile = null;
                             }
                         }
