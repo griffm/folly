@@ -178,13 +178,85 @@ public sealed class UnicodeBidiAlgorithm
                     break;
 
                 case BidiCharacterType.LRI: // Left-to-Right Isolate
+                    // LRI: Create a new left-to-right embedding level that isolates the content
+                    if (levelStack.Count < MaxDepth)
+                    {
+                        var newLevel = ((currentLevel + 2) & ~1); // Next even level (LTR)
+                        if (newLevel <= MaxDepth)
+                        {
+                            levelStack.Push((currentLevel, overrideStatus, true)); // Mark as isolate
+                            currentLevel = newLevel;
+                            overrideStatus = false;
+                        }
+                    }
+                    levels[i] = currentLevel;
+                    break;
+
                 case BidiCharacterType.RLI: // Right-to-Left Isolate
+                    // RLI: Create a new right-to-left embedding level that isolates the content
+                    if (levelStack.Count < MaxDepth)
+                    {
+                        var newLevel = ((currentLevel + 1) | 1); // Next odd level (RTL)
+                        if (newLevel <= MaxDepth)
+                        {
+                            levelStack.Push((currentLevel, overrideStatus, true)); // Mark as isolate
+                            currentLevel = newLevel;
+                            overrideStatus = false;
+                        }
+                    }
+                    levels[i] = currentLevel;
+                    break;
+
                 case BidiCharacterType.FSI: // First Strong Isolate
-                    // Simplified isolate handling (full implementation would be more complex)
+                    // FSI: Determine direction from first strong character, then create isolate
+                    if (levelStack.Count < MaxDepth)
+                    {
+                        // Scan ahead to find first strong character to determine direction
+                        var strongType = FindFirstStrongType(text, types, i + 1);
+                        int newLevel;
+                        if (strongType == BidiCharacterType.L)
+                        {
+                            // First strong is LTR, create LTR isolate
+                            newLevel = ((currentLevel + 2) & ~1); // Next even level
+                        }
+                        else if (strongType == BidiCharacterType.R || strongType == BidiCharacterType.AL)
+                        {
+                            // First strong is RTL, create RTL isolate
+                            newLevel = ((currentLevel + 1) | 1); // Next odd level
+                        }
+                        else
+                        {
+                            // No strong character found, use current paragraph direction
+                            newLevel = currentLevel;
+                        }
+
+                        if (newLevel <= MaxDepth)
+                        {
+                            levelStack.Push((currentLevel, overrideStatus, true)); // Mark as isolate
+                            currentLevel = newLevel;
+                            overrideStatus = false;
+                        }
+                    }
                     levels[i] = currentLevel;
                     break;
 
                 case BidiCharacterType.PDI: // Pop Directional Isolate
+                    // PDI: Close the most recent isolate
+                    if (levelStack.Count > 0)
+                    {
+                        // Pop until we find an isolate or stack is empty
+                        while (levelStack.Count > 0)
+                        {
+                            var (prevLevel, prevOverride, isIsolate) = levelStack.Pop();
+                            currentLevel = prevLevel;
+                            overrideStatus = prevOverride;
+                            if (isIsolate)
+                            {
+                                // Found matching isolate, stop popping
+                                break;
+                            }
+                        }
+                    }
                     levels[i] = currentLevel;
                     break;
 
@@ -718,6 +790,36 @@ public sealed class UnicodeBidiAlgorithm
             start++;
             end--;
         }
+    }
+
+    /// <summary>
+    /// Finds the first strong directional character type in a range (for FSI handling).
+    /// </summary>
+    /// <param name="text">The text string.</param>
+    /// <param name="types">The character types array.</param>
+    /// <param name="startIndex">Index to start scanning from.</param>
+    /// <returns>The first strong type found (L, R, or AL), or ON if none found.</returns>
+    private BidiCharacterType FindFirstStrongType(string text, BidiCharacterType[] types, int startIndex)
+    {
+        for (int i = startIndex; i < types.Length; i++)
+        {
+            var type = types[i];
+
+            // Stop at PDI (end of isolate sequence)
+            if (type == BidiCharacterType.PDI)
+                break;
+
+            // Return first strong type
+            if (type == BidiCharacterType.L ||
+                type == BidiCharacterType.R ||
+                type == BidiCharacterType.AL)
+            {
+                return type;
+            }
+        }
+
+        // No strong type found
+        return BidiCharacterType.ON;
     }
 
     /// <summary>

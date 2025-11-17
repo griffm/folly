@@ -3301,9 +3301,13 @@ internal sealed class LayoutEngine
                 intrinsicHeight = heightInPoints;
             }
         }
-        catch
+        catch (Exception ex)
         {
             // Image not found or couldn't be loaded
+            _options.Logger.Warning(
+                $"Failed to load image from '{imagePath}': {ex.Message}. " +
+                "Image will be skipped in the layout.",
+                ex);
             return null;
         }
 
@@ -3383,9 +3387,10 @@ internal sealed class LayoutEngine
                     return null;
             }
         }
-        catch
+        catch (Exception ex)
         {
             // Parser failed, return null
+            _options.Logger.Debug($"Image format parsing failed: {ex.Message}");
             return null;
         }
     }
@@ -3733,9 +3738,13 @@ internal sealed class LayoutEngine
                 IntrinsicHeight = intrinsicHeight
             };
         }
-        catch
+        catch (Exception ex)
         {
             // SVG parsing failed
+            _options.Logger.Warning(
+                $"Failed to parse embedded SVG from foreignObject: {ex.Message}. " +
+                "SVG will be skipped in the layout.",
+                ex);
             return null;
         }
     }
@@ -3775,9 +3784,13 @@ internal sealed class LayoutEngine
                 IntrinsicHeight = intrinsicHeight
             };
         }
-        catch
+        catch (Exception ex)
         {
             // SVG parsing failed
+            _options.Logger.Warning(
+                $"Failed to parse SVG from file '{path}': {ex.Message}. " +
+                "SVG will be skipped in the layout.",
+                ex);
             return null;
         }
     }
@@ -4140,9 +4153,13 @@ internal sealed class LayoutEngine
 
             return true;
         }
-        catch
+        catch (Exception ex)
         {
             // If path resolution fails, reject it
+            _options.Logger.Warning(
+                $"Image path validation failed for '{imagePath}': {ex.Message}. " +
+                "Path will be rejected for security reasons.",
+                ex);
             return false;
         }
     }

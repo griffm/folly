@@ -933,6 +933,12 @@ internal sealed class PdfWriter : IDisposable
             else if (_options.ImageErrorBehavior == ImageErrorBehavior.UsePlaceholder)
             {
                 // Return a 1x1 white pixel placeholder (backward compatibility mode)
+                _options.Logger.Warning(
+                    $"PNG image decoding failed: {ex.Message}. " +
+                    $"Replacing with 1x1 white pixel placeholder. " +
+                    (imagePath != null ? $"Image path: {imagePath}" : "Image: embedded data"),
+                    ex);
+
                 byte[] fallback = new byte[] { 255, 255, 255 };
                 return (fallback, 8, "DeviceRGB", 3, null, null, null);
             }
@@ -940,6 +946,11 @@ internal sealed class PdfWriter : IDisposable
             {
                 // For SkipImage, we still need to return something valid, so use placeholder
                 // The caller should check the error behavior and handle accordingly
+                _options.Logger.Info(
+                    $"PNG image decoding failed: {ex.Message}. " +
+                    $"Image will be skipped (ImageErrorBehavior.SkipImage). " +
+                    (imagePath != null ? $"Image path: {imagePath}" : "Image: embedded data"));
+
                 byte[] fallback = new byte[] { 255, 255, 255 };
                 return (fallback, 8, "DeviceRGB", 3, null, null, null);
             }

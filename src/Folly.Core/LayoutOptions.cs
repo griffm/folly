@@ -1,3 +1,5 @@
+using Folly.Core.Logging;
+
 namespace Folly;
 
 /// <summary>
@@ -183,4 +185,10 @@ public sealed class LayoutOptions
     /// Only applies when LineBreaking is set to Optimal and EnableHyphenation is true.
     /// </summary>
     public double KnuthPlassHyphenPenalty { get; set; } = 50.0;
+
+    /// <summary>
+    /// Gets or sets the logger for layout operations.
+    /// Default is NullLogger (no logging). Set to ConsoleLogger or custom ILogger for diagnostic output.
+    /// </summary>
+    public ILogger Logger { get; set; } = NullLogger.Instance;
 }
