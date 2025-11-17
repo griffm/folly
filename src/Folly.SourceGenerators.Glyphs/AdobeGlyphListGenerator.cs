@@ -106,8 +106,17 @@ namespace Folly.SourceGenerators.Glyphs
                 using var reader = new StreamReader(stream);
                 return ParseGlyphList(reader);
             }
-            catch
+            catch (Exception ex)
             {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    new DiagnosticDescriptor(
+                        "FOLLY004",
+                        "Embedded resource load failed",
+                        $"Failed to load glyphlist.txt from embedded resources: {ex.Message}",
+                        "SourceGenerator",
+                        DiagnosticSeverity.Warning,
+                        true),
+                    Location.None));
                 return null;
             }
         }

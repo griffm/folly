@@ -3434,10 +3434,21 @@ internal sealed class LayoutEngine
                 }
             }
         }
-        catch
+        catch (FileNotFoundException)
         {
-            // Image not found or couldn't be loaded - silently ignore
-            // Background images are optional and shouldn't break rendering
+            // Image file not found - background images are optional, continue rendering
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // Insufficient permissions to read image - continue rendering without it
+        }
+        catch (IOException)
+        {
+            // I/O error reading image file - continue rendering without it
+        }
+        catch (InvalidDataException)
+        {
+            // Image format is invalid or corrupted - continue rendering without it
         }
     }
 
@@ -3497,10 +3508,21 @@ internal sealed class LayoutEngine
                 }
             }
         }
-        catch
+        catch (FileNotFoundException)
         {
-            // Image not found or couldn't be loaded - silently ignore
-            // Background images are optional and shouldn't break rendering
+            // Image file not found - background images are optional, continue rendering
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // Insufficient permissions to read image - continue rendering without it
+        }
+        catch (IOException)
+        {
+            // I/O error reading image file - continue rendering without it
+        }
+        catch (InvalidDataException)
+        {
+            // Image format is invalid or corrupted - continue rendering without it
         }
     }
 
