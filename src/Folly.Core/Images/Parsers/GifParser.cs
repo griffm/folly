@@ -139,10 +139,6 @@ public sealed class GifParser : IImageParser
         if (imageWidth == 0 || imageHeight == 0)
             throw new InvalidDataException("No valid image data found in GIF");
 
-        // TODO: GIF interlacing is complex - for now, reject interlaced GIFs
-        if (interlaced)
-            throw new NotSupportedException("Interlaced GIF images are not yet supported");
-
         // Decode LZW compressed image data
         if (offset >= data.Length)
             throw new InvalidDataException("GIF image data is missing");
@@ -152,6 +148,12 @@ public sealed class GifParser : IImageParser
 
         byte[] compressedData = ReadDataSubBlocks(data, ref offset);
         byte[] indexedPixels = DecodeLzw(compressedData, lzwMinimumCodeSize, imageWidth * imageHeight);
+
+        // Deinterlace if necessary
+        if (interlaced)
+        {
+            indexedPixels = DeinterlaceGif(indexedPixels, imageWidth, imageHeight);
+        }
 
         // Select color table (local takes precedence over global)
         byte[]? colorTable = localColorTable ?? globalColorTable;
@@ -258,6 +260,69 @@ public sealed class GifParser : IImageParser
         }
 
         return blocks.ToArray();
+    }
+
+    /// <summary>
+    /// Deinterlaces GIF image data using the 4-pass interlace scheme.
+    /// Pass 1: Every 8th row, starting at row 0
+    /// Pass 2: Every 8th row, starting at row 4
+    /// Pass 3: Every 4th row, starting at row 2
+    /// Pass 4: Every 2nd row, starting at row 1
+    /// </summary>
+    private static byte[] DeinterlaceGif(byte[] interlacedData, int width, int height)
+    {
+        byte[] deinterlaced = new byte[width * height];
+        int sourceIndex = 0;
+
+        // Pass 1: Every 8th row, starting at row 0
+        for (int row = 0; row < height; row += 8)
+        {
+            for (int col = 0; col < width; col++)
+            {
+                if (sourceIndex < interlacedData.Length)
+                {
+                    deinterlaced[row * width + col] = interlacedData[sourceIndex++];
+                }
+            }
+        }
+
+        // Pass 2: Every 8th row, starting at row 4
+        for (int row = 4; row < height; row += 8)
+        {
+            for (int col = 0; col < width; col++)
+            {
+                if (sourceIndex < interlacedData.Length)
+                {
+                    deinterlaced[row * width + col] = interlacedData[sourceIndex++];
+                }
+            }
+        }
+
+        // Pass 3: Every 4th row, starting at row 2
+        for (int row = 2; row < height; row += 4)
+        {
+            for (int col = 0; col < width; col++)
+            {
+                if (sourceIndex < interlacedData.Length)
+                {
+                    deinterlaced[row * width + col] = interlacedData[sourceIndex++];
+                }
+            }
+        }
+
+        // Pass 4: Every 2nd row, starting at row 1
+        for (int row = 1; row < height; row += 2)
+        {
+            for (int col = 0; col < width; col++)
+            {
+                if (sourceIndex < interlacedData.Length)
+                {
+                    deinterlaced[row * width + col] = interlacedData[sourceIndex++];
+                }
+            }
+        }
+
+        return deinterlaced;
     }
 
     // Simple LZW decoder for GIF images (zero dependencies)
