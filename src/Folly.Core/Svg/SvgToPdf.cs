@@ -720,8 +720,17 @@ public sealed class SvgToPdfConverter
                 }
                 else
                 {
-                    // URL-encoded data (rare)
-                    return; // TODO: Handle URL-encoded image data
+                    // URL-encoded data (e.g., data:image/svg+xml,<svg>...</svg>)
+                    // Decode URL encoding and convert to bytes
+                    try
+                    {
+                        var urlDecodedData = System.Uri.UnescapeDataString(imageData);
+                        decodedData = System.Text.Encoding.UTF8.GetBytes(urlDecodedData);
+                    }
+                    catch
+                    {
+                        return; // Invalid URL encoding
+                    }
                 }
 
                 // Add image to XObjects collection
