@@ -760,11 +760,7 @@ internal sealed class PdfWriter : IDisposable
                     colorType = pngData[offset + 8 + 9];
                     interlaceMethod = pngData[offset + 8 + 12];
 
-                    // Validate interlace immediately after parsing IHDR
-                    if (interlaceMethod != 0)
-                    {
-                        throw new NotSupportedException($"Interlaced PNG images (Adam7) are not supported. Please convert to non-interlaced format.");
-                    }
+                    // Interlacing is now supported (both 0=none and 1=Adam7)
                 }
                 else if (chunkType == "PLTE")
                 {
@@ -885,21 +881,29 @@ internal sealed class PdfWriter : IDisposable
             byte[]? alphaData = null;
             byte[] compressedColorData;
 
-            if (hasAlpha)
+            if (hasAlpha || interlaceMethod == 1)
             {
-                // Decompress and unfilter the PNG data
-                byte[] unfilteredData = DecompressAndUnfilterPng(idatData.ToArray(), width, height, bitDepth, totalComponents);
+                // Decompress and unfilter the PNG data (required for alpha separation or deinterlacing)
+                byte[] unfilteredData = DecompressAndUnfilterPng(idatData.ToArray(), width, height, bitDepth, totalComponents, interlaceMethod);
 
-                // Separate color and alpha channels
-                var (colorData, separatedAlpha) = SeparateColorAndAlpha(unfilteredData, width, height, bitDepth, totalComponents, colorComponents);
+                if (hasAlpha)
+                {
+                    // Separate color and alpha channels
+                    var (colorData, separatedAlpha) = SeparateColorAndAlpha(unfilteredData, width, height, bitDepth, totalComponents, colorComponents);
 
-                // Recompress both streams
-                compressedColorData = CompressWithDeflate(colorData);
-                alphaData = CompressWithDeflate(separatedAlpha);
+                    // Recompress both streams
+                    compressedColorData = CompressWithDeflate(colorData);
+                    alphaData = CompressWithDeflate(separatedAlpha);
+                }
+                else
+                {
+                    // Interlaced but no alpha - recompress the deinterlaced data
+                    compressedColorData = CompressWithDeflate(unfilteredData);
+                }
             }
             else
             {
-                // No alpha channel, use original compressed data
+                // No alpha channel and not interlaced, use original compressed data
                 compressedColorData = idatData.ToArray();
             }
 
@@ -958,9 +962,9 @@ internal sealed class PdfWriter : IDisposable
     }
 
     /// <summary>
-    /// Decompresses PNG IDAT data and reverses PNG filters.
+    /// Decompresses PNG IDAT data, reverses PNG filters, and deinterlaces if needed.
     /// </summary>
-    private byte[] DecompressAndUnfilterPng(byte[] idatData, int width, int height, int bitsPerComponent, int colorComponents)
+    private byte[] DecompressAndUnfilterPng(byte[] idatData, int width, int height, int bitsPerComponent, int colorComponents, int interlaceMethod)
     {
         // PNG IDAT data is compressed with zlib, which has a 2-byte header and 4-byte Adler-32 checksum trailer
         // DeflateStream expects raw deflate data, so we skip the zlib wrapper
@@ -980,6 +984,12 @@ internal sealed class PdfWriter : IDisposable
         using var outputStream = new MemoryStream();
         deflateStream.CopyTo(outputStream);
         byte[] decompressed = outputStream.ToArray();
+
+        // For interlaced images, we need to deinterlace first, then unfilter
+        if (interlaceMethod == 1)
+        {
+            return DeinterlaceAdam7(decompressed, width, height, bitsPerComponent, colorComponents);
+        }
 
         // Calculate scanline size (filter byte + pixel data)
         int bytesPerPixel = (bitsPerComponent * colorComponents + 7) / 8;
@@ -1024,6 +1034,121 @@ internal sealed class PdfWriter : IDisposable
         }
 
         return unfiltered;
+    }
+
+    /// <summary>
+    /// Deinterlaces Adam7-interlaced PNG data.
+    /// Adam7 divides the image into 7 passes with different starting positions and strides.
+    /// </summary>
+    private byte[] DeinterlaceAdam7(byte[] interlacedData, int width, int height, int bitsPerComponent, int colorComponents)
+    {
+        // Adam7 pass parameters: (xStart, yStart, xStride, yStride)
+        var passes = new[]
+        {
+            (0, 0, 8, 8), // Pass 1
+            (4, 0, 8, 8), // Pass 2
+            (0, 4, 4, 8), // Pass 3
+            (2, 0, 4, 4), // Pass 4
+            (0, 2, 2, 4), // Pass 5
+            (1, 0, 2, 2), // Pass 6
+            (0, 1, 1, 2)  // Pass 7
+        };
+
+        int bytesPerPixel = (bitsPerComponent * colorComponents + 7) / 8;
+        int outputScanlineSize = 1 + ((width * bitsPerComponent * colorComponents + 7) / 8);
+        byte[] output = new byte[outputScanlineSize * height];
+
+        // Initialize all filter bytes to 0 (no filter)
+        for (int y = 0; y < height; y++)
+        {
+            output[y * outputScanlineSize] = 0;
+        }
+
+        int inputOffset = 0;
+
+        foreach (var (xStart, yStart, xStride, yStride) in passes)
+        {
+            // Calculate pass dimensions
+            int passWidth = (width - xStart + xStride - 1) / xStride;
+            int passHeight = (height - yStart + yStride - 1) / yStride;
+
+            if (passWidth == 0 || passHeight == 0)
+                continue; // Empty pass for small images
+
+            int passScanlineSize = 1 + ((passWidth * bitsPerComponent * colorComponents + 7) / 8);
+
+            // Unfilter this pass
+            byte[] passData = new byte[passScanlineSize * passHeight];
+            for (int py = 0; py < passHeight; py++)
+            {
+                int passScanlineOffset = py * passScanlineSize;
+                byte filterType = interlacedData[inputOffset + passScanlineOffset];
+                passData[passScanlineOffset] = 0; // No filter in output
+
+                for (int x = 0; x < passScanlineSize - 1; x++)
+                {
+                    int currentByte = passScanlineOffset + 1 + x;
+                    byte raw = interlacedData[inputOffset + currentByte];
+                    byte left = x >= bytesPerPixel ? passData[currentByte - bytesPerPixel] : (byte)0;
+                    byte up = py > 0 ? passData[currentByte - passScanlineSize] : (byte)0;
+                    byte upLeft = (py > 0 && x >= bytesPerPixel) ? passData[currentByte - passScanlineSize - bytesPerPixel] : (byte)0;
+
+                    byte reconstructed = filterType switch
+                    {
+                        0 => raw, // None
+                        1 => (byte)(raw + left), // Sub
+                        2 => (byte)(raw + up), // Up
+                        3 => (byte)(raw + ((left + up) / 2)), // Average
+                        4 => (byte)(raw + PaethPredictor(left, up, upLeft)), // Paeth
+                        _ => throw new NotSupportedException($"Unknown PNG filter type: {filterType}")
+                    };
+
+                    passData[currentByte] = reconstructed;
+                }
+            }
+
+            // Copy pass pixels to output image
+            for (int py = 0; py < passHeight; py++)
+            {
+                int outputY = yStart + py * yStride;
+                for (int px = 0; px < passWidth; px++)
+                {
+                    int outputX = xStart + px * xStride;
+
+                    // Copy pixel data (handle sub-byte pixels for low bit depths)
+                    int passScanlineOffset = py * passScanlineSize + 1;
+                    int outputScanlineOffset = outputY * outputScanlineSize + 1;
+
+                    int pixelBits = bitsPerComponent * colorComponents;
+                    int passByteIndex = (px * pixelBits) / 8;
+                    int outputByteIndex = (outputX * pixelBits) / 8;
+
+                    if (pixelBits >= 8)
+                    {
+                        // Full byte pixels - direct copy
+                        int bytesPerFullPixel = pixelBits / 8;
+                        for (int b = 0; b < bytesPerFullPixel; b++)
+                        {
+                            output[outputScanlineOffset + outputByteIndex + b] = passData[passScanlineOffset + passByteIndex + b];
+                        }
+                    }
+                    else
+                    {
+                        // Sub-byte pixels - need bit manipulation (for 1, 2, 4 bit depths)
+                        int passBitIndex = (px * pixelBits) % 8;
+                        int outputBitIndex = (outputX * pixelBits) % 8;
+
+                        int mask = (1 << pixelBits) - 1;
+                        int value = (passData[passScanlineOffset + passByteIndex] >> (8 - passBitIndex - pixelBits)) & mask;
+                        output[outputScanlineOffset + outputByteIndex] |= (byte)(value << (8 - outputBitIndex - pixelBits));
+                    }
+                }
+            }
+
+            inputOffset += passScanlineSize * passHeight;
+        }
+
+        return output;
     }
 
     /// <summary>

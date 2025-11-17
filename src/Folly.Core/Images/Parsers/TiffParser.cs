@@ -43,13 +43,15 @@ public sealed class TiffParser : IImageParser
         var tags = ParseIfd(data, ifdOffset, littleEndian);
 
         // Extract required tags
-        if (!tags.TryGetValue(256, out uint imageWidth) || !tags.TryGetValue(257, out uint imageHeight))
+        if (!tags.TryGetValue(256, out TiffTagEntry imageWidthEntry) || !tags.TryGetValue(257, out TiffTagEntry imageHeightEntry))
             throw new InvalidDataException("TIFF missing required ImageWidth or ImageLength tags");
 
-        uint compression = tags.TryGetValue(259, out var comp) ? comp : 1; // Default: no compression
-        uint photometricInterpretation = tags.TryGetValue(262, out var photo) ? photo : 2; // Default: RGB
-        uint samplesPerPixel = tags.TryGetValue(277, out var samples) ? samples : 3; // Default: 3 (RGB)
-        uint bitsPerSample = tags.TryGetValue(258, out var bits) ? bits : 8; // Default: 8 bits
+        uint imageWidth = imageWidthEntry.ValueOrOffset;
+        uint imageHeight = imageHeightEntry.ValueOrOffset;
+        uint compression = tags.TryGetValue(259, out var compEntry) ? compEntry.ValueOrOffset : 1; // Default: no compression
+        uint photometricInterpretation = tags.TryGetValue(262, out var photoEntry) ? photoEntry.ValueOrOffset : 2; // Default: RGB
+        uint samplesPerPixel = tags.TryGetValue(277, out var samplesEntry) ? samplesEntry.ValueOrOffset : 3; // Default: 3 (RGB)
+        uint bitsPerSample = tags.TryGetValue(258, out var bitsEntry) ? bitsEntry.ValueOrOffset : 8; // Default: 8 bits
 
         // Validate compression type
         if (compression != 1 && compression != 5 && compression != 32773)
@@ -60,13 +62,8 @@ public sealed class TiffParser : IImageParser
             throw new NotSupportedException($"TIFF photometric interpretation {photometricInterpretation} not supported. Supported: 0-1 (grayscale), 2 (RGB), 3 (palette).");
 
         // Read strip/tile data
-        uint[] stripOffsets = tags.TryGetValue(273, out uint stripOffsetSingle)
-            ? new[] { stripOffsetSingle }
-            : ReadIntArray(data, tags, 273, littleEndian);
-
-        uint[] stripByteCounts = tags.TryGetValue(279, out uint stripByteCountSingle)
-            ? new[] { stripByteCountSingle }
-            : ReadIntArray(data, tags, 279, littleEndian);
+        uint[] stripOffsets = ReadIntArray(data, tags, 273, littleEndian);
+        uint[] stripByteCounts = ReadIntArray(data, tags, 279, littleEndian);
 
         if (stripOffsets == null || stripByteCounts == null)
             throw new InvalidDataException("TIFF missing strip offsets or byte counts");
@@ -103,14 +100,14 @@ public sealed class TiffParser : IImageParser
         double horizontalDpi = 0;
         double verticalDpi = 0;
 
-        if (tags.TryGetValue(282, out uint xResValue) && tags.TryGetValue(283, out uint yResValue))
+        if (tags.TryGetValue(282, out TiffTagEntry xResEntry) && tags.TryGetValue(283, out TiffTagEntry yResEntry))
         {
             // X/Y Resolution are stored as RATIONAL (two 32-bit values: numerator/denominator)
-            // For simplicity, assume they're stored directly (this works for many TIFFs)
-            var xResolution = ReadRational(data, (int)xResValue, littleEndian);
-            var yResolution = ReadRational(data, (int)yResValue, littleEndian);
+            // The ValueOrOffset field contains an offset to the rational data
+            var xResolution = ReadRational(data, (int)xResEntry.ValueOrOffset, littleEndian);
+            var yResolution = ReadRational(data, (int)yResEntry.ValueOrOffset, littleEndian);
 
-            uint resolutionUnit = tags.TryGetValue(296, out var unit) ? unit : 2; // Default: inch
+            uint resolutionUnit = tags.TryGetValue(296, out var unitEntry) ? unitEntry.ValueOrOffset : 2; // Default: inch
 
             if (resolutionUnit == 2) // Inch
             {
@@ -177,9 +174,9 @@ public sealed class TiffParser : IImageParser
         };
     }
 
-    private static Dictionary<ushort, uint> ParseIfd(byte[] data, int offset, bool littleEndian)
+    private static Dictionary<ushort, TiffTagEntry> ParseIfd(byte[] data, int offset, bool littleEndian)
     {
-        var tags = new Dictionary<ushort, uint>();
+        var tags = new Dictionary<ushort, TiffTagEntry>();
 
         ushort entryCount = ReadUInt16(data, offset, littleEndian);
         offset += 2;
@@ -191,9 +188,12 @@ public sealed class TiffParser : IImageParser
             uint count = ReadUInt32(data, offset + 4, littleEndian);
             uint valueOrOffset = ReadUInt32(data, offset + 8, littleEndian);
 
-            // For simple types (SHORT, LONG) with count=1, value is stored directly
-            // For other types, valueOrOffset is an offset to the actual data
-            tags[tag] = valueOrOffset;
+            tags[tag] = new TiffTagEntry
+            {
+                Type = type,
+                Count = count,
+                ValueOrOffset = valueOrOffset
+            };
 
             offset += 12;
         }
@@ -201,14 +201,67 @@ public sealed class TiffParser : IImageParser
         return tags;
     }
 
-    private static uint[] ReadIntArray(byte[] data, Dictionary<ushort, uint> tags, ushort tag, bool littleEndian)
+    private readonly struct TiffTagEntry
     {
-        if (!tags.TryGetValue(tag, out uint offsetOrValue))
+        public ushort Type { get; init; }
+        public uint Count { get; init; }
+        public uint ValueOrOffset { get; init; }
+    }
+
+    private static uint[] ReadIntArray(byte[] data, Dictionary<ushort, TiffTagEntry> tags, ushort tag, bool littleEndian)
+    {
+        if (!tags.TryGetValue(tag, out TiffTagEntry entry))
             return Array.Empty<uint>();
 
-        // For now, assume simple case: single value stored directly
-        // TODO: Handle arrays properly by reading from offset
-        return new[] { offsetOrValue };
+        // TIFF type constants: SHORT=3 (2 bytes), LONG=4 (4 bytes)
+        int typeSize = entry.Type == 3 ? 2 : 4; // SHORT or LONG
+        int totalBytes = (int)entry.Count * typeSize;
+
+        // If total bytes <= 4, values are stored directly in ValueOrOffset
+        // Otherwise, ValueOrOffset is an offset to the actual array data
+        if (totalBytes <= 4)
+        {
+            // Values stored inline in the ValueOrOffset field
+            var result = new uint[entry.Count];
+            byte[] valueBytes = BitConverter.GetBytes(entry.ValueOrOffset);
+
+            if (!littleEndian)
+                Array.Reverse(valueBytes);
+
+            for (int i = 0; i < entry.Count; i++)
+            {
+                if (entry.Type == 3) // SHORT (2 bytes)
+                {
+                    result[i] = ReadUInt16(valueBytes, i * 2, littleEndian);
+                }
+                else // LONG (4 bytes)
+                {
+                    result[i] = entry.ValueOrOffset;
+                }
+            }
+            return result;
+        }
+        else
+        {
+            // Values stored at offset
+            int offset = (int)entry.ValueOrOffset;
+            if (offset + totalBytes > data.Length)
+                return Array.Empty<uint>();
+
+            var result = new uint[entry.Count];
+            for (int i = 0; i < entry.Count; i++)
+            {
+                if (entry.Type == 3) // SHORT
+                {
+                    result[i] = ReadUInt16(data, offset + (i * 2), littleEndian);
+                }
+                else // LONG
+                {
+                    result[i] = ReadUInt32(data, offset + (i * 4), littleEndian);
+                }
+            }
+            return result;
+        }
     }
 
     private static double ReadRational(byte[] data, int offset, bool littleEndian)
@@ -261,11 +314,13 @@ public sealed class TiffParser : IImageParser
         }
     }
 
-    private static byte[]? ReadColorMap(byte[] data, Dictionary<ushort, uint> tags, bool littleEndian)
+    private static byte[]? ReadColorMap(byte[] data, Dictionary<ushort, TiffTagEntry> tags, bool littleEndian)
     {
         // ColorMap tag (320) contains RGB values for palette
-        if (!tags.TryGetValue(320, out uint colorMapOffset))
+        if (!tags.TryGetValue(320, out TiffTagEntry colorMapEntry))
             return null;
+
+        uint colorMapOffset = colorMapEntry.ValueOrOffset;
 
         // TIFF ColorMap contains 3*2^BitsPerSample 16-bit values (R, G, B)
         // We need to convert to 8-bit RGB triplets for PDF

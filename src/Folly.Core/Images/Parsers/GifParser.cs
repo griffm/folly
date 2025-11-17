@@ -4,6 +4,13 @@ namespace Folly.Images.Parsers;
 /// Parser for GIF (Graphics Interchange Format) image format.
 /// Supports GIF87a and GIF89a with indexed colors and transparency.
 /// Handles LZW decompression without external dependencies.
+///
+/// <para>
+/// <strong>LIMITATION: Single-frame extraction only.</strong>
+/// Animated GIFs and multi-frame GIFs will be parsed as static images showing only the first frame.
+/// This is appropriate for PDF embedding since PDF does not natively support animated images.
+/// GIF disposal methods, frame delays, and animation metadata are not processed.
+/// </para>
 /// </summary>
 public sealed class GifParser : IImageParser
 {
@@ -52,8 +59,12 @@ public sealed class GifParser : IImageParser
             offset += globalTableBytes;
         }
 
-        // TODO: Parse extension blocks for transparency and other metadata
-        // For now, we'll look for the first image descriptor and decode it
+        // IMPLEMENTATION NOTE: Single-frame extraction
+        // Multi-frame GIFs (including animations) contain multiple image descriptors (0x2C blocks).
+        // This parser extracts only the FIRST frame for PDF embedding.
+        // Rationale: PDF format does not support animated images, so extracting the first frame
+        // provides a static representation suitable for document embedding.
+        // Animation metadata (disposal methods, delays), subsequent frames, and loop counts are ignored.
         int transparentColorIndex = -1;
 
         // Scan for blocks until we find an image descriptor or trailer
@@ -122,7 +133,8 @@ public sealed class GifParser : IImageParser
                     offset += localTableBytes;
                 }
 
-                // Found the first image, proceed to decode
+                // Found the first image descriptor - extract this frame and stop scanning.
+                // Multi-frame/animated GIFs will only show their first frame in the PDF.
                 break;
             }
             else if (blockType == 0x3B) // Trailer
