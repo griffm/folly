@@ -338,10 +338,81 @@ internal sealed class PdfWriter : IDisposable
         return imageId;
     }
 
+    /// <summary>
+    /// Expands indexed PNG with tRNS transparency to RGB + separate alpha channel.
+    /// </summary>
+    private (byte[] RgbData, byte[] AlphaData, byte[]? Palette, byte[]? Transparency) ExpandIndexedWithTransparency(
+        byte[] indexedData, byte[] palette, byte[] transparency, int width, int height)
+    {
+        using var indexedStream = new MemoryStream(indexedData);
+        using var zlibStream = new System.IO.Compression.ZLibStream(indexedStream, System.IO.Compression.CompressionMode.Decompress);
+        using var decompressed = new MemoryStream();
+        zlibStream.CopyTo(decompressed);
+        byte[] indices = decompressed.ToArray();
+
+        int pixelCount = width * height;
+        byte[] rgbData = new byte[pixelCount * 3];
+        byte[] alphaData = new byte[pixelCount];
+
+        int srcIdx = 0;
+        int dstIdx = 0;
+
+        for (int i = 0; i < pixelCount; i++)
+        {
+            if (srcIdx >= indices.Length)
+                break;
+
+            byte paletteIndex = indices[srcIdx++];
+            int paletteOffset = paletteIndex * 3;
+
+            // Get RGB from palette
+            if (paletteOffset + 2 < palette.Length)
+            {
+                rgbData[dstIdx++] = palette[paletteOffset];
+                rgbData[dstIdx++] = palette[paletteOffset + 1];
+                rgbData[dstIdx++] = palette[paletteOffset + 2];
+            }
+            else
+            {
+                // Invalid palette index - use black
+                rgbData[dstIdx++] = 0;
+                rgbData[dstIdx++] = 0;
+                rgbData[dstIdx++] = 0;
+            }
+
+            // Get alpha from transparency array
+            if (paletteIndex < transparency.Length)
+            {
+                alphaData[i] = transparency[paletteIndex];
+            }
+            else
+            {
+                alphaData[i] = 255; // Fully opaque if no transparency specified for this index
+            }
+        }
+
+        // Compress the RGB and alpha data
+        byte[] compressedRgb = CompressWithDeflate(rgbData);
+        byte[] compressedAlpha = CompressWithDeflate(alphaData);
+
+        return (compressedRgb, compressedAlpha, null, null);
+    }
+
     private int WritePngXObject(byte[] pngData, int width, int height, string? imagePath = null)
     {
         // Decode PNG and write as FlateDecode image with PNG predictors
         var (compressedData, bitsPerComponent, colorSpace, colorComponents, palette, transparency, alphaData) = DecodePng(pngData, width, height, imagePath);
+
+        // Handle indexed color with tRNS transparency by expanding to RGB + SMask
+        if (palette != null && transparency != null && alphaData == null)
+        {
+            (compressedData, alphaData, _, _) = ExpandIndexedWithTransparency(
+                compressedData, palette, transparency, width, height);
+            palette = null; // Clear palette since we've expanded to RGB
+            transparency = null; // Clear transparency since we've created alpha channel
+            colorSpace = "DeviceRGB";
+            colorComponents = 3;
+        }
 
         // Create SMask if alpha channel is present
         int? smaskId = null;
@@ -408,7 +479,6 @@ internal sealed class PdfWriter : IDisposable
                 int gray = (transparency[0] << 8) | transparency[1];
                 WriteLine($"  /Mask [{gray} {gray}]");
             }
-            // TODO: Handle indexed color with tRNS (requires SMask or palette expansion)
         }
 
         WriteLine("  /Filter /FlateDecode");
