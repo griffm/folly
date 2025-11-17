@@ -237,7 +237,7 @@ The core rendering engine is fully operational with extensive feature support:
 - Links (fo:basic-link) for internal and external hyperlinks
 - Bookmarks (fo:bookmark-tree, fo:bookmark) for PDF outline navigation
 - Leaders (fo:leader) for generating dot patterns, rules, and spaces - commonly used in tables of contents
-- **Full Unicode BiDi Algorithm (UAX#9)** - Complete implementation for Arabic, Hebrew, and mixed LTR/RTL text with proper handling of numbers, punctuation, and weak/neutral types
+- **Full Unicode BiDi Algorithm (UAX#9)** - Complete implementation for Arabic, Hebrew, and mixed LTR/RTL text with proper handling of numbers, punctuation, weak/neutral types, and **directional isolates** (LRI, RLI, FSI, PDI)
 - Advanced formatting objects (fo:page-number-citation, fo:page-number-citation-last, fo:block-container, fo:inline-container, fo:wrapper, fo:character, fo:initial-property-set)
 - **Side regions** (fo:region-start, fo:region-end) for left and right sidebars - ideal for margin notes, glossaries, and supplementary content
 - **Absolute positioning** (fo:block-container with absolute-position) for letterheads, watermarks, and complex forms
@@ -275,10 +275,10 @@ The core rendering engine is fully operational with extensive feature support:
 - **Rotation transformations** using PDF transformation matrices for rotated content (0°, 90°, 180°, 270°)
 - **Image embedding** with zero dependencies
   - JPEG (DCTDecode passthrough for optimal file size)
-  - PNG (FlateDecode with PNG predictors, alpha channel support via SMask)
+  - PNG (FlateDecode with PNG predictors, alpha channel support via SMask, **Adam7 interlacing**)
   - **BMP** (24-bit and 32-bit RGB with alpha, DPI detection, BGR→RGB conversion)
-  - **GIF** (custom LZW decompression, global/local color tables, transparency, indexed color spaces)
-  - **TIFF** (baseline uncompressed RGB, little/big-endian, IFD parsing, DPI extraction)
+  - **GIF** (custom LZW decompression, global/local color tables, transparency, indexed color spaces, **first-frame extraction** from animated GIFs)
+  - **TIFF** (baseline RGB, little/big-endian, **complete IFD array parsing**, LZW/PackBits compression, DPI extraction)
 - **SVG rendering** - World-class SVG support with zero dependencies (~5,500 lines of production code)
   - **Basic shapes** (rect, circle, ellipse, line, polyline, polygon) - 100% complete
   - **Paths** - All 14 SVG path commands (M, m, L, l, H, h, V, v, C, c, S, s, Q, q, T, t, A, a, Z, z) including full elliptical arc algorithm
@@ -290,7 +290,7 @@ The core rendering engine is fully operational with extensive feature support:
     - **Vertical text** (writing-mode: vertical-rl, vertical-lr) - Japanese/Chinese/Mongolian support
   - **Transforms** - All 6 types (translate, rotate, scale, skewX, skewY, matrix) with composition
   - **Gradients** - Linear and radial gradients on ALL elements with full PDF Type 2/3 shading support
-  - **Clipping paths** - PDF W/W* operators for precise masking
+  - **Clipping paths** - PDF W/W* operators for precise masking with support for all shapes (rect, circle, ellipse, polygon, polyline, path) and both userSpaceOnUse and objectBoundingBox coordinate systems
   - **Patterns** - Tiling patterns for repeating fills and textures
   - **Markers** - Arrow heads and path decorations with auto-rotation
   - **Opacity** - Fill, stroke, and text transparency with PDF graphics states
