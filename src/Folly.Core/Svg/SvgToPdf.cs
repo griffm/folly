@@ -118,7 +118,9 @@ public sealed class SvgToPdfConverter
         // Apply clipping path if specified
         if (!string.IsNullOrWhiteSpace(element.Style.ClipPath))
         {
-            ApplyClippingPath(element.Style.ClipPath);
+            // Calculate element bounding box for objectBoundingBox clip path units
+            var bbox = CalculateElementBoundingBox(element);
+            ApplyClippingPath(element.Style.ClipPath, bbox);
         }
 
         // Apply drop shadow if filter specified
@@ -640,8 +642,8 @@ public sealed class SvgToPdfConverter
             }
         }
 
-        // TODO: Support tspan elements for multi-line text
-        // TODO: Support textPath for text on curves
+        // tspan elements are now supported (see RenderTextWithTspans method)
+        // textPath elements are now supported (see RenderTextPath method)
     }
 
     private void RenderUse(SvgElement element)
@@ -1039,7 +1041,9 @@ public sealed class SvgToPdfConverter
     /// <summary>
     /// Applies a clipping path from the ClipPaths dictionary.
     /// </summary>
-    private void ApplyClippingPath(string clipPathReference)
+    /// <param name="clipPathReference">Reference to the clip path (url(#id)).</param>
+    /// <param name="elementBBox">Optional bounding box of the element being clipped (for objectBoundingBox units).</param>
+    private void ApplyClippingPath(string clipPathReference, (double x, double y, double width, double height)? elementBBox)
     {
         var id = ExtractUrlId(clipPathReference);
         if (string.IsNullOrWhiteSpace(id))
@@ -1048,8 +1052,23 @@ public sealed class SvgToPdfConverter
         if (!_document.ClipPaths.TryGetValue(id, out var clipPath))
             return; // Clipping path not found
 
-        // TODO: Handle clipPathUnits (userSpaceOnUse vs objectBoundingBox)
-        // For objectBoundingBox, we'd need to scale the clip path to the element's bounding box
+        // Handle clipPathUnits: userSpaceOnUse (default) or objectBoundingBox
+        bool useObjectBoundingBox = clipPath.ClipPathUnits == "objectBoundingBox";
+
+        if (useObjectBoundingBox && elementBBox == null)
+        {
+            _diagnosticCallback?.Invoke($"ClipPath '{id}' uses objectBoundingBox but element bounding box could not be calculated. Using userSpaceOnUse instead.");
+            useObjectBoundingBox = false;
+        }
+
+        // If using objectBoundingBox, apply transform to scale clip path to element's bounding box
+        if (useObjectBoundingBox && elementBBox != null)
+        {
+            var bbox = elementBBox.Value;
+            // objectBoundingBox: clip path coordinates are relative to element bbox (0-1 range)
+            // Transform: translate(bbox.x, bbox.y) scale(bbox.width, bbox.height)
+            _contentStream.AppendLine($"{bbox.width} 0 0 {bbox.height} {bbox.x} {bbox.y} cm");
+        }
 
         // Render all clipping path elements to create the clipping region
         foreach (var clipElement in clipPath.ClipElements)
@@ -1089,6 +1108,47 @@ public sealed class SvgToPdfConverter
                     }
                     break;
 
+                case "polygon":
+                    {
+                        var points = clipElement.GetAttribute("points");
+                        if (!string.IsNullOrWhiteSpace(points))
+                        {
+                            var coords = SvgLengthParser.ParseList(points);
+                            if (coords.Length >= 2)
+                            {
+                                _contentStream.AppendLine($"{coords[0]} {coords[1]} m");
+                                for (int i = 2; i < coords.Length; i += 2)
+                                {
+                                    if (i + 1 < coords.Length)
+                                        _contentStream.AppendLine($"{coords[i]} {coords[i + 1]} l");
+                                }
+                                _contentStream.AppendLine("h"); // Close path
+                            }
+                        }
+                    }
+                    break;
+
+                case "polyline":
+                    {
+                        var points = clipElement.GetAttribute("points");
+                        if (!string.IsNullOrWhiteSpace(points))
+                        {
+                            // For clipping, polyline should be closed
+                            var coords = SvgLengthParser.ParseList(points);
+                            if (coords.Length >= 2)
+                            {
+                                _contentStream.AppendLine($"{coords[0]} {coords[1]} m");
+                                for (int i = 2; i < coords.Length; i += 2)
+                                {
+                                    if (i + 1 < coords.Length)
+                                        _contentStream.AppendLine($"{coords[i]} {coords[i + 1]} l");
+                                }
+                                _contentStream.AppendLine("h"); // Close path
+                            }
+                        }
+                    }
+                    break;
+
                 case "path":
                     {
                         var d = clipElement.GetAttribute("d");
@@ -1102,8 +1162,6 @@ public sealed class SvgToPdfConverter
                         }
                     }
                     break;
-
-                // TODO: Support more clipping shapes (polygon, polyline, etc.)
             }
         }
 
@@ -2311,6 +2369,127 @@ public sealed class SvgToPdfConverter
 
         // Estimate total width
         return text.Length * fontSize * avgCharWidth;
+    }
+
+    /// <summary>
+    /// Calculates the bounding box of an SVG element.
+    /// Returns null if the bounding box cannot be calculated for the element type.
+    /// </summary>
+    private (double x, double y, double width, double height)? CalculateElementBoundingBox(SvgElement element)
+    {
+        switch (element.ElementType)
+        {
+            case "rect":
+                {
+                    var x = element.GetDoubleAttribute("x", 0);
+                    var y = element.GetDoubleAttribute("y", 0);
+                    var width = element.GetDoubleAttribute("width", 0);
+                    var height = element.GetDoubleAttribute("height", 0);
+                    if (width > 0 && height > 0)
+                        return (x, y, width, height);
+                }
+                break;
+
+            case "circle":
+                {
+                    var cx = element.GetDoubleAttribute("cx", 0);
+                    var cy = element.GetDoubleAttribute("cy", 0);
+                    var r = element.GetDoubleAttribute("r", 0);
+                    if (r > 0)
+                        return (cx - r, cy - r, r * 2, r * 2);
+                }
+                break;
+
+            case "ellipse":
+                {
+                    var cx = element.GetDoubleAttribute("cx", 0);
+                    var cy = element.GetDoubleAttribute("cy", 0);
+                    var rx = element.GetDoubleAttribute("rx", 0);
+                    var ry = element.GetDoubleAttribute("ry", 0);
+                    if (rx > 0 && ry > 0)
+                        return (cx - rx, cy - ry, rx * 2, ry * 2);
+                }
+                break;
+
+            case "line":
+                {
+                    var x1 = element.GetDoubleAttribute("x1", 0);
+                    var y1 = element.GetDoubleAttribute("y1", 0);
+                    var x2 = element.GetDoubleAttribute("x2", 0);
+                    var y2 = element.GetDoubleAttribute("y2", 0);
+                    var minX = Math.Min(x1, x2);
+                    var minY = Math.Min(y1, y2);
+                    var maxX = Math.Max(x1, x2);
+                    var maxY = Math.Max(y1, y2);
+                    return (minX, minY, maxX - minX, maxY - minY);
+                }
+
+            case "path":
+                {
+                    var d = element.GetAttribute("d");
+                    if (!string.IsNullOrWhiteSpace(d))
+                    {
+                        var bbox = SvgPathParser.CalculateBoundingBox(d);
+                        if (bbox != (0, 0, 0, 0)) // Valid bounding box
+                            return bbox;
+                    }
+                }
+                break;
+
+            case "polygon":
+            case "polyline":
+                {
+                    var points = element.GetAttribute("points");
+                    if (!string.IsNullOrWhiteSpace(points))
+                    {
+                        return CalculatePolygonBoundingBox(points);
+                    }
+                }
+                break;
+
+            case "image":
+                {
+                    var x = element.GetDoubleAttribute("x", 0);
+                    var y = element.GetDoubleAttribute("y", 0);
+                    var width = element.GetDoubleAttribute("width", 0);
+                    var height = element.GetDoubleAttribute("height", 0);
+                    if (width > 0 && height > 0)
+                        return (x, y, width, height);
+                }
+                break;
+        }
+
+        return null; // Cannot calculate bounding box for this element type
+    }
+
+    /// <summary>
+    /// Calculates the bounding box for a polygon/polyline points string.
+    /// </summary>
+    private (double x, double y, double width, double height)? CalculatePolygonBoundingBox(string points)
+    {
+        var coordinates = SvgLengthParser.ParseList(points);
+        if (coordinates.Length == 0)
+            return null;
+
+        double minX = double.MaxValue;
+        double minY = double.MaxValue;
+        double maxX = double.MinValue;
+        double maxY = double.MinValue;
+
+        for (int i = 0; i < coordinates.Length; i += 2)
+        {
+            if (i + 1 < coordinates.Length)
+            {
+                double x = coordinates[i];
+                double y = coordinates[i + 1];
+                minX = Math.Min(minX, x);
+                minY = Math.Min(minY, y);
+                maxX = Math.Max(maxX, x);
+                maxY = Math.Max(maxY, y);
+            }
+        }
+
+        return (minX, minY, maxX - minX, maxY - minY);
     }
 
     /// <summary>
