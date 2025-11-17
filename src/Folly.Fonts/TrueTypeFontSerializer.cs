@@ -640,7 +640,8 @@ public class TrueTypeFontSerializer
         var segments = new List<(ushort startCode, ushort endCode, short idDelta)>();
         int rangeStart = sortedChars[0].Key;
         int rangeEnd = rangeStart;
-        ushort firstGlyphInRange = sortedChars[0].Value;
+        // Format 4 cmap uses 16-bit glyph indices - cast from uint
+        ushort firstGlyphInRange = (ushort)sortedChars[0].Value;
 
         for (int i = 1; i < sortedChars.Count; i++)
         {
@@ -659,7 +660,7 @@ public class TrueTypeFontSerializer
 
                 rangeStart = currentChar;
                 rangeEnd = currentChar;
-                firstGlyphInRange = sortedChars[i].Value;
+                firstGlyphInRange = (ushort)sortedChars[i].Value;
             }
         }
 
