@@ -4315,7 +4315,11 @@ internal sealed class LayoutEngine
     private AbsolutePositionedArea? LayoutBlockContainer(
         Dom.FoBlockContainer blockContainer,
         Dom.FoSimplePageMaster pageMaster,
-        int pageNumber)
+        int pageNumber,
+        double parentX = 0,
+        double parentY = 0,
+        double? parentWidth = null,
+        double? parentHeight = null)
     {
         // Only handle absolute positioning for now
         if (blockContainer.AbsolutePosition != "absolute")
@@ -4324,9 +4328,9 @@ internal sealed class LayoutEngine
             return null;
         }
 
-        // Calculate absolute position relative to page
+        // Calculate absolute position (relative to parent if provided, otherwise relative to page)
         var (posX, posY, containerWidth, containerHeight) = CalculateAbsolutePosition(
-            blockContainer, pageMaster);
+            blockContainer, pageMaster, parentX, parentY, parentWidth, parentHeight);
 
         // Create the absolutely positioned area
         var absoluteArea = new AbsolutePositionedArea
@@ -4397,8 +4401,11 @@ internal sealed class LayoutEngine
             }
             else if (child is Dom.FoBlockContainer nestedContainer)
             {
-                // TODO: Nested absolute containers currently positioned relative to page, not parent container
-                var nestedArea = LayoutBlockContainer(nestedContainer, pageMaster, pageNumber);
+                // Nested absolute containers are positioned relative to the parent container's content area
+                var contentHeight = containerHeight - blockContainer.PaddingBefore - blockContainer.PaddingAfter -
+                                   blockContainer.BorderBeforeWidth - blockContainer.BorderAfterWidth;
+                var nestedArea = LayoutBlockContainer(nestedContainer, pageMaster, pageNumber,
+                    contentX, contentY, contentWidth, contentHeight);
                 if (nestedArea != null)
                 {
                     childArea = nestedArea;
@@ -4469,8 +4476,15 @@ internal sealed class LayoutEngine
     /// </summary>
     private (double x, double y, double width, double height) CalculateAbsolutePosition(
         Dom.FoBlockContainer blockContainer,
-        Dom.FoSimplePageMaster pageMaster)
+        Dom.FoSimplePageMaster pageMaster,
+        double parentX = 0,
+        double parentY = 0,
+        double? parentWidth = null,
+        double? parentHeight = null)
     {
+        // Use parent dimensions if provided, otherwise use page dimensions
+        var referenceWidth = parentWidth ?? pageMaster.PageWidth;
+        var referenceHeight = parentHeight ?? pageMaster.PageHeight;
         var pageWidth = pageMaster.PageWidth;
         var pageHeight = pageMaster.PageHeight;
 
@@ -4482,35 +4496,35 @@ internal sealed class LayoutEngine
 
         if (hasWidth)
         {
-            containerWidth = ParseLengthOrPercentage(blockContainer.Width, pageWidth);
+            containerWidth = ParseLengthOrPercentage(blockContainer.Width, referenceWidth);
         }
         else if (hasLeft && hasRight)
         {
             // If both left and right specified with auto width, calculate width from constraints
-            var leftOffset = ParseLengthOrPercentage(blockContainer.Left, pageWidth);
-            var rightOffset = ParseLengthOrPercentage(blockContainer.Right, pageWidth);
-            containerWidth = pageWidth - leftOffset - rightOffset;
+            var leftOffset = ParseLengthOrPercentage(blockContainer.Left, referenceWidth);
+            var rightOffset = ParseLengthOrPercentage(blockContainer.Right, referenceWidth);
+            containerWidth = referenceWidth - leftOffset - rightOffset;
         }
         else
         {
             // Default to full width (will be adjusted based on content if needed)
-            containerWidth = pageWidth;
+            containerWidth = referenceWidth;
         }
 
         // Calculate X position (left takes precedence over right)
         double x;
         if (hasLeft)
         {
-            x = ParseLengthOrPercentage(blockContainer.Left, pageWidth);
+            x = parentX + ParseLengthOrPercentage(blockContainer.Left, referenceWidth);
         }
         else if (hasRight)
         {
-            var rightOffset = ParseLengthOrPercentage(blockContainer.Right, pageWidth);
-            x = pageWidth - rightOffset - containerWidth;
+            var rightOffset = ParseLengthOrPercentage(blockContainer.Right, referenceWidth);
+            x = parentX + referenceWidth - rightOffset - containerWidth;
         }
         else
         {
-            x = 0; // Default to left edge
+            x = parentX; // Default to left edge of parent
         }
 
         // Calculate height (needed for positioning when using bottom)
@@ -4521,35 +4535,35 @@ internal sealed class LayoutEngine
 
         if (hasHeight)
         {
-            containerHeight = ParseLengthOrPercentage(blockContainer.Height, pageHeight);
+            containerHeight = ParseLengthOrPercentage(blockContainer.Height, referenceHeight);
         }
         else if (hasTop && hasBottom)
         {
             // If both top and bottom specified with auto height, calculate height from constraints
-            var topOffset = ParseLengthOrPercentage(blockContainer.Top, pageHeight);
-            var bottomOffset = ParseLengthOrPercentage(blockContainer.Bottom, pageHeight);
-            containerHeight = pageHeight - topOffset - bottomOffset;
+            var topOffset = ParseLengthOrPercentage(blockContainer.Top, referenceHeight);
+            var bottomOffset = ParseLengthOrPercentage(blockContainer.Bottom, referenceHeight);
+            containerHeight = referenceHeight - topOffset - bottomOffset;
         }
         else
         {
             // Default to full height (will be adjusted based on content)
-            containerHeight = pageHeight;
+            containerHeight = referenceHeight;
         }
 
         // Calculate Y position (top takes precedence over bottom)
         double y;
         if (hasTop)
         {
-            y = ParseLengthOrPercentage(blockContainer.Top, pageHeight);
+            y = parentY + ParseLengthOrPercentage(blockContainer.Top, referenceHeight);
         }
         else if (hasBottom)
         {
-            var bottomOffset = ParseLengthOrPercentage(blockContainer.Bottom, pageHeight);
-            y = pageHeight - bottomOffset - containerHeight;
+            var bottomOffset = ParseLengthOrPercentage(blockContainer.Bottom, referenceHeight);
+            y = parentY + referenceHeight - bottomOffset - containerHeight;
         }
         else
         {
-            y = 0; // Default to top edge
+            y = parentY; // Default to top edge of parent
         }
 
         return (x, y, containerWidth, containerHeight);
