@@ -17,10 +17,11 @@ public static class SvgLengthParser
     /// </summary>
     /// <param name="value">The length string (e.g., "10px", "5cm", "100%").</param>
     /// <param name="defaultValue">Default value if parsing fails.</param>
-    /// <param name="fontSize">Font size for em/rem units (default 16px).</param>
+    /// <param name="fontSize">Font size for em unit (default 16px).</param>
     /// <param name="referenceLength">Reference length for percentage values.</param>
+    /// <param name="rootFontSize">Root element font size for rem unit (defaults to fontSize if not specified).</param>
     /// <returns>The length in pixels.</returns>
-    public static double Parse(string? value, double defaultValue = 0, double fontSize = 16, double referenceLength = 0)
+    public static double Parse(string? value, double defaultValue = 0, double fontSize = 16, double referenceLength = 0, double? rootFontSize = null)
     {
         if (string.IsNullOrWhiteSpace(value))
             return defaultValue;
@@ -61,7 +62,7 @@ public static class SvgLengthParser
             "cm" => number * PxPerCm,
             "in" => number * PxPerIn,
             "em" => number * fontSize,
-            "rem" => number * fontSize, // TODO: Use root font size, not current
+            "rem" => number * (rootFontSize ?? fontSize), // Use root font size if provided
             "%" => number * referenceLength / 100.0,
             "" => number, // Unitless = pixels
             _ => defaultValue
@@ -71,9 +72,9 @@ public static class SvgLengthParser
     /// <summary>
     /// Parses a length value to points (1/72 inch) for PDF.
     /// </summary>
-    public static double ParseToPt(string? value, double defaultValue = 0, double fontSize = 16, double referenceLength = 0)
+    public static double ParseToPt(string? value, double defaultValue = 0, double fontSize = 16, double referenceLength = 0, double? rootFontSize = null)
     {
-        var px = Parse(value, defaultValue, fontSize, referenceLength);
+        var px = Parse(value, defaultValue, fontSize, referenceLength, rootFontSize);
         return px / PxPerPt; // Convert px to pt
     }
 

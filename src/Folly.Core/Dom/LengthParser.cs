@@ -9,6 +9,7 @@ internal static class LengthParser
     private const double CmToPoints = 28.35;
     private const double MmToPoints = 2.835;
     private const double PicaToPoints = 12.0;
+    private const double PxToPoints = 0.75; // 1 inch = 96px = 72pt, so 1px = 72/96 = 0.75pt
 
     /// <summary>
     /// Parses a length value and returns it in points.
@@ -37,7 +38,7 @@ internal static class LengthParser
         return unit switch
         {
             "pt" or "" => number, // Points or unitless (assume points)
-            "px" => number, // Pixels (treat as points for now)
+            "px" => number * PxToPoints, // CSS pixels (96 DPI standard)
             "in" => number * InchToPoints,
             "cm" => number * CmToPoints,
             "mm" => number * MmToPoints,

@@ -1054,7 +1054,9 @@ public sealed class PdfRenderer : IDisposable
     /// <summary>
     /// Parses simple length values like "10pt", "5mm", "2in".
     /// </summary>
-    private static double ParseSimpleLength(string value)
+    /// <param name="value">The length value to parse.</param>
+    /// <param name="fontSize">Font size in points for em unit resolution (defaults to 12pt).</param>
+    private static double ParseSimpleLength(string value, double fontSize = 12.0)
     {
         if (string.IsNullOrWhiteSpace(value))
             return 0;
@@ -1086,12 +1088,12 @@ public sealed class PdfRenderer : IDisposable
         return unitPart switch
         {
             "pt" => number,
-            "px" => number, // Assume 72 DPI (1 px = 1 pt)
+            "px" => number * 0.75, // CSS pixels: 1 inch = 96px = 72pt, so 1px = 0.75pt
             "in" => number * 72,
             "cm" => number * 72 / 2.54,
             "mm" => number * 72 / 25.4,
             "pc" => number * 12, // pica = 12 points
-            "em" => number * 12, // Assume 12pt font (simplified)
+            "em" => number * fontSize, // Relative to current font size
             _ => number // Default to points if no unit
         };
     }
@@ -1608,7 +1610,7 @@ public sealed class PdfRenderer : IDisposable
         return unit switch
         {
             "pt" or "" => number, // Points or unitless (assume points)
-            "px" => number, // Pixels (treat as points)
+            "px" => number * 0.75, // CSS pixels: 1 inch = 96px = 72pt, so 1px = 0.75pt
             "in" => number * 72.0, // Inches to points
             "cm" => number * 28.35, // Centimeters to points
             "mm" => number * 2.835, // Millimeters to points
