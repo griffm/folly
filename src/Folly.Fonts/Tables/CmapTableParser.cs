@@ -262,12 +262,8 @@ public static class CmapTableParser
             {
                 uint glyphIndex = startGlyphId + (codePoint - startCharCode);
 
-                // Store in dictionary (only if fits in ushort for now)
-                // TODO: Support glyphs beyond 65535
-                if (glyphIndex <= 0xFFFF)
-                {
-                    font.CharacterToGlyphIndex[(int)codePoint] = (ushort)glyphIndex;
-                }
+                // Store in dictionary (supports full range of glyph indices)
+                font.CharacterToGlyphIndex[(int)codePoint] = glyphIndex;
             }
         }
     }

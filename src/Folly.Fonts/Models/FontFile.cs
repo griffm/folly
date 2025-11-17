@@ -67,8 +67,9 @@ public class FontFile
     /// <summary>
     /// Character to glyph index mapping (from 'cmap' table).
     /// Maps Unicode code points to glyph indices.
+    /// Supports full range of glyph indices including those beyond 65535 for large fonts.
     /// </summary>
-    public Dictionary<int, ushort> CharacterToGlyphIndex { get; set; } = new();
+    public Dictionary<int, uint> CharacterToGlyphIndex { get; set; } = new();
 
     /// <summary>
     /// Horizontal advance widths for each glyph (from 'hmtx' table).
@@ -172,10 +173,10 @@ public class FontFile
     public ushort GetAdvanceWidth(char character)
     {
         int codePoint = character;
-        if (!CharacterToGlyphIndex.TryGetValue(codePoint, out ushort glyphIndex))
+        if (!CharacterToGlyphIndex.TryGetValue(codePoint, out uint glyphIndex))
             return 0;
 
-        if (glyphIndex >= GlyphAdvanceWidths.Length)
+        if (glyphIndex >= (uint)GlyphAdvanceWidths.Length)
             return 0;
 
         return GlyphAdvanceWidths[glyphIndex];
@@ -184,19 +185,24 @@ public class FontFile
     /// <summary>
     /// Gets the kerning adjustment between two characters in font units.
     /// Returns 0 if no kerning is defined for this pair.
+    /// Note: Kerning pairs use 16-bit indices. Glyphs beyond 65535 will not have kerning.
     /// </summary>
     public short GetKerning(char left, char right)
     {
         int leftCodePoint = left;
         int rightCodePoint = right;
 
-        if (!CharacterToGlyphIndex.TryGetValue(leftCodePoint, out ushort leftGlyphIndex))
+        if (!CharacterToGlyphIndex.TryGetValue(leftCodePoint, out uint leftGlyphIndex))
             return 0;
 
-        if (!CharacterToGlyphIndex.TryGetValue(rightCodePoint, out ushort rightGlyphIndex))
+        if (!CharacterToGlyphIndex.TryGetValue(rightCodePoint, out uint rightGlyphIndex))
             return 0;
 
-        KerningPairs.TryGetValue((leftGlyphIndex, rightGlyphIndex), out short kerning);
+        // Kerning tables use 16-bit glyph indices
+        if (leftGlyphIndex > 0xFFFF || rightGlyphIndex > 0xFFFF)
+            return 0;
+
+        KerningPairs.TryGetValue(((ushort)leftGlyphIndex, (ushort)rightGlyphIndex), out short kerning);
         return kerning;
     }
 
@@ -212,9 +218,9 @@ public class FontFile
     /// Gets the glyph index for a character.
     /// Returns null if the character is not in the font.
     /// </summary>
-    public ushort? GetGlyphIndex(char character)
+    public uint? GetGlyphIndex(char character)
     {
-        if (CharacterToGlyphIndex.TryGetValue(character, out ushort glyphIndex))
+        if (CharacterToGlyphIndex.TryGetValue(character, out uint glyphIndex))
             return glyphIndex;
         return null;
     }
@@ -226,7 +232,7 @@ public class FontFile
     public GlyphData? GetGlyphData(char character)
     {
         var glyphIndex = GetGlyphIndex(character);
-        if (glyphIndex == null || Glyphs == null || glyphIndex >= Glyphs.Length)
+        if (glyphIndex == null || Glyphs == null || glyphIndex >= (uint)Glyphs.Length)
             return null;
 
         return Glyphs[glyphIndex.Value];

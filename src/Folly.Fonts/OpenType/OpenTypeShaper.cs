@@ -53,13 +53,13 @@ public class OpenTypeShaper
         var glyphs = new List<ShapedGlyph>();
         foreach (char c in text)
         {
-            if (_font.CharacterToGlyphIndex.TryGetValue(c, out ushort glyphId))
+            if (_font.CharacterToGlyphIndex.TryGetValue(c, out uint glyphId))
             {
                 glyphs.Add(new ShapedGlyph
                 {
                     GlyphId = glyphId,
                     Character = c,
-                    XAdvance = _font.GlyphAdvanceWidths.Length > glyphId
+                    XAdvance = (uint)_font.GlyphAdvanceWidths.Length > glyphId
                         ? (short)_font.GlyphAdvanceWidths[glyphId]
                         : (short)0
                 });
@@ -139,7 +139,8 @@ public class OpenTypeShaper
             bool ligatureApplied = false;
 
             // Check if current glyph can start a ligature
-            if (subtable.Ligatures.TryGetValue(glyphs[i].GlyphId, out var ligatures))
+            // Note: GSUB tables use 16-bit glyph indices, glyphs > 65535 are skipped
+            if (glyphs[i].GlyphId <= 0xFFFF && subtable.Ligatures.TryGetValue((ushort)glyphs[i].GlyphId, out var ligatures))
             {
                 // Try each ligature, longest first
                 foreach (var ligature in ligatures.OrderByDescending(l => l.ComponentCount))
@@ -196,7 +197,7 @@ public class OpenTypeShaper
     {
         for (int i = 0; i < glyphs.Count; i++)
         {
-            if (subtable.Substitutions.TryGetValue(glyphs[i].GlyphId, out ushort newGlyphId))
+            if (glyphs[i].GlyphId <= 0xFFFF && subtable.Substitutions.TryGetValue((ushort)glyphs[i].GlyphId, out ushort newGlyphId))
             {
                 glyphs[i] = new ShapedGlyph
                 {
@@ -222,7 +223,7 @@ public class OpenTypeShaper
     {
         for (int i = 0; i < glyphs.Count; i++)
         {
-            if (subtable.Alternates.TryGetValue(glyphs[i].GlyphId, out var alternates) && alternates.Count > 0)
+            if (glyphs[i].GlyphId <= 0xFFFF && subtable.Alternates.TryGetValue((ushort)glyphs[i].GlyphId, out var alternates) && alternates.Count > 0)
             {
                 // Use the first alternate (in a full implementation, this could be user-selectable)
                 ushort newGlyphId = alternates[0];
@@ -252,7 +253,7 @@ public class OpenTypeShaper
 
         foreach (var glyph in glyphs)
         {
-            if (subtable.Substitutions.TryGetValue(glyph.GlyphId, out var substitutes))
+            if (glyph.GlyphId <= 0xFFFF && subtable.Substitutions.TryGetValue((ushort)glyph.GlyphId, out var substitutes))
             {
                 foreach (var subGlyphId in substitutes)
                 {
@@ -321,7 +322,11 @@ public class OpenTypeShaper
     {
         for (int i = 0; i < glyphs.Count - 1; i++)
         {
-            var key = (glyphs[i].GlyphId, glyphs[i + 1].GlyphId);
+            // GPOS tables use 16-bit glyph indices
+            if (glyphs[i].GlyphId > 0xFFFF || glyphs[i + 1].GlyphId > 0xFFFF)
+                continue;
+
+            var key = ((ushort)glyphs[i].GlyphId, (ushort)glyphs[i + 1].GlyphId);
 
             if (subtable.PairAdjustments.TryGetValue(key, out var adjustment))
             {
@@ -354,7 +359,7 @@ public class OpenTypeShaper
     {
         for (int i = 0; i < glyphs.Count; i++)
         {
-            if (subtable.Adjustments.TryGetValue(glyphs[i].GlyphId, out var value))
+            if (glyphs[i].GlyphId <= 0xFFFF && subtable.Adjustments.TryGetValue((ushort)glyphs[i].GlyphId, out var value))
             {
                 glyphs[i] = glyphs[i] with
                 {
@@ -374,7 +379,11 @@ public class OpenTypeShaper
     {
         for (int i = 0; i < glyphs.Count - 1; i++)
         {
-            var key = (glyphs[i].GlyphId, glyphs[i + 1].GlyphId);
+            // Kern table uses 16-bit glyph indices
+            if (glyphs[i].GlyphId > 0xFFFF || glyphs[i + 1].GlyphId > 0xFFFF)
+                continue;
+
+            var key = ((ushort)glyphs[i].GlyphId, (ushort)glyphs[i + 1].GlyphId);
 
             if (_font.KerningPairs.TryGetValue(key, out short kerning))
             {
@@ -471,9 +480,9 @@ public class OpenTypeShaper
 public record struct ShapedGlyph
 {
     /// <summary>
-    /// Glyph ID in the font.
+    /// Glyph ID in the font. Supports glyph indices beyond 65535.
     /// </summary>
-    public ushort GlyphId { get; init; }
+    public uint GlyphId { get; init; }
 
     /// <summary>
     /// Original character (may be null for ligatures or substituted glyphs).

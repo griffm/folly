@@ -42,10 +42,11 @@ public class FontSubsetter
     /// <summary>
     /// Builds a mapping from old glyph indices to new glyph indices in the subset.
     /// Always includes glyph 0 (.notdef) as required by the TrueType spec.
+    /// Supports fonts with glyph indices beyond 65535.
     /// </summary>
-    private static Dictionary<ushort, ushort> BuildGlyphMapping(FontFile font, HashSet<char> usedCharacters)
+    private static Dictionary<uint, ushort> BuildGlyphMapping(FontFile font, HashSet<char> usedCharacters)
     {
-        var glyphMapping = new Dictionary<ushort, ushort>();
+        var glyphMapping = new Dictionary<uint, ushort>();
         ushort newGlyphIndex = 0;
 
         // Always include glyph 0 (.notdef) - required by TrueType spec
@@ -68,7 +69,7 @@ public class FontSubsetter
     /// <summary>
     /// Creates a new FontFile containing only the subset of glyphs.
     /// </summary>
-    private static FontFile CreateSubsetFontFile(FontFile originalFont, Dictionary<ushort, ushort> glyphMapping)
+    private static FontFile CreateSubsetFontFile(FontFile originalFont, Dictionary<uint, ushort> glyphMapping)
     {
         var subsetFont = new FontFile
         {
@@ -97,7 +98,7 @@ public class FontSubsetter
         };
 
         // Build reverse mapping for character lookups
-        var newCharToGlyphIndex = new Dictionary<int, ushort>();
+        var newCharToGlyphIndex = new Dictionary<int, uint>();
         foreach (var kvp in originalFont.CharacterToGlyphIndex)
         {
             if (glyphMapping.TryGetValue(kvp.Value, out ushort newIndex))
@@ -113,15 +114,15 @@ public class FontSubsetter
 
         foreach (var kvp in glyphMapping)
         {
-            ushort oldIndex = kvp.Key;
+            uint oldIndex = kvp.Key;
             ushort newIndex = kvp.Value;
 
-            if (oldIndex < originalFont.GlyphAdvanceWidths.Length)
+            if (oldIndex < (uint)originalFont.GlyphAdvanceWidths.Length)
             {
                 subsetFont.GlyphAdvanceWidths[newIndex] = originalFont.GlyphAdvanceWidths[oldIndex];
             }
 
-            if (oldIndex < originalFont.GlyphLeftSideBearings.Length)
+            if (oldIndex < (uint)originalFont.GlyphLeftSideBearings.Length)
             {
                 subsetFont.GlyphLeftSideBearings[newIndex] = originalFont.GlyphLeftSideBearings[oldIndex];
             }
@@ -133,10 +134,10 @@ public class FontSubsetter
             subsetFont.Glyphs = new GlyphData[subsetFont.GlyphCount];
             foreach (var kvp in glyphMapping)
             {
-                ushort oldIndex = kvp.Key;
+                uint oldIndex = kvp.Key;
                 ushort newIndex = kvp.Value;
 
-                if (oldIndex < originalFont.Glyphs.Length)
+                if (oldIndex < (uint)originalFont.Glyphs.Length)
                 {
                     subsetFont.Glyphs[newIndex] = originalFont.Glyphs[oldIndex];
                 }
