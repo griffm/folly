@@ -133,6 +133,7 @@ public static class NameTableParser
     /// <summary>
     /// Mac Roman encoding implementation.
     /// Characters 0-127 are ASCII, 128-255 map to Mac-specific characters.
+    /// Supports both encoding (Unicode to Mac Roman) and decoding (Mac Roman to Unicode).
     /// </summary>
     private class MacRomanEncoding : Encoding
     {
@@ -157,14 +158,83 @@ public static class NameTableParser
             0x00AF, 0x02D8, 0x02D9, 0x02DA, 0x00B8, 0x02DD, 0x02DB, 0x02C7  // 248-255: ¯ ˘ ˙ ˚ ¸ ˝ ˛ ˇ
         };
 
+        // Reverse mapping: Unicode code point to Mac Roman byte
+        // Lazily initialized on first encoding operation
+        private static Dictionary<int, byte>? _unicodeToMacRoman;
+
+        private static Dictionary<int, byte> GetUnicodeToMacRomanMapping()
+        {
+            if (_unicodeToMacRoman != null)
+                return _unicodeToMacRoman;
+
+            _unicodeToMacRoman = new Dictionary<int, byte>();
+
+            // Add ASCII mappings (0-127)
+            for (int i = 0; i < 128; i++)
+            {
+                _unicodeToMacRoman[i] = (byte)i;
+            }
+
+            // Add high character mappings (128-255)
+            for (int i = 0; i < MacRomanHighChars.Length; i++)
+            {
+                int unicodeCodePoint = MacRomanHighChars[i];
+                byte macRomanByte = (byte)(128 + i);
+                _unicodeToMacRoman[unicodeCodePoint] = macRomanByte;
+            }
+
+            return _unicodeToMacRoman;
+        }
+
         public override int GetByteCount(char[] chars, int index, int count)
         {
-            throw new NotImplementedException("Mac Roman encoding only supports GetString (decoding)");
+            if (chars == null)
+                throw new ArgumentNullException(nameof(chars));
+            if (index < 0 || index > chars.Length)
+                throw new ArgumentOutOfRangeException(nameof(index));
+            if (count < 0 || index + count > chars.Length)
+                throw new ArgumentOutOfRangeException(nameof(count));
+
+            // Mac Roman is single-byte encoding, so byte count equals character count
+            // (assuming all characters can be encoded - unmappable characters will use '?')
+            return count;
         }
 
         public override int GetBytes(char[] chars, int charIndex, int charCount, byte[] bytes, int byteIndex)
         {
-            throw new NotImplementedException("Mac Roman encoding only supports GetString (decoding)");
+            if (chars == null)
+                throw new ArgumentNullException(nameof(chars));
+            if (bytes == null)
+                throw new ArgumentNullException(nameof(bytes));
+            if (charIndex < 0 || charIndex > chars.Length)
+                throw new ArgumentOutOfRangeException(nameof(charIndex));
+            if (charCount < 0 || charIndex + charCount > chars.Length)
+                throw new ArgumentOutOfRangeException(nameof(charCount));
+            if (byteIndex < 0 || byteIndex > bytes.Length)
+                throw new ArgumentOutOfRangeException(nameof(byteIndex));
+            if (bytes.Length - byteIndex < charCount)
+                throw new ArgumentException("Destination array is not large enough");
+
+            var mapping = GetUnicodeToMacRomanMapping();
+
+            for (int i = 0; i < charCount; i++)
+            {
+                char ch = chars[charIndex + i];
+                int codePoint = ch;
+
+                // Try to map the character to Mac Roman
+                if (mapping.TryGetValue(codePoint, out byte macRomanByte))
+                {
+                    bytes[byteIndex + i] = macRomanByte;
+                }
+                else
+                {
+                    // Character not in Mac Roman - use '?' as replacement
+                    bytes[byteIndex + i] = (byte)'?';
+                }
+            }
+
+            return charCount;
         }
 
         public override int GetCharCount(byte[] bytes, int index, int count)

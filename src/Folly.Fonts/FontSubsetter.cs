@@ -18,6 +18,12 @@ public class FontSubsetter
     /// <param name="font">The original font file.</param>
     /// <param name="usedCharacters">Set of characters that are actually used.</param>
     /// <returns>Byte array containing the subsetted font in TrueType format.</returns>
+    /// <exception cref="NotSupportedException">Thrown when attempting to subset a CFF/OpenType font.</exception>
+    /// <remarks>
+    /// Currently only TrueType fonts (with 'glyf' outlines) are supported for subsetting.
+    /// CFF/OpenType fonts (with CFF outlines) require CharString decompilation and are not yet supported.
+    /// For CFF fonts, consider embedding the full font instead of subsetting.
+    /// </remarks>
     public static byte[] CreateSubset(FontFile font, HashSet<char> usedCharacters)
     {
         if (font == null)
@@ -27,7 +33,17 @@ public class FontSubsetter
             throw new ArgumentException("Must specify at least one character to include in subset", nameof(usedCharacters));
 
         if (!font.IsTrueType)
-            throw new NotSupportedException("Font subsetting is currently only supported for TrueType fonts. OpenType/CFF support coming soon.");
+        {
+            font.Logger.Error($"Cannot subset font '{font.FamilyName}': CFF/OpenType fonts with PostScript outlines are not supported for subsetting. " +
+                             "Full CharString decompilation and recompilation would be required. " +
+                             "Workaround: Embed the full font instead by disabling subsetting (SubsetFonts = false in PdfOptions).");
+
+            throw new NotSupportedException(
+                $"Font subsetting is not supported for CFF/OpenType fonts with PostScript outlines (font: '{font.FamilyName}'). " +
+                "Only TrueType fonts with 'glyf' outlines can be subset. " +
+                "To use this font, disable font subsetting (set PdfOptions.SubsetFonts = false) to embed the full font. " +
+                "Note: This will increase PDF file size.");
+        }
 
         // Step 1: Build glyph ID mapping (old index -> new index)
         var glyphMapping = BuildGlyphMapping(font, usedCharacters);

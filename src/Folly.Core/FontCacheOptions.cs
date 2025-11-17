@@ -1,4 +1,5 @@
 using System;
+using Folly.Core.Logging;
 
 namespace Folly;
 
@@ -7,6 +8,11 @@ namespace Folly;
 /// </summary>
 public class FontCacheOptions
 {
+    /// <summary>
+    /// Gets or sets the logger for font-related diagnostic messages, warnings, and errors.
+    /// If not set, a null logger is used (messages are discarded).
+    /// </summary>
+    public ILogger Logger { get; set; } = NullLogger.Instance;
     /// <summary>
     /// Gets or sets the maximum number of system fonts to cache.
     /// When the cache exceeds this limit, least recently used fonts will be evicted.
