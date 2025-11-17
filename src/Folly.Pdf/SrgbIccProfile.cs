@@ -81,16 +81,17 @@ internal static class SrgbIccProfile
             }
         }
 
-        // Tag entries
+        // Tag entries (TRC curves now use 256-entry lookup tables for proper sRGB transfer function)
+        var trcSize = 8 + (256 * 2); // Type signature (4) + reserved (4) + 256 ushort entries
         AddTag("desc", 90); // Profile description
         AddTag("cprt", 36); // Copyright
         AddTag("wtpt", 20); // White point
         AddTag("rXYZ", 20); // Red colorant
         AddTag("gXYZ", 20); // Green colorant
         AddTag("bXYZ", 20); // Blue colorant
-        AddTag("rTRC", 14); // Red TRC
-        AddTag("gTRC", 14); // Green TRC
-        AddTag("bTRC", 14); // Blue TRC
+        AddTag("rTRC", trcSize); // Red TRC (with proper sRGB curve)
+        AddTag("gTRC", trcSize); // Green TRC (with proper sRGB curve)
+        AddTag("bTRC", trcSize); // Blue TRC (with proper sRGB curve)
 
         // Tag data sections
 
@@ -137,16 +138,23 @@ internal static class SrgbIccProfile
         profile.AddRange(BitConverter.GetBytes(0x00001574).Reverse().ToArray()); // Y
         profile.AddRange(BitConverter.GetBytes(0x0000B8AB).Reverse().ToArray()); // Z
 
-        // rTRC, gTRC, bTRC tags: Gamma curve (simplified gamma 2.2)
+        // rTRC, gTRC, bTRC tags: Proper sRGB transfer function
+        // sRGB uses a piecewise function:
+        // - Linear segment for dark values: output = 12.92 * input (for input <= 0.0031308)
+        // - Gamma segment for bright values: output = 1.055 * input^(1/2.4) - 0.055 (for input > 0.0031308)
+        // We create a 256-entry lookup table that implements this transfer function
+        var srgbCurve = GenerateSrgbToneCurve();
+
         for (int i = 0; i < 3; i++)
         {
             profile.AddRange(System.Text.Encoding.ASCII.GetBytes("curv"));
             profile.AddRange(new byte[] { 0, 0, 0, 0 }); // Reserved
-            profile.AddRange(new byte[] { 0, 0, 0, 1 }); // Count = 1 (simple gamma)
-            profile.AddRange(BitConverter.GetBytes((ushort)0x0233).Reverse().ToArray()); // Gamma 2.2 (0x0233 / 256 = 2.199)
-            if (i < 2) // Padding for alignment
+            profile.AddRange(BitConverter.GetBytes(256).Reverse().ToArray()); // Count = 256 (LUT)
+
+            // Add 256 ushort values representing the sRGB transfer function
+            foreach (var value in srgbCurve)
             {
-                profile.AddRange(new byte[2]);
+                profile.AddRange(BitConverter.GetBytes(value).Reverse().ToArray());
             }
         }
 
@@ -176,4 +184,39 @@ internal static class SrgbIccProfile
     /// Gets the registry name for sRGB (ICC profile registry).
     /// </summary>
     public static string RegistryName => "http://www.color.org";
+
+    /// <summary>
+    /// Generates the sRGB tone reproduction curve (TRC) as a 256-entry lookup table.
+    /// Implements the IEC 61966-2-1 sRGB transfer function with linear and gamma segments.
+    /// </summary>
+    /// <returns>Array of 256 ushort values (0-65535 range) representing the sRGB transfer function.</returns>
+    private static ushort[] GenerateSrgbToneCurve()
+    {
+        var curve = new ushort[256];
+
+        for (int i = 0; i < 256; i++)
+        {
+            // Input value in 0.0-1.0 range
+            double input = i / 255.0;
+
+            // Apply sRGB transfer function (encoding from linear to sRGB)
+            double output;
+            if (input <= 0.0031308)
+            {
+                // Linear segment for dark values
+                output = 12.92 * input;
+            }
+            else
+            {
+                // Gamma segment for bright values
+                output = 1.055 * Math.Pow(input, 1.0 / 2.4) - 0.055;
+            }
+
+            // Clamp to 0.0-1.0 and convert to ushort (0-65535)
+            output = Math.Clamp(output, 0.0, 1.0);
+            curve[i] = (ushort)Math.Round(output * 65535.0);
+        }
+
+        return curve;
+    }
 }
