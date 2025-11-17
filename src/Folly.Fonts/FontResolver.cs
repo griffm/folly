@@ -136,6 +136,8 @@ public class FontResolver
 
             if (platformFonts != null && platformFonts.Count > 0)
             {
+                _options.DiagnosticCallback?.Invoke($"Loaded {platformFonts.Count} font(s) using platform-specific discovery");
+
                 foreach (var kvp in platformFonts)
                 {
                     _systemFontCache.AddOrUpdate(kvp.Key, kvp.Value);
@@ -145,6 +147,10 @@ public class FontResolver
                 SaveToPersistentCache();
                 return;
             }
+            else
+            {
+                _options.DiagnosticCallback?.Invoke("Platform-specific font discovery failed or returned no results, falling back to filesystem scan");
+            }
         }
 
         // Fall back to filesystem scanning with timeout
@@ -153,11 +159,14 @@ public class FontResolver
 
         try
         {
+            _options.DiagnosticCallback?.Invoke($"Starting filesystem font scan (timeout: {_options.ScanTimeout.TotalSeconds:F1}s)");
             ScanSystemFontsWithTimeout(cts.Token);
+            _options.DiagnosticCallback?.Invoke($"Filesystem font scan completed: {_systemFontCache.Count} font(s) found in {stopwatch.ElapsedMilliseconds}ms");
         }
         catch (OperationCanceledException)
         {
             // Scan timed out - use what we have so far
+            _options.DiagnosticCallback?.Invoke($"Font scan timed out after {stopwatch.ElapsedMilliseconds}ms, found {_systemFontCache.Count} font(s) before timeout");
         }
 
         // Save to persistent cache
@@ -211,7 +220,8 @@ public class FontResolver
                         ex is NotSupportedException)
                     {
                         // Skip fonts that fail to parse (corrupted files, unsupported formats, access denied, etc.)
-                        // Silently continue to next font - this is expected for some system files
+                        // This is expected for some system files - report only if diagnostics enabled
+                        _options.DiagnosticCallback?.Invoke($"Failed to parse font file {Path.GetFileName(fontFile)} ({ex.GetType().Name})");
                     }
                 }
             }
@@ -221,7 +231,8 @@ public class FontResolver
                 ex is SecurityException)
             {
                 // Skip directories that fail to enumerate (access denied, network issues, etc.)
-                // Silently continue to next directory - this is expected for some system directories
+                // This is expected for some system directories - report only if diagnostics enabled
+                _options.DiagnosticCallback?.Invoke($"Failed to scan directory {dir} ({ex.GetType().Name})");
             }
         }
     }
@@ -238,7 +249,7 @@ public class FontResolver
         {
             var cacheDir = _options.CacheDirectory ?? PersistentFontCache.GetDefaultCacheDirectory();
             var snapshot = _systemFontCache.GetSnapshot();
-            PersistentFontCache.TrySave(cacheDir, snapshot);
+            PersistentFontCache.TrySave(cacheDir, snapshot, _options.DiagnosticCallback);
         }
         catch
         {

@@ -18,37 +18,61 @@ public class PersistentFontCache
     /// </summary>
     /// <param name="cacheDirectory">Directory containing the cache file.</param>
     /// <param name="maxAge">Maximum age before cache is considered stale.</param>
+    /// <param name="diagnosticCallback">Optional callback for diagnostic messages.</param>
     /// <returns>Dictionary of font family names to paths, or null if cache is invalid/missing/stale.</returns>
-    public static Dictionary<string, string>? TryLoad(string cacheDirectory, TimeSpan maxAge)
+    public static Dictionary<string, string>? TryLoad(string cacheDirectory, TimeSpan maxAge, Action<string>? diagnosticCallback = null)
     {
         try
         {
             var cacheFilePath = Path.Combine(cacheDirectory, CacheFileName);
 
             if (!File.Exists(cacheFilePath))
+            {
+                diagnosticCallback?.Invoke($"Font cache not found at {cacheFilePath}, will perform full scan");
                 return null;
+            }
 
             // Check if cache is stale
             var fileInfo = new FileInfo(cacheFilePath);
             var age = DateTime.UtcNow - fileInfo.LastWriteTimeUtc;
             if (age > maxAge)
+            {
+                diagnosticCallback?.Invoke($"Font cache is stale (age: {age.TotalDays:F1} days, max: {maxAge.TotalDays:F1} days), will perform full scan");
                 return null;
+            }
 
             // Read and deserialize cache
             var json = File.ReadAllText(cacheFilePath);
             var cacheData = JsonSerializer.Deserialize<FontCacheData>(json);
 
             if (cacheData == null || cacheData.Fonts == null)
+            {
+                diagnosticCallback?.Invoke($"Font cache file is invalid or empty, will perform full scan");
                 return null;
+            }
 
             // Validate that font files still exist
             var validatedFonts = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            int invalidCount = 0;
             foreach (var kvp in cacheData.Fonts)
             {
                 if (File.Exists(kvp.Value))
                 {
                     validatedFonts[kvp.Key] = kvp.Value;
                 }
+                else
+                {
+                    invalidCount++;
+                }
+            }
+
+            if (invalidCount > 0)
+            {
+                diagnosticCallback?.Invoke($"Font cache validation: {invalidCount} font(s) no longer exist, {validatedFonts.Count} font(s) loaded");
+            }
+            else
+            {
+                diagnosticCallback?.Invoke($"Font cache loaded successfully: {validatedFonts.Count} font(s)");
             }
 
             return validatedFonts;
@@ -60,6 +84,7 @@ public class PersistentFontCache
             ex is NotSupportedException)
         {
             // If cache load fails for any reason, return null to trigger rescan
+            diagnosticCallback?.Invoke($"Font cache load failed ({ex.GetType().Name}: {ex.Message}), will perform full scan");
             return null;
         }
     }
@@ -69,8 +94,9 @@ public class PersistentFontCache
     /// </summary>
     /// <param name="cacheDirectory">Directory to save the cache file.</param>
     /// <param name="fonts">Dictionary of font family names to paths.</param>
+    /// <param name="diagnosticCallback">Optional callback for diagnostic messages.</param>
     /// <returns>True if save succeeded, false otherwise.</returns>
-    public static bool TrySave(string cacheDirectory, Dictionary<string, string> fonts)
+    public static bool TrySave(string cacheDirectory, Dictionary<string, string> fonts, Action<string>? diagnosticCallback = null)
     {
         try
         {
@@ -97,6 +123,7 @@ public class PersistentFontCache
             var json = JsonSerializer.Serialize(cacheData, options);
             File.WriteAllText(cacheFilePath, json);
 
+            diagnosticCallback?.Invoke($"Font cache saved successfully: {fonts.Count} font(s) to {cacheFilePath}");
             return true;
         }
         catch (Exception ex) when (
@@ -106,6 +133,7 @@ public class PersistentFontCache
             ex is NotSupportedException)
         {
             // Silently fail - persistent cache is optional
+            diagnosticCallback?.Invoke($"Font cache save failed ({ex.GetType().Name}: {ex.Message})");
             return false;
         }
     }

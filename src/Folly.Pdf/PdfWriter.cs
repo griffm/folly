@@ -1351,7 +1351,8 @@ internal sealed class PdfWriter : IDisposable
             {
                 if (font.CharacterToGlyphIndex.TryGetValue(ch, out var glyphIndex))
                 {
-                    charToGlyph[ch] = glyphIndex;
+                    // PDF CMap tables use 16-bit glyph IDs - cast is safe for subset fonts
+                    charToGlyph[ch] = (ushort)glyphIndex;
                 }
             }
         }
@@ -1360,9 +1361,9 @@ internal sealed class PdfWriter : IDisposable
             // Otherwise, map all characters in the font (full embedding)
             foreach (var kvp in font.CharacterToGlyphIndex)
             {
-                if (kvp.Key <= char.MaxValue)
+                if (kvp.Key <= char.MaxValue && kvp.Value <= 0xFFFF)
                 {
-                    charToGlyph[(char)kvp.Key] = kvp.Value;
+                    charToGlyph[(char)kvp.Key] = (ushort)kvp.Value;
                 }
             }
         }
