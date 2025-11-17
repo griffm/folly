@@ -229,7 +229,7 @@ internal sealed class PdfStructureTree
             // Only marked content references
             if (element.MarkedContentIds.Count == 1)
             {
-                // Find page for this MCID
+                // Single MCID: use simple integer reference with /Pg
                 var mcid = element.MarkedContentIds[0];
                 var pageNum = FindPageForMcid(mcid);
                 if (pageNum >= 0 && pageNum < pageObjectIds.Length)
@@ -240,56 +240,130 @@ internal sealed class PdfStructureTree
             }
             else
             {
-                writer.Write("  /K [");
-                for (int i = 0; i < element.MarkedContentIds.Count; i++)
+                // Multiple MCIDs: check if they're all on the same page
+                var mcidPages = new Dictionary<int, int>();
+                foreach (var mcid in element.MarkedContentIds)
                 {
-                    if (i > 0) writer.Write(" ");
-                    writer.Write($"{element.MarkedContentIds[i]}");
+                    mcidPages[mcid] = FindPageForMcid(mcid);
                 }
-                writer.WriteLine("]");
-                // TODO: Handle multiple MCIDs across different pages
-                // For now, assume all MCIDs are on the same page
-                var firstMcid = element.MarkedContentIds[0];
-                var pageNum = FindPageForMcid(firstMcid);
-                if (pageNum >= 0 && pageNum < pageObjectIds.Length)
+
+                var uniquePages = mcidPages.Values.Distinct().Count();
+
+                if (uniquePages == 1)
                 {
-                    writer.WriteLine($"  /Pg {pageObjectIds[pageNum]} 0 R");
+                    // All MCIDs on same page: use simple array with single /Pg
+                    writer.Write("  /K [");
+                    for (int i = 0; i < element.MarkedContentIds.Count; i++)
+                    {
+                        if (i > 0) writer.Write(" ");
+                        writer.Write($"{element.MarkedContentIds[i]}");
+                    }
+                    writer.WriteLine("]");
+
+                    var pageNum = mcidPages.Values.First();
+                    if (pageNum >= 0 && pageNum < pageObjectIds.Length)
+                    {
+                        writer.WriteLine($"  /Pg {pageObjectIds[pageNum]} 0 R");
+                    }
+                }
+                else
+                {
+                    // MCIDs span multiple pages: use MCR dictionaries with individual /Pg references
+                    writer.WriteLine("  /K [");
+                    for (int i = 0; i < element.MarkedContentIds.Count; i++)
+                    {
+                        var mcid = element.MarkedContentIds[i];
+                        var pageNum = mcidPages[mcid];
+
+                        if (pageNum >= 0 && pageNum < pageObjectIds.Length)
+                        {
+                            if (i > 0)
+                                writer.Write(" ");
+                            writer.Write("<<");
+                            writer.Write(" /Type /MCR");
+                            writer.Write($" /Pg {pageObjectIds[pageNum]} 0 R");
+                            writer.Write($" /MCID {mcid}");
+                            writer.Write(" >>");
+                        }
+                    }
+                    writer.WriteLine("  ]");
                 }
             }
         }
         else if (hasChildren && hasMcids)
         {
             // Mixed: both children and marked content
-            writer.Write("  /K [");
-            bool first = true;
-
-            // Add marked content IDs
+            // Check if MCIDs are all on the same page
+            var mcidPages = new Dictionary<int, int>();
             foreach (var mcid in element.MarkedContentIds)
             {
-                if (!first) writer.Write(" ");
-                writer.Write($"{mcid}");
-                first = false;
+                mcidPages[mcid] = FindPageForMcid(mcid);
             }
 
-            // Add child structure elements
-            foreach (var child in element.Children)
-            {
-                if (!first) writer.Write(" ");
-                writer.Write($"{child.ObjectId} 0 R");
-                first = false;
-            }
+            var uniquePages = mcidPages.Values.Distinct().Count();
 
-            writer.WriteLine("]");
-
-            // TODO: Handle page references for mixed content
-            if (element.MarkedContentIds.Count > 0)
+            if (uniquePages == 1)
             {
-                var firstMcid = element.MarkedContentIds[0];
-                var pageNum = FindPageForMcid(firstMcid);
+                // All MCIDs on same page: use simple format with single /Pg
+                writer.Write("  /K [");
+                bool first = true;
+
+                // Add marked content IDs
+                foreach (var mcid in element.MarkedContentIds)
+                {
+                    if (!first) writer.Write(" ");
+                    writer.Write($"{mcid}");
+                    first = false;
+                }
+
+                // Add child structure elements
+                foreach (var child in element.Children)
+                {
+                    if (!first) writer.Write(" ");
+                    writer.Write($"{child.ObjectId} 0 R");
+                    first = false;
+                }
+
+                writer.WriteLine("]");
+
+                var pageNum = mcidPages.Values.First();
                 if (pageNum >= 0 && pageNum < pageObjectIds.Length)
                 {
                     writer.WriteLine($"  /Pg {pageObjectIds[pageNum]} 0 R");
                 }
+            }
+            else
+            {
+                // MCIDs span multiple pages: use MCR dictionaries
+                writer.Write("  /K [");
+                bool first = true;
+
+                // Add marked content IDs as MCR dictionaries
+                foreach (var mcid in element.MarkedContentIds)
+                {
+                    if (!first) writer.Write(" ");
+                    var pageNum = mcidPages[mcid];
+
+                    if (pageNum >= 0 && pageNum < pageObjectIds.Length)
+                    {
+                        writer.Write("<<");
+                        writer.Write(" /Type /MCR");
+                        writer.Write($" /Pg {pageObjectIds[pageNum]} 0 R");
+                        writer.Write($" /MCID {mcid}");
+                        writer.Write(" >>");
+                    }
+                    first = false;
+                }
+
+                // Add child structure elements
+                foreach (var child in element.Children)
+                {
+                    if (!first) writer.Write(" ");
+                    writer.Write($"{child.ObjectId} 0 R");
+                    first = false;
+                }
+
+                writer.WriteLine("]");
             }
         }
     }
