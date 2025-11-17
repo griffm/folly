@@ -103,10 +103,28 @@ Agents must update the following with each completed feature or change:
    - Milestone status  
    - Brief notes if needed  
 
-3. Examples  
-   - Add or update demonstrations  
+3. Examples
+   - Add or update demonstrations
 
 Documentation changes must be committed together with the code.
+
+### Avoid Specific Metrics
+README.md and PLAN.md must avoid specific numeric metrics that quickly become outdated:
+
+**Do not include:**
+- Test counts (e.g., "485 tests", "364 unit tests")
+- Performance numbers (e.g., "~1,333 pages/second", "~150ms")
+- Percentages (e.g., "~85% coverage", "~95% compliant")
+- Line counts (e.g., "~900 lines", "~2,100 lines")
+- Example counts (e.g., "35 examples", "26 SVG files")
+
+**Instead use qualitative descriptions:**
+- "Comprehensive test suite with high coverage"
+- "Excellent rendering performance"
+- "Strong compliance with specification"
+- "Extensive working examples"
+
+Rationale: Specific metrics require constant maintenance and become stale as code evolves. Qualitative descriptions remain accurate and convey the same intent without creating maintenance burden.
 
 ## 7. Agent Execution Rules
 
