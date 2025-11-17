@@ -463,13 +463,13 @@ internal sealed class LayoutEngine
             }
         }
 
-        // Default page if no master found
+        // Default page if no master found - use configured default page size
         var defaultMaster = new Dom.FoSimplePageMaster
         {
             Properties = new Dom.FoProperties()
         };
-        defaultMaster.Properties["page-width"] = "595pt";  // A4 width
-        defaultMaster.Properties["page-height"] = "842pt"; // A4 height
+        defaultMaster.Properties["page-width"] = $"{_options.DefaultPageSize.Width}pt";
+        defaultMaster.Properties["page-height"] = $"{_options.DefaultPageSize.Height}pt";
         return defaultMaster;
     }
 

@@ -13,6 +13,11 @@ public sealed class PdfRenderer : IDisposable
     // Cache of loaded TrueType fonts for kerning support
     private readonly Dictionary<string, Fonts.Models.FontFile?> _loadedFonts = new();
 
+    // Mathematical constant for Bezier approximation of circular arcs
+    // This is (4/3) * tan(π/8) ≈ 0.552284749831
+    // Used to draw quarter circles with cubic Bezier curves
+    private const double BezierCircleKappa = 0.552284749831;
+
     /// <summary>
     /// Initializes a new PDF renderer.
     /// </summary>
@@ -1275,25 +1280,22 @@ public sealed class PdfRenderer : IDisposable
         }
         else
         {
-            // Render each side independently with different styles
-            // Bezier curve constant for approximating a quarter circle
-            const double kappa = 0.552284749831;
-
+            // Render each side independently with different styles using Bezier approximation of circular arcs
             RenderRoundedBorderSide(block, content, x, pdfY,
                 "top", block.BorderTopWidth, block.BorderTopColor, block.BorderTopStyle,
-                topLeftRadius, topRightRadius, kappa);
+                topLeftRadius, topRightRadius, BezierCircleKappa);
 
             RenderRoundedBorderSide(block, content, x, pdfY,
                 "right", block.BorderRightWidth, block.BorderRightColor, block.BorderRightStyle,
-                topRightRadius, bottomRightRadius, kappa);
+                topRightRadius, bottomRightRadius, BezierCircleKappa);
 
             RenderRoundedBorderSide(block, content, x, pdfY,
                 "bottom", block.BorderBottomWidth, block.BorderBottomColor, block.BorderBottomStyle,
-                bottomRightRadius, bottomLeftRadius, kappa);
+                bottomRightRadius, bottomLeftRadius, BezierCircleKappa);
 
             RenderRoundedBorderSide(block, content, x, pdfY,
                 "left", block.BorderLeftWidth, block.BorderLeftColor, block.BorderLeftStyle,
-                bottomLeftRadius, topLeftRadius, kappa);
+                bottomLeftRadius, topLeftRadius, BezierCircleKappa);
         }
     }
 
@@ -1347,24 +1349,22 @@ public sealed class PdfRenderer : IDisposable
         }
         else
         {
-            // Render each side independently with different styles
-            const double kappa = 0.552284749831;
-
+            // Render each side independently with different styles using Bezier approximation of circular arcs
             RenderRoundedBorderSideGeneric(content, x, pdfY, area.Width, area.Height,
                 "top", area.BorderTopWidth, area.BorderTopColor, area.BorderTopStyle,
-                topLeftRadius, topRightRadius, kappa);
+                topLeftRadius, topRightRadius, BezierCircleKappa);
 
             RenderRoundedBorderSideGeneric(content, x, pdfY, area.Width, area.Height,
                 "right", area.BorderRightWidth, area.BorderRightColor, area.BorderRightStyle,
-                topRightRadius, bottomRightRadius, kappa);
+                topRightRadius, bottomRightRadius, BezierCircleKappa);
 
             RenderRoundedBorderSideGeneric(content, x, pdfY, area.Width, area.Height,
                 "bottom", area.BorderBottomWidth, area.BorderBottomColor, area.BorderBottomStyle,
-                bottomRightRadius, bottomLeftRadius, kappa);
+                bottomRightRadius, bottomLeftRadius, BezierCircleKappa);
 
             RenderRoundedBorderSideGeneric(content, x, pdfY, area.Width, area.Height,
                 "left", area.BorderLeftWidth, area.BorderLeftColor, area.BorderLeftStyle,
-                bottomLeftRadius, topLeftRadius, kappa);
+                bottomLeftRadius, topLeftRadius, BezierCircleKappa);
         }
     }
 
@@ -1372,8 +1372,6 @@ public sealed class PdfRenderer : IDisposable
         double width, double height, double borderWidth, string borderColor, string borderStyle,
         double topLeftRadius, double topRightRadius, double bottomRightRadius, double bottomLeftRadius)
     {
-        const double kappa = 0.552284749831;
-
         if (borderStyle == "none" || borderWidth <= 0)
             return;
 
@@ -1412,9 +1410,9 @@ public sealed class PdfRenderer : IDisposable
         content.AppendLine($"{right - trr:F2} {top:F2} l");
         if (trr > 0)
         {
-            var cp1x = right - trr + trr * kappa;
+            var cp1x = right - trr + trr * BezierCircleKappa;
             var cp2x = right;
-            var cp2y = top - trr + trr * kappa;
+            var cp2y = top - trr + trr * BezierCircleKappa;
             content.AppendLine($"{cp1x:F2} {top:F2} {cp2x:F2} {cp2y:F2} {right:F2} {top - trr:F2} c");
         }
 
@@ -1422,25 +1420,25 @@ public sealed class PdfRenderer : IDisposable
         if (brr > 0)
         {
             var cp1x = right;
-            var cp1y = bottom + brr - brr * kappa;
-            var cp2x = right - brr + brr * kappa;
+            var cp1y = bottom + brr - brr * BezierCircleKappa;
+            var cp2x = right - brr + brr * BezierCircleKappa;
             content.AppendLine($"{cp1x:F2} {cp1y:F2} {cp2x:F2} {bottom:F2} {right - brr:F2} {bottom:F2} c");
         }
 
         content.AppendLine($"{left + blr:F2} {bottom:F2} l");
         if (blr > 0)
         {
-            var cp1x = left + blr - blr * kappa;
+            var cp1x = left + blr - blr * BezierCircleKappa;
             var cp2x = left;
-            var cp2y = bottom + blr - blr * kappa;
+            var cp2y = bottom + blr - blr * BezierCircleKappa;
             content.AppendLine($"{cp1x:F2} {bottom:F2} {cp2x:F2} {cp2y:F2} {left:F2} {bottom + blr:F2} c");
         }
 
         content.AppendLine($"{left:F2} {top - tlr:F2} l");
         if (tlr > 0)
         {
-            var cp1y = top - tlr + tlr * kappa;
-            var cp2x = left + tlr - tlr * kappa;
+            var cp1y = top - tlr + tlr * BezierCircleKappa;
+            var cp2x = left + tlr - tlr * BezierCircleKappa;
             content.AppendLine($"{left:F2} {cp1y:F2} {cp2x:F2} {top:F2} {left + tlr:F2} {top:F2} c");
         }
 

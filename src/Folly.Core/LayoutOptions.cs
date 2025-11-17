@@ -3,6 +3,41 @@ using Folly.Core.Logging;
 namespace Folly;
 
 /// <summary>
+/// Standard page sizes in points (1 point = 1/72 inch).
+/// </summary>
+public static class PageSizes
+{
+    /// <summary>
+    /// A4 paper size (210mm × 297mm = 595pt × 842pt).
+    /// Standard in most countries outside North America.
+    /// </summary>
+    public static readonly (double Width, double Height) A4 = (595, 842);
+
+    /// <summary>
+    /// US Letter paper size (8.5in × 11in = 612pt × 792pt).
+    /// Standard in United States, Canada, and Mexico.
+    /// </summary>
+    public static readonly (double Width, double Height) Letter = (612, 792);
+
+    /// <summary>
+    /// US Legal paper size (8.5in × 14in = 612pt × 1008pt).
+    /// </summary>
+    public static readonly (double Width, double Height) Legal = (612, 1008);
+
+    /// <summary>
+    /// A3 paper size (297mm × 420mm = 842pt × 1191pt).
+    /// Twice the size of A4.
+    /// </summary>
+    public static readonly (double Width, double Height) A3 = (842, 1191);
+
+    /// <summary>
+    /// A5 paper size (148mm × 210mm = 420pt × 595pt).
+    /// Half the size of A4.
+    /// </summary>
+    public static readonly (double Width, double Height) A5 = (420, 595);
+}
+
+/// <summary>
 /// Line breaking algorithm selection.
 /// </summary>
 public enum LineBreakingAlgorithm
@@ -191,4 +226,11 @@ public sealed class LayoutOptions
     /// Default is NullLogger (no logging). Set to ConsoleLogger or custom ILogger for diagnostic output.
     /// </summary>
     public ILogger Logger { get; set; } = NullLogger.Instance;
+
+    /// <summary>
+    /// Gets or sets the default page size (width, height) in points when no page master is defined.
+    /// Default is A4 (595pt × 842pt). Common alternatives: PageSizes.Letter, PageSizes.Legal, PageSizes.A3, PageSizes.A5.
+    /// Only used as a fallback when the FO document doesn't specify page dimensions.
+    /// </summary>
+    public (double Width, double Height) DefaultPageSize { get; set; } = PageSizes.A4;
 }
