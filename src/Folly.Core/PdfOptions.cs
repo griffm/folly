@@ -94,6 +94,22 @@ public sealed class PdfOptions
     /// Default is None (standard PDF 1.7 output).
     /// </summary>
     public PdfALevel PdfACompliance { get; set; } = PdfALevel.None;
+
+    /// <summary>
+    /// Gets or sets an optional callback for receiving diagnostic messages from the PDF rendering system.
+    /// Use this to log warnings about skipped resources, rendering limitations, and other diagnostic events.
+    /// Default is null (no diagnostics).
+    /// Example: options.DiagnosticCallback = msg => Console.WriteLine($"[PDF] {msg}");
+    /// </summary>
+    /// <remarks>
+    /// This callback is invoked for non-critical diagnostic information such as:
+    /// - SVG external images skipped (URL or file references)
+    /// - SVG features with limited support or fallback behavior
+    /// - Resource loading warnings
+    /// This is designed for debugging and monitoring - the PDF system will continue
+    /// to function normally even when these events occur.
+    /// </remarks>
+    public Action<string>? DiagnosticCallback { get; set; }
 }
 
 /// <summary>
