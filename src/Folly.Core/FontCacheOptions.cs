@@ -62,4 +62,21 @@ public class FontCacheOptions
     /// Set to 0 to disable font data caching.
     /// </summary>
     public long MaxFontDataCacheSize { get; set; } = 100 * 1024 * 1024; // 100MB
+
+    /// <summary>
+    /// Gets or sets an optional callback for receiving diagnostic messages from the font system.
+    /// Use this to log cache load failures, scan timeouts, and other diagnostic events.
+    /// Default is null (no diagnostics).
+    /// Example: options.DiagnosticCallback = msg => Console.WriteLine($"[Font] {msg}");
+    /// </summary>
+    /// <remarks>
+    /// This callback is invoked for non-critical diagnostic information such as:
+    /// - Persistent cache load failures
+    /// - Persistent cache save failures
+    /// - Font file parse errors during scanning
+    /// - System font scan timeouts
+    /// This is designed for debugging and monitoring - the font system will continue
+    /// to function normally even when these events occur.
+    /// </remarks>
+    public Action<string>? DiagnosticCallback { get; set; }
 }
