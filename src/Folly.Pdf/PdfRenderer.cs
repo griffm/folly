@@ -123,8 +123,9 @@ public sealed class PdfRenderer : IDisposable
                 "PDF/A compliance requires all fonts to be embedded. Set PdfOptions.EmbedFonts = true.");
         }
 
-        // PDF/A doesn't allow encryption (current implementation doesn't support encryption, but validate for future)
-        // This is a placeholder for when encryption is implemented
+        // Note: PDF/A standards (ISO 19005) prohibit encryption to ensure long-term accessibility.
+        // The current implementation does not support PDF encryption. If encryption support is added
+        // in the future, this validation must ensure it's disabled when PDF/A compliance is enabled.
 
         // Warn if metadata is minimal
         if (string.IsNullOrWhiteSpace(_options.Metadata.Title) &&
@@ -1763,7 +1764,7 @@ public sealed class PdfRenderer : IDisposable
         content.AppendLine($"{scaleX:F6} 0 0 {scaleY:F6} 0 0 cm");
 
         // Convert SVG to PDF content stream
-        var svgConverter = new Svg.SvgToPdfConverter(svg.SvgDocument);
+        var svgConverter = new Svg.SvgToPdfConverter(svg.SvgDocument, _options.DiagnosticCallback);
         var svgResult = svgConverter.Convert();
 
         // Append the SVG content directly

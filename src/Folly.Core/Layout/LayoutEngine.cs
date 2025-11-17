@@ -905,12 +905,74 @@ internal sealed class LayoutEngine
             currentColumn = 0;  // Reset to first column after list
         }
 
-        // Layout absolutely positioned block containers
-        // These are positioned relative to the page, not the flow
-        // TODO: Currently adds to current page only; future enhancement could support page-specific positioning
+        // Layout normal flow block containers
+        // These participate in the normal flow like blocks
         foreach (var blockContainer in flow.BlockContainers)
         {
-            // Only handle absolute positioning for now
+            if (blockContainer.AbsolutePosition == "auto" || blockContainer.AbsolutePosition == "")
+            {
+                // Calculate X position based on current column
+                var columnX = bodyMarginLeft + currentColumn * (columnWidth + columnGap);
+
+                var containerArea = LayoutNormalFlowBlockContainer(blockContainer, columnX, currentY, columnWidth, pageNumber);
+                if (containerArea != null)
+                {
+                    // Total height includes margins and block height
+                    var containerTotalHeight = containerArea.MarginTop + containerArea.Height + containerArea.MarginBottom;
+
+                    // Check if container fits in current column
+                    var containerFitsInColumn = currentY + containerTotalHeight <= currentPageMaster.PageHeight - bodyMarginBottom;
+
+                    if (!containerFitsInColumn)
+                    {
+                        // Try moving to next column
+                        if (currentColumn < columnCount - 1)
+                        {
+                            // Move to next column on same page
+                            currentColumn++;
+                            columnX = bodyMarginLeft + currentColumn * (columnWidth + columnGap);
+                            currentY = bodyMarginTop;
+                        }
+                        else
+                        {
+                            // Need new page
+                            RenderFloats(currentPage, currentPageMaster, bodyMarginTop);
+                            RenderFootnotes(currentPage, currentPageMaster, pageSequence);
+                            AddLinksToPage(currentPage);
+                            CheckPageLimit(areaTree);
+                            areaTree.AddPage(currentPage);
+                            pageNumber++;
+                            currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
+                            CalculateBodyMargins(currentPageMaster, out bodyMarginTop, out bodyMarginBottom,
+                                out bodyMarginLeft, out bodyMarginRight, out bodyWidth, out bodyHeight);
+                            currentPage = CreatePage(currentPageMaster, pageSequence, pageNumber);
+                            currentY = bodyMarginTop;
+                            currentColumn = 0;
+                            columnX = bodyMarginLeft;
+                        }
+
+                        // Re-layout container at new position
+                        containerArea = LayoutNormalFlowBlockContainer(blockContainer, columnX, currentY, columnWidth, pageNumber);
+                        if (containerArea != null)
+                        {
+                            containerTotalHeight = containerArea.MarginTop + containerArea.Height + containerArea.MarginBottom;
+                        }
+                    }
+
+                    if (containerArea != null)
+                    {
+                        currentPage.AddArea(containerArea);
+                        currentY += containerTotalHeight;
+                    }
+                }
+            }
+        }
+
+        // Layout absolutely positioned block containers
+        // These are positioned relative to the page, not the flow
+        // Note: Currently adds to current page only; future enhancement could support page-specific positioning
+        foreach (var blockContainer in flow.BlockContainers)
+        {
             if (blockContainer.AbsolutePosition == "absolute")
             {
                 var absoluteArea = LayoutBlockContainer(blockContainer, currentPageMaster, pageNumber);
@@ -4332,6 +4394,134 @@ internal sealed class LayoutEngine
     }
 
     /// <summary>
+    /// Lays out a block container with normal flow positioning.
+    /// </summary>
+    private BlockArea? LayoutNormalFlowBlockContainer(
+        Dom.FoBlockContainer blockContainer,
+        double x,
+        double y,
+        double availableWidth,
+        int pageNumber = 0)
+    {
+        // Calculate container dimensions
+        var containerWidth = blockContainer.Width == "auto"
+            ? availableWidth - blockContainer.MarginLeft - blockContainer.MarginRight
+            : ParseLengthOrPercentage(blockContainer.Width, availableWidth);
+
+        // Create the block container area
+        var containerArea = new BlockArea
+        {
+            X = x + blockContainer.MarginLeft,
+            Y = y + blockContainer.MarginTop,
+            Width = containerWidth,
+            FontFamily = "", // Block containers don't have inherent font properties
+            FontSize = 12,   // Default, children will override
+            TextAlign = "start",
+            MarginTop = blockContainer.MarginTop,
+            MarginBottom = blockContainer.MarginBottom,
+            MarginLeft = blockContainer.MarginLeft,
+            MarginRight = blockContainer.MarginRight,
+            PaddingTop = blockContainer.PaddingBefore,
+            PaddingBottom = blockContainer.PaddingAfter,
+            PaddingLeft = blockContainer.PaddingStart,
+            PaddingRight = blockContainer.PaddingEnd,
+            BorderTopWidth = blockContainer.BorderTopWidth,
+            BorderBottomWidth = blockContainer.BorderBottomWidth,
+            BorderLeftWidth = blockContainer.BorderLeftWidth,
+            BorderRightWidth = blockContainer.BorderRightWidth,
+            BorderTopStyle = blockContainer.BorderTopStyle,
+            BorderBottomStyle = blockContainer.BorderBottomStyle,
+            BorderLeftStyle = blockContainer.BorderLeftStyle,
+            BorderRightStyle = blockContainer.BorderRightStyle,
+            BorderTopColor = blockContainer.BorderTopColor,
+            BorderBottomColor = blockContainer.BorderBottomColor,
+            BorderLeftColor = blockContainer.BorderLeftColor,
+            BorderRightColor = blockContainer.BorderRightColor,
+            BorderTopLeftRadius = blockContainer.BorderTopLeftRadius,
+            BorderTopRightRadius = blockContainer.BorderTopRightRadius,
+            BorderBottomLeftRadius = blockContainer.BorderBottomLeftRadius,
+            BorderBottomRightRadius = blockContainer.BorderBottomRightRadius,
+            BackgroundColor = blockContainer.BackgroundColor,
+            Visibility = blockContainer.Visibility
+        };
+
+        // Load background image if specified
+        LoadBackgroundImage(containerArea, blockContainer.BackgroundImage);
+
+        // Calculate content area (subtract padding and borders)
+        var contentX = containerArea.X + blockContainer.PaddingStart + blockContainer.BorderLeftWidth;
+        var contentY = containerArea.Y + blockContainer.PaddingBefore + blockContainer.BorderTopWidth;
+        var contentWidth = containerWidth - blockContainer.PaddingStart - blockContainer.PaddingEnd -
+                           blockContainer.BorderLeftWidth - blockContainer.BorderRightWidth;
+
+        // Layout children within the container
+        var currentY = contentY;
+        foreach (var child in blockContainer.Children)
+        {
+            Area? childArea = null;
+
+            if (child is Dom.FoBlock foBlock)
+            {
+                childArea = LayoutBlock(foBlock, contentX, currentY, contentWidth, pageNumber);
+            }
+            else if (child is Dom.FoTable foTable)
+            {
+                childArea = LayoutTable(foTable, contentX, currentY, contentWidth);
+            }
+            else if (child is Dom.FoListBlock foList)
+            {
+                childArea = LayoutListBlock(foList, contentX, currentY, contentWidth);
+            }
+            else if (child is Dom.FoBlockContainer nestedContainer)
+            {
+                // Recursively layout nested containers
+                if (nestedContainer.AbsolutePosition == "absolute")
+                {
+                    // Nested absolute containers within normal flow containers are not currently supported
+                    // This would require creating an AbsolutePositionedArea and converting coordinates
+                    continue;
+                }
+                else
+                {
+                    childArea = LayoutNormalFlowBlockContainer(nestedContainer, contentX, currentY, contentWidth, pageNumber);
+                }
+            }
+
+            if (childArea != null)
+            {
+                containerArea.AddChild(childArea);
+                if (childArea is BlockArea blockArea)
+                {
+                    currentY += blockArea.Height + blockArea.MarginTop + blockArea.MarginBottom +
+                               blockArea.SpaceBefore + blockArea.SpaceAfter;
+                }
+                else
+                {
+                    currentY += childArea.Height;
+                }
+            }
+        }
+
+        // Set final height based on content or explicit height
+        var contentHeight = currentY - contentY;
+        if (blockContainer.Height != "auto")
+        {
+            var explicitHeight = ParseLengthOrPercentage(blockContainer.Height, contentHeight);
+            containerArea.Height = Math.Max(explicitHeight, contentHeight) +
+                                  blockContainer.PaddingBefore + blockContainer.PaddingAfter +
+                                  blockContainer.BorderTopWidth + blockContainer.BorderBottomWidth;
+        }
+        else
+        {
+            containerArea.Height = contentHeight +
+                                  blockContainer.PaddingBefore + blockContainer.PaddingAfter +
+                                  blockContainer.BorderTopWidth + blockContainer.BorderBottomWidth;
+        }
+
+        return containerArea;
+    }
+
+    /// <summary>
     /// Lays out a block container with absolute positioning.
     /// </summary>
     private AbsolutePositionedArea? LayoutBlockContainer(
@@ -4343,10 +4533,9 @@ internal sealed class LayoutEngine
         double? parentWidth = null,
         double? parentHeight = null)
     {
-        // Only handle absolute positioning for now
+        // Only handle absolute positioning
         if (blockContainer.AbsolutePosition != "absolute")
         {
-            // TODO: Implement normal flow block containers
             return null;
         }
 

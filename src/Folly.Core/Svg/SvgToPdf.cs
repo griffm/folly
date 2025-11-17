@@ -12,6 +12,7 @@ public sealed class SvgToPdfConverter
     private readonly SvgDocument _document;
     private readonly Stack<SvgTransform> _transformStack = new();
     private readonly Stack<SvgStyle> _styleStack = new();
+    private readonly Action<string>? _diagnosticCallback;
 
     // Resource collections
     private readonly Dictionary<string, string> _shadings = new();
@@ -29,9 +30,11 @@ public sealed class SvgToPdfConverter
     /// Initializes a new instance of the <see cref="SvgToPdfConverter"/> class.
     /// </summary>
     /// <param name="document">The SVG document to convert.</param>
-    public SvgToPdfConverter(SvgDocument document)
+    /// <param name="diagnosticCallback">Optional callback for diagnostic messages.</param>
+    public SvgToPdfConverter(SvgDocument document, Action<string>? diagnosticCallback = null)
     {
         _document = document;
+        _diagnosticCallback = diagnosticCallback;
     }
 
     /// <summary>
@@ -755,14 +758,12 @@ public sealed class SvgToPdfConverter
                  href.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
         {
             // External URL - cannot embed without fetching
-            // TODO: Could add option to fetch external images
-            // For now, we'll skip external images
+            _diagnosticCallback?.Invoke($"SVG external image skipped: {href} (external URLs cannot be fetched)");
         }
         else
         {
             // Local file reference - cannot resolve without file system access
-            // TODO: Could add option to resolve local file paths
-            // For now, we'll skip local file references
+            _diagnosticCallback?.Invoke($"SVG local file reference skipped: {href} (file system access not available)");
         }
     }
 
@@ -1784,16 +1785,194 @@ public sealed class SvgToPdfConverter
                     }
                     break;
 
-                // TODO: Could add C, S, Q, T, A for curves - approximated as line segments
-                // For now, we handle the most common cases (M, L, H, V)
+                case 'C': // Absolute cubic Bezier curve
+                    if (parser.TryReadNumber(out var cx1) && parser.TryReadNumber(out var cy1) &&
+                        parser.TryReadNumber(out var cx2) && parser.TryReadNumber(out var cy2) &&
+                        parser.TryReadNumber(out var cx) && parser.TryReadNumber(out var cy))
+                    {
+                        // Approximate cubic Bezier as line segments
+                        AppendCubicBezierSegments(segments, currentX, currentY, cx1, cy1, cx2, cy2, cx, cy);
+                        currentX = cx;
+                        currentY = cy;
+                    }
+                    break;
+
+                case 'c': // Relative cubic Bezier curve
+                    if (parser.TryReadNumber(out var rcx1) && parser.TryReadNumber(out var rcy1) &&
+                        parser.TryReadNumber(out var rcx2) && parser.TryReadNumber(out var rcy2) &&
+                        parser.TryReadNumber(out var rcx) && parser.TryReadNumber(out var rcy))
+                    {
+                        // Convert relative to absolute
+                        var absX1 = currentX + rcx1;
+                        var absY1 = currentY + rcy1;
+                        var absX2 = currentX + rcx2;
+                        var absY2 = currentY + rcy2;
+                        var absX = currentX + rcx;
+                        var absY = currentY + rcy;
+                        AppendCubicBezierSegments(segments, currentX, currentY, absX1, absY1, absX2, absY2, absX, absY);
+                        currentX = absX;
+                        currentY = absY;
+                    }
+                    break;
+
+                case 'Q': // Absolute quadratic Bezier curve
+                    if (parser.TryReadNumber(out var qx1) && parser.TryReadNumber(out var qy1) &&
+                        parser.TryReadNumber(out var qx) && parser.TryReadNumber(out var qy))
+                    {
+                        // Approximate quadratic Bezier as line segments
+                        AppendQuadraticBezierSegments(segments, currentX, currentY, qx1, qy1, qx, qy);
+                        currentX = qx;
+                        currentY = qy;
+                    }
+                    break;
+
+                case 'q': // Relative quadratic Bezier curve
+                    if (parser.TryReadNumber(out var rqx1) && parser.TryReadNumber(out var rqy1) &&
+                        parser.TryReadNumber(out var rqx) && parser.TryReadNumber(out var rqy))
+                    {
+                        // Convert relative to absolute
+                        var absQX1 = currentX + rqx1;
+                        var absQY1 = currentY + rqy1;
+                        var absQX = currentX + rqx;
+                        var absQY = currentY + rqy;
+                        AppendQuadraticBezierSegments(segments, currentX, currentY, absQX1, absQY1, absQX, absQY);
+                        currentX = absQX;
+                        currentY = absQY;
+                    }
+                    break;
+
+                case 'S': // Absolute smooth cubic Bezier (shorthand)
+                case 's': // Relative smooth cubic Bezier (shorthand)
+                case 'T': // Absolute smooth quadratic Bezier (shorthand)
+                case 't': // Relative smooth quadratic Bezier (shorthand)
+                    // S, s, T, t require tracking previous control points for smooth continuation
+                    // For textPath approximation, we can skip these for now as they're less common
+                    // A full implementation would track the last control point
+                    break;
+
+                case 'A': // Absolute elliptical arc
+                case 'a': // Relative elliptical arc
+                    // Arc approximation requires complex calculations
+                    // For textPath, arcs are less common and can be approximated
+                    // A full implementation would subdivide the arc into segments
+                    // For now, skip arc commands (read and discard 7 parameters)
+                    if (parser.TryReadNumber(out var _) && parser.TryReadNumber(out var _) &&
+                        parser.TryReadNumber(out var _) && parser.TryReadNumber(out var _) &&
+                        parser.TryReadNumber(out var _) && parser.TryReadNumber(out var _) &&
+                        parser.TryReadNumber(out var _))
+                    {
+                        // Arc parameters read and discarded
+                    }
+                    break;
+
+                case 'Z': // Close path
+                case 'z': // Close path (lowercase)
+                    // Add line segment back to start if needed
+                    if (currentX != startX || currentY != startY)
+                    {
+                        var length = Math.Sqrt(Math.Pow(startX - currentX, 2) + Math.Pow(startY - currentY, 2));
+                        var tangent = Math.Atan2(startY - currentY, startX - currentX) * 180.0 / Math.PI;
+                        segments.Add((currentX, currentY, startX, startY, length, tangent));
+                        currentX = startX;
+                        currentY = startY;
+                    }
+                    break;
 
                 default:
-                    // Skip unsupported commands for textPath (curves would need approximation)
+                    // Skip unsupported commands
                     break;
             }
         }
 
         return segments;
+    }
+
+    /// <summary>
+    /// Approximates a cubic Bezier curve as line segments for textPath positioning.
+    /// Uses De Casteljau's algorithm to subdivide the curve.
+    /// </summary>
+    private void AppendCubicBezierSegments(
+        List<(double startX, double startY, double endX, double endY, double length, double tangent)> segments,
+        double x0, double y0, // Start point
+        double x1, double y1, // First control point
+        double x2, double y2, // Second control point
+        double x3, double y3) // End point
+    {
+        // Number of segments to approximate the curve
+        // More segments = smoother but more computation
+        const int subdivisions = 10;
+
+        for (int i = 0; i < subdivisions; i++)
+        {
+            var t0 = (double)i / subdivisions;
+            var t1 = (double)(i + 1) / subdivisions;
+
+            // Calculate points on the cubic Bezier curve using the formula:
+            // B(t) = (1-t)³P0 + 3(1-t)²tP1 + 3(1-t)t²P2 + t³P3
+            var startX = CubicBezierPoint(t0, x0, x1, x2, x3);
+            var startY = CubicBezierPoint(t0, y0, y1, y2, y3);
+            var endX = CubicBezierPoint(t1, x0, x1, x2, x3);
+            var endY = CubicBezierPoint(t1, y0, y1, y2, y3);
+
+            var length = Math.Sqrt(Math.Pow(endX - startX, 2) + Math.Pow(endY - startY, 2));
+            var tangent = Math.Atan2(endY - startY, endX - startX) * 180.0 / Math.PI;
+
+            segments.Add((startX, startY, endX, endY, length, tangent));
+        }
+    }
+
+    /// <summary>
+    /// Evaluates a cubic Bezier curve at parameter t.
+    /// </summary>
+    private double CubicBezierPoint(double t, double p0, double p1, double p2, double p3)
+    {
+        var oneMinusT = 1 - t;
+        return oneMinusT * oneMinusT * oneMinusT * p0 +
+               3 * oneMinusT * oneMinusT * t * p1 +
+               3 * oneMinusT * t * t * p2 +
+               t * t * t * p3;
+    }
+
+    /// <summary>
+    /// Approximates a quadratic Bezier curve as line segments for textPath positioning.
+    /// </summary>
+    private void AppendQuadraticBezierSegments(
+        List<(double startX, double startY, double endX, double endY, double length, double tangent)> segments,
+        double x0, double y0, // Start point
+        double x1, double y1, // Control point
+        double x2, double y2) // End point
+    {
+        // Number of segments to approximate the curve
+        const int subdivisions = 10;
+
+        for (int i = 0; i < subdivisions; i++)
+        {
+            var t0 = (double)i / subdivisions;
+            var t1 = (double)(i + 1) / subdivisions;
+
+            // Calculate points on the quadratic Bezier curve using the formula:
+            // B(t) = (1-t)²P0 + 2(1-t)tP1 + t²P2
+            var startX = QuadraticBezierPoint(t0, x0, x1, x2);
+            var startY = QuadraticBezierPoint(t0, y0, y1, y2);
+            var endX = QuadraticBezierPoint(t1, x0, x1, x2);
+            var endY = QuadraticBezierPoint(t1, y0, y1, y2);
+
+            var length = Math.Sqrt(Math.Pow(endX - startX, 2) + Math.Pow(endY - startY, 2));
+            var tangent = Math.Atan2(endY - startY, endX - startX) * 180.0 / Math.PI;
+
+            segments.Add((startX, startY, endX, endY, length, tangent));
+        }
+    }
+
+    /// <summary>
+    /// Evaluates a quadratic Bezier curve at parameter t.
+    /// </summary>
+    private double QuadraticBezierPoint(double t, double p0, double p1, double p2)
+    {
+        var oneMinusT = 1 - t;
+        return oneMinusT * oneMinusT * p0 +
+               2 * oneMinusT * t * p1 +
+               t * t * p2;
     }
 
     /// <summary>
