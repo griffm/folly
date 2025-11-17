@@ -26,6 +26,11 @@ public sealed class SvgToPdfConverter
     private int _patternCounter = 0;
     private int _xObjectCounter = 0;
 
+    // Mathematical constant for Bezier approximation of circular arcs
+    // This is (4/3) * tan(π/8) ≈ 0.5522847498
+    // Used to draw quarter circles with cubic Bezier curves
+    private const double BezierCircleKappa = 0.5522847498;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="SvgToPdfConverter"/> class.
     /// </summary>
@@ -244,10 +249,9 @@ public sealed class SvgToPdfConverter
 
     private void DrawRoundedRectangle(double x, double y, double width, double height, double rx, double ry)
     {
-        // Magic number for Bézier approximation of a quarter circle
-        const double kappa = 0.5522847498;
-        var cpx = kappa * rx;
-        var cpy = kappa * ry;
+        // Use Bezier approximation of circular arcs for rounded corners
+        var cpx = BezierCircleKappa * rx;
+        var cpy = BezierCircleKappa * ry;
 
         // Start at top-left corner (after the rounded corner)
         _contentStream.AppendLine($"{x + rx} {y} m");
@@ -311,10 +315,9 @@ public sealed class SvgToPdfConverter
 
     private void DrawEllipse(double cx, double cy, double rx, double ry)
     {
-        // Magic number for Bézier approximation of a circle
-        const double kappa = 0.5522847498;
-        var dx = kappa * rx;
-        var dy = kappa * ry;
+        // Use Bezier approximation of circular arcs for ellipse
+        var dx = BezierCircleKappa * rx;
+        var dy = BezierCircleKappa * ry;
 
         // Start at right-most point
         _contentStream.AppendLine($"{cx + rx} {cy} m");
