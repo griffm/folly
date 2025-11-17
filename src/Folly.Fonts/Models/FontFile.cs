@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Folly.Core.Logging;
 using Folly.Fonts.CFF;
 using Folly.Fonts.OpenType;
 
@@ -10,6 +11,11 @@ namespace Folly.Fonts.Models;
 /// </summary>
 public class FontFile
 {
+    /// <summary>
+    /// Logger for diagnostic messages during font parsing.
+    /// Set by the caller to enable logging; defaults to NullLogger.
+    /// </summary>
+    internal ILogger Logger { get; set; } = NullLogger.Instance;
     /// <summary>
     /// Font family name (from 'name' table).
     /// </summary>

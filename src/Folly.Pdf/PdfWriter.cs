@@ -270,9 +270,9 @@ internal sealed class PdfWriter : IDisposable
             var parser = new Folly.Images.Parsers.JpegParser();
             imageInfo = parser.Parse(jpegData);
         }
-        catch
+        catch (Exception ex)
         {
-            // Parser failed, fall back to simple metadata extraction
+            _options.Logger.Warning($"JPEG metadata parsing failed: {ex.Message}. Using fallback metadata extraction.", ex);
         }
 
         string colorSpace;
@@ -1192,8 +1192,9 @@ internal sealed class PdfWriter : IDisposable
                 offset += length;
             }
         }
-        catch
+        catch (Exception ex)
         {
+            _options.Logger.Debug($"JPEG DPI extraction failed: {ex.Message}. Using default DPI values.");
             // If parsing fails, return default values
             // Caller will use width/height from image loading
         }

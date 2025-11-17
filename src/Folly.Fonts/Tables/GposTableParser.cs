@@ -64,9 +64,11 @@ public static class GposTableParser
 
             font.Gpos = gpos;
         }
-        catch
+        catch (Exception ex)
         {
             // If parsing fails, don't crash - just don't populate GPOS data
+            font.Logger.Warning($"GPOS table parsing failed: {ex.Message}. " +
+                              "Glyph positioning features may not work correctly.", ex);
             font.Gpos = null;
         }
     }

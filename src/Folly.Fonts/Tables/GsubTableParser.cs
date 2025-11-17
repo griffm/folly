@@ -64,10 +64,12 @@ public static class GsubTableParser
 
             font.Gsub = gsub;
         }
-        catch
+        catch (Exception ex)
         {
             // If parsing fails, don't crash - just don't populate GSUB data
             // This allows fonts with malformed GSUB tables to still be used
+            font.Logger.Warning($"GSUB table parsing failed: {ex.Message}. " +
+                              "Advanced typographic features (ligatures, substitutions) may not work correctly.", ex);
             font.Gsub = null;
         }
     }

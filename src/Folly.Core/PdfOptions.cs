@@ -1,3 +1,5 @@
+using Folly.Core.Logging;
+
 namespace Folly;
 
 /// <summary>
@@ -5,6 +7,12 @@ namespace Folly;
 /// </summary>
 public sealed class PdfOptions
 {
+    /// <summary>
+    /// Gets or sets the logger for diagnostic messages, warnings, and errors.
+    /// If not set, a null logger is used (messages are discarded).
+    /// Set to a ConsoleLogger or custom ILogger implementation to capture diagnostic information.
+    /// </summary>
+    public ILogger Logger { get; set; } = NullLogger.Instance;
     /// <summary>
     /// Gets or sets the PDF version. Currently only 1.7 is supported.
     /// </summary>
