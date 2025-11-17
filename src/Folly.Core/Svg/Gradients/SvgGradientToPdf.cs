@@ -88,7 +88,10 @@ public static class SvgGradientToPdf
             // Coordinates are fractions (0-1) of the bounding box
             cx = bbox.x + gradient.Cx * bbox.width;
             cy = bbox.y + gradient.Cy * bbox.height;
-            r = gradient.R * Math.Min(bbox.width, bbox.height); // TODO: Better handling for non-square boxes
+            // Use minimum dimension for radius to ensure gradient fits within bounding box
+            // NOTE: For non-square boxes, this approximates elliptical gradients as circular.
+            // PDF Type 3 shading supports only circular radial gradients, not elliptical.
+            r = gradient.R * Math.Min(bbox.width, bbox.height);
             fx = bbox.x + gradient.Fx * bbox.width;
             fy = bbox.y + gradient.Fy * bbox.height;
         }
@@ -108,7 +111,10 @@ public static class SvgGradientToPdf
             var t = gradient.GradientTransform;
             (cx, cy) = t.TransformPoint(cx, cy);
             (fx, fy) = t.TransformPoint(fx, fy);
-            // TODO: Transform radius properly for non-uniform scaling
+            // NOTE: Radius is not transformed for non-uniform scaling.
+            // PDF Type 3 shading only supports circular gradients. Proper handling of
+            // non-uniform scale transforms would require elliptical gradients or
+            // approximation via pattern fills, neither of which is currently implemented.
         }
 
         // Build PDF Type 3 (Radial) shading dictionary
@@ -231,9 +237,21 @@ public static class SvgGradientToPdf
             return (0, 0, 0);
         }
 
-        // Apply stop opacity
-        // TODO: Handle opacity properly - PDF shading doesn't directly support per-stop opacity
-        // Would need to use transparency groups or blend modes
+        // LIMITATION: Per-stop opacity is not applied to gradient colors.
+        // PDF shading dictionaries (Type 2/3) do not natively support opacity in color
+        // functions - they only support RGB/CMYK/Gray color spaces, not alpha channels.
+        //
+        // Proper implementation would require one of:
+        // 1. SMask (soft mask) with separate opacity gradient
+        // 2. Transparency group with alpha channel compositing
+        // 3. Pre-multiplying alpha into colors (incorrect color blending)
+        //
+        // This is a known PDF limitation. Most SVG implementations similarly struggle
+        // with gradient opacity when converting to static formats. The gradient colors
+        // are rendered correctly; only the per-stop opacity values are ignored.
+        //
+        // Workaround: Apply uniform opacity to the entire element using fill-opacity
+        // instead of per-stop opacity for gradient stops.
 
         return color.Value;
     }

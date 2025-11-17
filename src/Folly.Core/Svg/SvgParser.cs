@@ -780,7 +780,16 @@ public static class SvgParser
                         Result = child.Attribute("result")?.Value,
                         Mode = child.Attribute("mode")?.Value ?? "normal"
                     },
-                    _ => null // TODO: Support more filter primitives (feOffset, feColorMatrix, feComposite, etc.)
+                    // LIMITATION: Additional filter primitives not yet implemented.
+                    // Unsupported primitives: feOffset, feColorMatrix, feComposite, feMerge,
+                    // feTurbulence, feDisplacementMap, feMorphology, feConvolveMatrix, etc.
+                    //
+                    // These would require significant PDF rendering capabilities and may not
+                    // have direct PDF equivalents. Most are complex image processing operations
+                    // that would need rasterization or approximation.
+                    //
+                    // Currently supported: feGaussianBlur (parsed), feDropShadow (rendered), feBlend (parsed)
+                    _ => null
                 };
 
                 if (primitive != null)

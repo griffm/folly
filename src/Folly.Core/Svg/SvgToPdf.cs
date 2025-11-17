@@ -132,11 +132,18 @@ public sealed class SvgToPdfConverter
         // Apply element opacity if needed
         if (element.Style.Opacity < 1.0)
         {
-            // TODO: For proper opacity groups, we should:
-            // 1. Create a transparency group (XObject with /Group dictionary)
-            // 2. Render element and children into the group
-            // 3. Paint the group with the specified opacity
-            // For now, we'll apply opacity to fills and strokes individually
+            // LIMITATION: Opacity is applied to individual fills and strokes rather than
+            // creating a PDF transparency group. This approach works correctly for simple
+            // cases but differs from SVG spec for overlapping elements within a group.
+            //
+            // Proper implementation would require:
+            // 1. Create Form XObject with /Group <</S /Transparency>> dictionary
+            // 2. Render element and all children into the XObject content stream
+            // 3. Paint the XObject with specified opacity using ExtGState /ca
+            //
+            // This is a known limitation to maintain implementation simplicity while
+            // supporting common use cases. The current approach correctly handles
+            // opacity for non-overlapping content within groups.
         }
 
         // Render based on element type
@@ -1107,9 +1114,23 @@ public sealed class SvgToPdfConverter
 
     /// <summary>
     /// Applies a simple drop shadow effect to an element.
-    /// NOTE: This is a simplified implementation - renders shadow as offset copy with opacity.
-    /// Full SVG feGaussianBlur is not implemented (would require PDF transparency groups).
     /// </summary>
+    /// <remarks>
+    /// LIMITATION: Drop shadow is rendered as an offset copy with opacity, without blur.
+    /// Full SVG feGaussianBlur is not implemented due to PDF rendering constraints.
+    ///
+    /// PDF blur effects require either:
+    /// 1. Soft masks (SMask) with blurred alpha channels
+    /// 2. Form XObjects with transparency groups and blur operations
+    /// 3. Rasterization (incompatible with vector output)
+    ///
+    /// This implementation provides visually acceptable drop shadows for most use cases
+    /// while maintaining pure vector output. The shadow offset and opacity match the
+    /// SVG specification; only the blur radius is not applied.
+    ///
+    /// Workaround: For critical blur effects, pre-render them in the SVG or use
+    /// rasterized image elements instead of vector filters.
+    /// </remarks>
     /// <param name="element">The element to apply shadow to.</param>
     /// <param name="filter">The filter definition.</param>
     private void ApplySimpleDropShadow(SvgElement element, SvgFilter filter)
