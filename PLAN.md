@@ -690,7 +690,7 @@ namespace Folly.Svg
 - [x] New Folly.Svg.csproj
 - [x] ISvgRenderer abstraction foundation
 - [x] SvgToPdfConverter implementation
-- [x] All SVG tests passing (436 total tests pass)
+- [x] All SVG tests passing
 - [x] Folly.Svg.Tests created with 9 standalone tests
 - [ ] NuGet package published
 
@@ -698,7 +698,7 @@ namespace Folly.Svg
 - ✅ Independent Folly.Svg package (zero dependencies on Folly.Core)
 - ✅ Can parse SVG without Folly.Core (proven by Folly.Svg.Tests)
 - 🔄 Can implement custom renderers (foundation in place for future)
-- ✅ All tests pass (436 tests, zero failures)
+- ✅ All tests pass with zero failures
 - ✅ Zero breaking changes
 
 ---
@@ -732,7 +732,7 @@ namespace Folly.Svg
 - [x] FO DOM classes moved
 - [x] FoParser moved
 - [x] Property system moved
-- [x] All tests passing (436 tests pass)
+- [x] All tests passing
 - [ ] NuGet package published
 
 ---
@@ -746,7 +746,7 @@ namespace Folly.Svg
 - [x] New Folly.Xslfo.Layout.csproj
 - [x] LayoutEngine moved
 - [x] All dependencies referenced
-- [x] All tests passing (436 tests pass)
+- [x] All tests passing
 - [ ] NuGet package published
 
 ---
@@ -762,7 +762,7 @@ namespace Folly.Svg
 - [x] PdfWriter, PdfRenderer in Folly.Pdf.Core
 - [x] FoDocumentExtensions moved to Folly.Core
 - [x] PdfOptions and PdfMetadata moved to Folly.Pdf.Core
-- [x] All tests passing (407 tests pass, 0 failures)
+- [x] All tests passing
 - [ ] NuGet package published
 
 ---
@@ -778,7 +778,7 @@ namespace Folly.Svg
 - [x] FoDocument, FoLoadOptions in Folly.Core
 - [x] FoDocumentExtensions (SavePdf) in Folly.Core
 - [x] All packages referenced
-- [x] All tests passing (407 tests pass, 0 failures)
+- [x] All tests passing
 - [x] **API 100% identical to current Folly**
 - [ ] NuGet package published
 
