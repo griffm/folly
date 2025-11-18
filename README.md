@@ -13,8 +13,8 @@ Folly is a standalone .NET 8 library that transforms XSL-FO (Formatting Objects)
 - **PDF 1.7 Output** - High-quality PDF generation with font embedding and subsetting
 - **Zero Dependencies** - No external runtime dependencies beyond System.*
 - **Fluent API** - Build FO documents programmatically with a clean, intuitive API
-- **High Performance** - Renders 200-page documents in ~150ms (66x faster than target)
-- **Low Memory** - ~22MB footprint for 200-page documents (27x better than target)
+- **High Performance** - Excellent rendering performance significantly exceeding targets
+- **Low Memory** - Minimal memory footprint for large documents
 - **CI Performance Tests** - Automated regression detection blocks performance degradation
 - **Developer-Friendly** - Rich validation diagnostics with XPath-locatable error messages
 
@@ -129,9 +129,9 @@ cd examples
 dotnet run --project Folly.Examples
 ```
 
-This generates 37 XSL-FO example PDFs + 26 SVG examples showcasing Folly's capabilities:
+This generates extensive working examples showcasing Folly's capabilities:
 
-### XSL-FO Examples (37)
+### XSL-FO Examples (39)
 - **Hello World** - Basic document with simple text
 - **Multiple Blocks** - Different fonts and sizes
 - **Text Alignment** - Start, center, and end alignment
@@ -170,13 +170,13 @@ This generates 37 XSL-FO example PDFs + 26 SVG examples showcasing Folly's capab
 - **SVG in XSL-FO (instream-foreign-object)** - Embedding SVG graphics directly in XSL-FO documents for scalable vector content
 - **SVG in XSL-FO (external-graphic)** - Loading SVG files as external graphics with automatic scaling
 
-### SVG Examples (26)
-- **Basic Shapes** (7) - Rectangle, circle, ellipse, line, polyline, polygon, rounded rectangles
-- **Paths** (5) - Straight paths, curved paths, cubic Bezier, elliptical arcs, complex paths
-- **Transforms** (4) - Translate, rotate, scale, combined transforms
-- **Text** (3) - Basic text, text on curved paths (textPath), multiline text, vertical text (writing-mode)
-- **Gradients** (2) - Linear and radial gradients with all spread methods
-- **Complex Features** (6) - Grouped elements, clipping/masking, patterns, filters, viewBox, markers (arrows)
+### SVG Examples (29)
+- **Basic Shapes** - Rectangle, circle, ellipse, line, polyline, polygon, rounded rectangles
+- **Paths** - Straight paths, curved paths, cubic Bezier, elliptical arcs, complex paths
+- **Transforms** - Translate, rotate, scale, combined transforms
+- **Text** - Basic text, text on curved paths (textPath), multiline text, vertical text (writing-mode)
+- **Gradients** - Linear and radial gradients with all spread methods
+- **Complex Features** - Grouped elements, clipping/masking, patterns, filters, viewBox, markers (arrows)
 
 See [examples/README.md](examples/README.md) and [examples/svg-examples/README.md](examples/svg-examples/README.md) for details.
 

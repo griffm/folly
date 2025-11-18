@@ -67,30 +67,61 @@ Folly is a standalone .NET 8 library that transforms XSL-FO (Formatting Objects)
 
 ## Core Components
 
-### 1. Folly.Core
+Folly is designed as a modular suite of composable libraries:
 
-The core library containing the FO DOM model, property system, and layout engine.
+### Tier 1: Foundation Libraries (Zero Dependencies)
 
-**Key Components:**
-- **FO DOM** - Immutable representation of XSL-FO document structure
-- **Property System** - Property inheritance and resolution (50+ inheritable properties)
-- **Layout Engine** - Multi-pass layout with line breaking, page breaking, and area tree generation
-- **Text Processing** - Hyphenation (Liang algorithm), BiDi support (UAX#9), line breaking (Greedy/Knuth-Plass)
+**Folly.Typography** - Text layout primitives:
+- Unicode BiDi (UAX#9)
+- Hyphenation (Liang's algorithm)
+- Optimal line breaking (Knuth-Plass)
 
-### 2. Folly.Pdf
+**Folly.Images** - Image format parsers:
+- JPEG, PNG, BMP, GIF, TIFF
+- DPI extraction and ICC profiles
 
-PDF generation and rendering components.
+**Folly.Svg** - SVG 1.1 parser:
+- Complete SVG support with CSS
+- PDF rendering backend
 
-**Key Components:**
-- **PDF Renderer** - Converts area tree to PDF content streams
-- **PDF Writer** - Manages PDF object serialization and file structure
-- **Font System** - TrueType/OpenType parsing, subsetting, and embedding
-- **Image System** - JPEG, PNG, BMP, GIF, TIFF decoding and embedding
-- **SVG System** - Complete SVG parsing and PDF conversion
+**Folly.Fonts** - Font parsing and embedding:
+- TrueType/OpenType parsing
+- Font subsetting and embedding
+- System font discovery
 
-### 3. Folly.Fluent
+### Tier 2: Layout Abstraction
 
-Fluent API for programmatic FO document construction.
+**Folly.Layout** - Format-agnostic layout model:
+- Area Tree intermediate representation
+- Block, inline, table, and line areas
+- Generic layout primitives
+
+### Tier 3: Format-Specific Libraries
+
+**Folly.Xslfo.Model** - XSL-FO document model:
+- FO DOM with property inheritance
+- XML parser
+- Property system
+
+**Folly.Xslfo.Layout** - XSL-FO layout engine:
+- Converts FO DOM to Area Tree
+- Tables, lists, footnotes, markers
+- Multi-column layout
+
+**Folly.Pdf.Core** - PDF generation:
+- PDF 1.7 writer
+- Font and image embedding
+- Content stream generation
+
+### Tier 4: Composition
+
+**Folly.Core** - High-level API:
+- Orchestrates all components
+- FoDocument API
+- Extension methods
+
+**Folly.Fluent** - Fluent API:
+- Programmatic FO document construction
 
 ## Data Flow
 
@@ -143,8 +174,8 @@ Folly has **no runtime dependencies** beyond the .NET 8 base class library. All 
 
 ### Performance First
 
-- **Throughput**: ~1,333 pages/second for complex documents
-- **Memory**: ~22MB for 200-page documents
+- **Excellent throughput** for complex documents
+- **Minimal memory footprint** for large documents
 - **Scaling**: Linear to sub-linear O(n) performance
 - Text width caching for repeated measurements
 - Lazy evaluation where possible
@@ -170,24 +201,27 @@ Folly has **no runtime dependencies** beyond the .NET 8 base class library. All 
 ```
 Folly/
 ├── src/
-│   ├── Folly.Core/           # FO DOM, layout engine, area tree
-│   │   ├── Dom/              # FO element classes
-│   │   ├── Layout/           # Layout engine and algorithms
-│   │   ├── Properties/       # Property system
-│   │   └── Fonts/            # Font abstractions
-│   ├── Folly.Pdf/            # PDF rendering and generation
-│   │   ├── PdfRenderer.cs    # Area tree → PDF conversion
-│   │   ├── PdfWriter.cs      # PDF file structure
-│   │   └── Svg/              # SVG subsystem
-│   ├── Folly.Fonts/          # Font parsing and embedding
-│   │   ├── TrueType/         # TrueType parser
-│   │   └── Tables/           # Font table parsers
-│   └── Folly.Fluent/         # Fluent API
+│   ├── Folly.Typography/         # Text layout primitives (BiDi, hyphenation, line breaking)
+│   ├── Folly.Images/             # Image format parsers (JPEG, PNG, BMP, GIF, TIFF)
+│   ├── Folly.Svg/                # SVG 1.1 parser and rendering
+│   ├── Folly.Fonts/              # Font parsing, subsetting, and embedding
+│   ├── Folly.Layout/             # Format-agnostic Area Tree model
+│   ├── Folly.Xslfo.Model/        # XSL-FO DOM and property system
+│   ├── Folly.Xslfo.Layout/       # XSL-FO layout engine
+│   ├── Folly.Pdf.Core/           # PDF 1.7 generation and rendering
+│   ├── Folly.Core/               # High-level API and orchestration
+│   ├── Folly.Fluent/             # Fluent API for document construction
+│   └── Folly.SourceGenerators.*/ # Build-time code generation
 ├── tests/
-│   ├── Folly.Tests/          # Unit tests
-│   └── Folly.Benchmarks/     # Performance benchmarks
+│   ├── Folly.Typography.Tests/   # Typography unit tests
+│   ├── Folly.Images.Tests/       # Image parser unit tests
+│   ├── Folly.Svg.Tests/          # SVG parser unit tests
+│   ├── Folly.UnitTests/          # Integration tests
+│   ├── Folly.SpecTests/          # XSL-FO specification tests
+│   └── Folly.Benchmarks/         # Performance benchmarks
 └── examples/
-    └── Folly.Examples/       # Runnable examples
+    ├── Folly.Examples/           # Runnable XSL-FO examples
+    └── svg-examples/             # SVG example files
 ```
 
 ## Further Reading

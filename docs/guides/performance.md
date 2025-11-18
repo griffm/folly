@@ -8,9 +8,9 @@ Folly significantly exceeds its v1.0 performance targets:
 
 | Metric | Target | Actual | Status |
 |--------|--------|--------|--------|
-| **200-page throughput** | <10 seconds | ~150ms | ✓ **66x faster** |
-| **Memory footprint** | <600MB | ~22MB | ✓ **27x better** |
-| **Pages/second** | 20 pages/sec | ~1,333 pages/sec | ✓ **67x faster** |
+| **200-page throughput** | <10 seconds | Well under target | ✓ **Significantly faster** |
+| **Memory footprint** | <600MB | Minimal footprint | ✓ **Significantly better** |
+| **Pages/second** | 20 pages/sec | Excellent throughput | ✓ **Significantly faster** |
 
 ## Benchmark Results
 
@@ -324,8 +324,8 @@ Performance varies by document complexity:
 
 Folly's performance significantly exceeds its targets:
 
-- ✓ **66x faster** than target (150ms vs 10s for 200 pages)
-- ✓ **27x better** memory usage (22MB vs 600MB)
+- ✓ **Significantly faster** than target throughput
+- ✓ **Significantly better** memory usage than target
 - ✓ **Linear to sub-linear** scaling
 - ✓ **Production-ready** for high-throughput scenarios
 
