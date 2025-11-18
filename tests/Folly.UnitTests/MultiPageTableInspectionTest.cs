@@ -188,7 +188,7 @@ public class MultiPageTableInspectionTest
             }
         }
 
-        Console.WriteLine(output.ToString());
+        // Console.WriteLine(output.ToString());
 
         // DETAILED: Check every single table row on page 2 to see where they actually are
         if (areaTree.Pages.Count >= 2)
@@ -227,7 +227,7 @@ public class MultiPageTableInspectionTest
                 }
             }
 
-            Console.WriteLine(output.ToString());
+            // Console.WriteLine(output.ToString());
         }
 
         // Save JSON for detailed inspection
@@ -239,7 +239,7 @@ public class MultiPageTableInspectionTest
             IncludeSpacing = true
         });
         File.WriteAllText("/tmp/multipage_table_inspection.json", json);
-        Console.WriteLine("\nArea tree JSON saved to: /tmp/multipage_table_inspection.json");
+        // Console.WriteLine("\nArea tree JSON saved to: /tmp/multipage_table_inspection.json");
     }
 
     private static string ExtractTextFromArea(Area area)
