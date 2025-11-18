@@ -39,14 +39,14 @@ Area Tree (ready for PDF rendering)
 - First-fit approach: break at first acceptable breakpoint
 - Fast: O(n) where n is number of words
 - Good quality for most documents
-- ~1.0x performance baseline
+- Excellent performance
 
 **Knuth-Plass Algorithm** (opt-in):
 - TeX-quality optimal line breaking
 - Minimizes total "badness" across entire paragraph
 - Considers stretch and shrink of spaces
 - O(n²) complexity but produces superior typography
-- ~1.5-2.0x slower than greedy
+- Slower than greedy but still performant
 
 ### Hyphenation (Liang's Algorithm)
 
@@ -101,9 +101,10 @@ For detailed algorithm descriptions and code organization, see the source code i
 
 ## Performance Characteristics
 
-- **Line breaking**: ~40% of layout time
-- **Page breaking**: ~30% of layout time
-- **Table/list layout**: ~20% of layout time
-- **Property resolution**: ~10% of layout time
+The layout engine is optimized for high throughput with the following relative cost distribution:
+- Line breaking and text measurement: Significant portion of layout time
+- Page breaking and pagination: Substantial portion of layout time
+- Table and list layout: Moderate portion of layout time
+- Property resolution: Smaller portion of layout time
 
-See [Performance Guide](../guides/performance.md) for detailed performance analysis.
+See [Performance Guide](../guides/performance.md) for performance analysis.

@@ -1,6 +1,8 @@
-# Font Architecture Roadmap
+# Font Architecture Roadmap (Historical)
 
-This document outlines the multi-phase approach to evolving Folly's font system from the current Base 14 Type 1 fonts to supporting TrueType and OpenType fonts with zero external dependencies.
+> **Note:** This is a historical planning document. The font system described in this roadmap has been implemented. See the code in `src/Folly.Fonts/` for the current implementation.
+
+This document outlines the multi-phase approach that was used to evolve Folly's font system from Base 14 Type 1 fonts to supporting TrueType and OpenType fonts with zero external dependencies.
 
 ## Current State (Phase 1 - Completed)
 
