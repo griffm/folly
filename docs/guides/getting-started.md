@@ -14,7 +14,6 @@ This guide will help you get started with Folly, a zero-dependency XSL-FO to PDF
 ```bash
 # Core library (required)
 dotnet add package Folly.Core
-dotnet add package Folly.Pdf
 
 # Optional: Fluent API for programmatic document construction
 dotnet add package Folly.Fluent
@@ -268,7 +267,7 @@ fo.SavePdf(pdfStream, pdfOptions: pdfOptions);
 
 ## Running Examples
 
-Folly includes 35 XSL-FO examples and 26 SVG examples demonstrating its capabilities:
+Folly includes extensive working examples demonstrating its capabilities:
 
 ```bash
 cd examples
@@ -293,7 +292,7 @@ cd examples
 
 ## Next Steps
 
-- **Explore Examples**: Review the 35+ examples in `examples/Folly.Examples/`
+- **Explore Examples**: Review the extensive examples in `examples/Folly.Examples/`
 - **Read the Architecture Guide**: Understand how Folly works in [Architecture Overview](../architecture/overview.md)
 - **Review Performance**: Learn about performance in [Performance Guide](performance.md)
 - **Check Limitations**: Review [Limitations](limitations.md) for current constraints
