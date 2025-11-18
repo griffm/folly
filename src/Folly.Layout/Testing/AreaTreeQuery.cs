@@ -1,4 +1,4 @@
-namespace Folly.Testing;
+namespace Folly.Layout.Testing;
 
 /// <summary>
 /// Provides a fluent API for querying and asserting on area trees.

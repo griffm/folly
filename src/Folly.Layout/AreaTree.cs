@@ -1,4 +1,4 @@
-namespace Folly;
+namespace Folly.Layout;
 
 /// <summary>
 /// Represents the area tree generated from an XSL-FO document.

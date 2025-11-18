@@ -12,6 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Folly.Layout\Folly.Layout.csproj" />
     <ProjectReference Include="..\Folly.Core\Folly.Core.csproj" />
     <ProjectReference Include="..\Folly.Fonts\Folly.Fonts.csproj" />
     <ProjectReference Include="..\Folly.Svg\Folly.Svg.csproj" />

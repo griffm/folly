@@ -20,6 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Folly.Layout\Folly.Layout.csproj" />
     <ProjectReference Include="..\..\src\Folly.Core\Folly.Core.csproj" />
     <ProjectReference Include="..\..\src\Folly.Pdf\Folly.Pdf.csproj" />
     <ProjectReference Include="..\..\src\Folly.Fluent\Folly.Fluent.csproj" />

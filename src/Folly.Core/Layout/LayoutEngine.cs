@@ -1,4 +1,4 @@
-namespace Folly.Layout;
+namespace Folly;
 
 /// <summary>
 /// Layout engine that transforms FO DOM into Area Tree.
