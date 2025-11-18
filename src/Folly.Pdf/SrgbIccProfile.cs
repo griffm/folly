@@ -54,16 +54,16 @@ internal static class SrgbIccProfile
         profile.AddRange(new byte[] { 0, 0, 0, 0 }); // Rendering intent: perceptual
 
         // PCS illuminant (D50): X=0.9642, Y=1.0, Z=0.8249
-        profile.AddRange(BitConverter.GetBytes(0x0000F6D6).Reverse().ToArray()); // X
-        profile.AddRange(BitConverter.GetBytes(0x00010000).Reverse().ToArray()); // Y
-        profile.AddRange(BitConverter.GetBytes(0x0000D32D).Reverse().ToArray()); // Z
+        profile.AddRange(BitConverter.GetBytes(0x0000F6D6).AsEnumerable().Reverse().ToArray()); // X
+        profile.AddRange(BitConverter.GetBytes(0x00010000).AsEnumerable().Reverse().ToArray()); // Y
+        profile.AddRange(BitConverter.GetBytes(0x0000D32D).AsEnumerable().Reverse().ToArray()); // Z
 
         profile.AddRange(System.Text.Encoding.ASCII.GetBytes("Fly ")); // Profile creator signature
         profile.AddRange(new byte[44]); // Reserved (must be zero)
 
         // Tag Table
         var tagCount = 9; // desc, cprt, wtpt, rXYZ, gXYZ, bXYZ, rTRC, gTRC, bTRC
-        profile.AddRange(BitConverter.GetBytes(tagCount).Reverse().ToArray());
+        profile.AddRange(BitConverter.GetBytes(tagCount).AsEnumerable().Reverse().ToArray());
 
         var offset = 128 + 4 + (tagCount * 12); // Header + tag count + tag table
 
@@ -71,8 +71,8 @@ internal static class SrgbIccProfile
         void AddTag(string sig, int size)
         {
             profile.AddRange(System.Text.Encoding.ASCII.GetBytes(sig));
-            profile.AddRange(BitConverter.GetBytes(offset).Reverse().ToArray());
-            profile.AddRange(BitConverter.GetBytes(size).Reverse().ToArray());
+            profile.AddRange(BitConverter.GetBytes(offset).AsEnumerable().Reverse().ToArray());
+            profile.AddRange(BitConverter.GetBytes(size).AsEnumerable().Reverse().ToArray());
             offset += size;
             // Align to 4-byte boundary
             if (size % 4 != 0)
@@ -99,7 +99,7 @@ internal static class SrgbIccProfile
         profile.AddRange(System.Text.Encoding.ASCII.GetBytes("desc"));
         profile.AddRange(new byte[] { 0, 0, 0, 0 }); // Reserved
         var desc = "sRGB IEC61966-2.1";
-        profile.AddRange(BitConverter.GetBytes(desc.Length + 1).Reverse().ToArray());
+        profile.AddRange(BitConverter.GetBytes(desc.Length + 1).AsEnumerable().Reverse().ToArray());
         profile.AddRange(System.Text.Encoding.ASCII.GetBytes(desc));
         profile.AddRange(new byte[90 - 8 - 4 - desc.Length]); // Padding
 
@@ -113,30 +113,30 @@ internal static class SrgbIccProfile
         // wtpt tag: D65 white point in XYZ
         profile.AddRange(System.Text.Encoding.ASCII.GetBytes("XYZ "));
         profile.AddRange(new byte[] { 0, 0, 0, 0 }); // Reserved
-        profile.AddRange(BitConverter.GetBytes(0x0000F351).Reverse().ToArray()); // X (D65)
-        profile.AddRange(BitConverter.GetBytes(0x00010000).Reverse().ToArray()); // Y
-        profile.AddRange(BitConverter.GetBytes(0x000116CC).Reverse().ToArray()); // Z
+        profile.AddRange(BitConverter.GetBytes(0x0000F351).AsEnumerable().Reverse().ToArray()); // X (D65)
+        profile.AddRange(BitConverter.GetBytes(0x00010000).AsEnumerable().Reverse().ToArray()); // Y
+        profile.AddRange(BitConverter.GetBytes(0x000116CC).AsEnumerable().Reverse().ToArray()); // Z
 
         // rXYZ tag: Red primary in XYZ
         profile.AddRange(System.Text.Encoding.ASCII.GetBytes("XYZ "));
         profile.AddRange(new byte[] { 0, 0, 0, 0 });
-        profile.AddRange(BitConverter.GetBytes(0x0000A020).Reverse().ToArray()); // X
-        profile.AddRange(BitConverter.GetBytes(0x00004E93).Reverse().ToArray()); // Y
-        profile.AddRange(BitConverter.GetBytes(0x00000000).Reverse().ToArray()); // Z
+        profile.AddRange(BitConverter.GetBytes(0x0000A020).AsEnumerable().Reverse().ToArray()); // X
+        profile.AddRange(BitConverter.GetBytes(0x00004E93).AsEnumerable().Reverse().ToArray()); // Y
+        profile.AddRange(BitConverter.GetBytes(0x00000000).AsEnumerable().Reverse().ToArray()); // Z
 
         // gXYZ tag: Green primary in XYZ
         profile.AddRange(System.Text.Encoding.ASCII.GetBytes("XYZ "));
         profile.AddRange(new byte[] { 0, 0, 0, 0 });
-        profile.AddRange(BitConverter.GetBytes(0x00004C40).Reverse().ToArray()); // X
-        profile.AddRange(BitConverter.GetBytes(0x0000999A).Reverse().ToArray()); // Y
-        profile.AddRange(BitConverter.GetBytes(0x00000D97).Reverse().ToArray()); // Z
+        profile.AddRange(BitConverter.GetBytes(0x00004C40).AsEnumerable().Reverse().ToArray()); // X
+        profile.AddRange(BitConverter.GetBytes(0x0000999A).AsEnumerable().Reverse().ToArray()); // Y
+        profile.AddRange(BitConverter.GetBytes(0x00000D97).AsEnumerable().Reverse().ToArray()); // Z
 
         // bXYZ tag: Blue primary in XYZ
         profile.AddRange(System.Text.Encoding.ASCII.GetBytes("XYZ "));
         profile.AddRange(new byte[] { 0, 0, 0, 0 });
-        profile.AddRange(BitConverter.GetBytes(0x0000266F).Reverse().ToArray()); // X
-        profile.AddRange(BitConverter.GetBytes(0x00001574).Reverse().ToArray()); // Y
-        profile.AddRange(BitConverter.GetBytes(0x0000B8AB).Reverse().ToArray()); // Z
+        profile.AddRange(BitConverter.GetBytes(0x0000266F).AsEnumerable().Reverse().ToArray()); // X
+        profile.AddRange(BitConverter.GetBytes(0x00001574).AsEnumerable().Reverse().ToArray()); // Y
+        profile.AddRange(BitConverter.GetBytes(0x0000B8AB).AsEnumerable().Reverse().ToArray()); // Z
 
         // rTRC, gTRC, bTRC tags: Proper sRGB transfer function
         // sRGB uses a piecewise function:
@@ -149,18 +149,18 @@ internal static class SrgbIccProfile
         {
             profile.AddRange(System.Text.Encoding.ASCII.GetBytes("curv"));
             profile.AddRange(new byte[] { 0, 0, 0, 0 }); // Reserved
-            profile.AddRange(BitConverter.GetBytes(256).Reverse().ToArray()); // Count = 256 (LUT)
+            profile.AddRange(BitConverter.GetBytes(256).AsEnumerable().Reverse().ToArray()); // Count = 256 (LUT)
 
             // Add 256 ushort values representing the sRGB transfer function
             foreach (var value in srgbCurve)
             {
-                profile.AddRange(BitConverter.GetBytes(value).Reverse().ToArray());
+                profile.AddRange(BitConverter.GetBytes(value).AsEnumerable().Reverse().ToArray());
             }
         }
 
         // Update profile size in header
         var size = profile.Count;
-        var sizeBytes = BitConverter.GetBytes(size).Reverse().ToArray();
+        var sizeBytes = BitConverter.GetBytes(size).AsEnumerable().Reverse().ToArray();
         profile[0] = sizeBytes[0];
         profile[1] = sizeBytes[1];
         profile[2] = sizeBytes[2];
