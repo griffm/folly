@@ -1,4 +1,4 @@
-using Folly.BiDi;
+using Folly.Typography.BiDi;
 using Xunit;
 
 namespace Folly.UnitTests;

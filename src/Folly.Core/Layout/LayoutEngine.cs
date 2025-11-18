@@ -19,7 +19,7 @@ internal sealed class LayoutEngine
     private readonly List<Dom.FoFootnote> _currentPageFootnotes = new();
     private readonly List<Dom.FoFloat> _currentPageFloats = new();
     private readonly List<LinkArea> _currentPageLinks = new();
-    private Core.Hyphenation.HyphenationEngine? _hyphenationEngine;
+    private Typography.Hyphenation.HyphenationEngine? _hyphenationEngine;
 
     // Index tracking
     private readonly Dictionary<string, List<IndexEntry>> _indexEntries = new();
@@ -1260,7 +1260,7 @@ internal sealed class LayoutEngine
 
                         // Apply full Unicode BiDi Algorithm (UAX#9)
                         var baseDirection = bidiDirection == "rtl" ? 1 : 0;
-                        var bidiAlgorithm = new BiDi.UnicodeBidiAlgorithm();
+                        var bidiAlgorithm = new Typography.BiDi.UnicodeBidiAlgorithm();
                         var processedText = bidiAlgorithm.ReorderText(bidiText, baseDirection);
 
                         var textWidth = bidiFontMetrics.MeasureWidth(processedText);
@@ -1606,8 +1606,9 @@ internal sealed class LayoutEngine
         }
 
         // Create the Knuth-Plass line breaker with configurable parameters from LayoutOptions
-        var lineBreaker = new KnuthPlassLineBreaker(
-            fontMetrics,
+        var textMeasurer = new Fonts.FontMetricsTextMeasurer(fontMetrics);
+        var lineBreaker = new Typography.LineBreaking.KnuthPlassLineBreaker(
+            textMeasurer,
             availableWidth,
             tolerance: _options.KnuthPlassTolerance,
             spaceStretchRatio: _options.KnuthPlassSpaceStretchRatio,
@@ -1687,11 +1688,11 @@ internal sealed class LayoutEngine
     /// <summary>
     /// Gets or creates the hyphenation engine based on current options.
     /// </summary>
-    private Core.Hyphenation.HyphenationEngine GetHyphenationEngine()
+    private Typography.Hyphenation.HyphenationEngine GetHyphenationEngine()
     {
         if (_hyphenationEngine == null)
         {
-            _hyphenationEngine = new Core.Hyphenation.HyphenationEngine(
+            _hyphenationEngine = new Typography.Hyphenation.HyphenationEngine(
                 _options.HyphenationLanguage,
                 _options.HyphenationMinWordLength,
                 _options.HyphenationMinLeftChars,

@@ -8,10 +8,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Folly.Typography\Folly.Typography.csproj" />
+    <ProjectReference Include="..\Folly.Images\Folly.Images.csproj" />
     <ProjectReference Include="..\Folly.SourceGenerators.Fonts\Folly.SourceGenerators.Fonts.csproj"
-                      OutputItemType="Analyzer"
-                      ReferenceOutputAssembly="false" />
-    <ProjectReference Include="..\Folly.SourceGenerators.Hyphenation\Folly.SourceGenerators.Hyphenation.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false" />
   </ItemGroup>

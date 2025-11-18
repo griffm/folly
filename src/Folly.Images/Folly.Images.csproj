@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>Folly.Images</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Description>Image format parsers for JPEG, PNG, BMP, GIF, TIFF with DPI extraction and ICC profile support. Plugin architecture for extensibility. Zero dependencies. Pure .NET 8.</Description>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

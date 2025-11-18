@@ -190,7 +190,7 @@ namespace Folly.SourceGenerators.Hyphenation
             sb.AppendLine();
             sb.AppendLine("using System.Collections.Generic;");
             sb.AppendLine();
-            sb.AppendLine("namespace Folly.Core.Hyphenation");
+            sb.AppendLine("namespace Folly.Typography.Hyphenation");
             sb.AppendLine("{");
             sb.AppendLine("    /// <summary>");
             sb.AppendLine("    /// Generated hyphenation patterns for multiple languages.");

@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Folly.BiDi;
+namespace Folly.Typography.BiDi;
 
 /// <summary>
 /// Embedded Unicode BiDi character property data.
