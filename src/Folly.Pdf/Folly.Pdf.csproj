@@ -14,6 +14,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Folly.Core\Folly.Core.csproj" />
     <ProjectReference Include="..\Folly.Fonts\Folly.Fonts.csproj" />
+    <ProjectReference Include="..\Folly.Svg\Folly.Svg.csproj" />
     <ProjectReference Include="..\Folly.SourceGenerators.Glyphs\Folly.SourceGenerators.Glyphs.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false" />
