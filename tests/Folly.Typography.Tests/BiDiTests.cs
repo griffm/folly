@@ -1,7 +1,7 @@
 using Folly.Typography.BiDi;
 using Xunit;
 
-namespace Folly.UnitTests;
+namespace Folly.Typography.Tests;
 
 /// <summary>
 /// Tests for the Unicode Bidirectional Algorithm (UAX#9) implementation.
