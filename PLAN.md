@@ -628,17 +628,17 @@ tests/
 
 #### Phase 1 Example
 
-Folly.Typography.Tests (45 tests):
-- BiDiTests.cs (26 tests) - Unicode BiDi algorithm
-- HyphenationTests.cs (14 tests) - Hyphenation patterns
-- PairedBracketTests.cs (5 tests) - BiDi bracket handling
+Folly.Typography.Tests:
+- BiDiTests.cs - Unicode BiDi algorithm
+- HyphenationTests.cs - Hyphenation patterns
+- PairedBracketTests.cs - BiDi bracket handling
 
-Folly.Images.Tests (17 tests):
-- BmpParserTests.cs (6 tests) - BMP format parsing
-- GifParserTests.cs (5 tests) - GIF format parsing
-- TiffParserTests.cs (6 tests) - TIFF format parsing
+Folly.Images.Tests:
+- BmpParserTests.cs - BMP format parsing
+- GifParserTests.cs - GIF format parsing
+- TiffParserTests.cs - TIFF format parsing
 
-Folly.UnitTests (345+ tests):
+Folly.UnitTests:
 - PngSuiteTests.cs - PNG rendering integration (uses Folly.Core + Folly.Pdf)
 - ImageDpiTests.cs - DPI handling integration (uses Folly.Core + Folly.Pdf)
 - ImageCmykTests.cs - CMYK integration (uses Folly.Core + Folly.Pdf)
