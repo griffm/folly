@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>Folly.Xslfo</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Description>Folly.Xslfo.Model - XSL-FO 1.1 document object model with XML parser and property inheritance system. Zero dependencies. Pure .NET 8.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Folly.Core" />
+    <InternalsVisibleTo Include="Folly.UnitTests" />
+    <InternalsVisibleTo Include="Folly.SpecTests" />
+  </ItemGroup>
+
+</Project>

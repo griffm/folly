@@ -35,7 +35,7 @@ public sealed class PdfRenderer : IDisposable
     /// </summary>
     /// <param name="areaTree">The area tree to render.</param>
     /// <param name="bookmarkTree">Optional bookmark tree for PDF outline.</param>
-    public void Render(AreaTree areaTree, Dom.FoBookmarkTree? bookmarkTree = null)
+    public void Render(AreaTree areaTree, FoBookmarkTree? bookmarkTree = null)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(areaTree);

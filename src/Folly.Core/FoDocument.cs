@@ -8,15 +8,15 @@ namespace Folly;
 public sealed class FoDocument : IDisposable
 {
     private readonly XDocument _foXml;
-    private readonly Dom.FoRoot _foRoot;
+    private readonly FoRoot _foRoot;
     private bool _disposed;
 
     /// <summary>
     /// Gets the parsed FO root element.
     /// </summary>
-    public Dom.FoRoot Root => _foRoot;
+    public FoRoot Root => _foRoot;
 
-    private FoDocument(XDocument foXml, Dom.FoRoot foRoot)
+    private FoDocument(XDocument foXml, FoRoot foRoot)
     {
         _foXml = foXml ?? throw new ArgumentNullException(nameof(foXml));
         _foRoot = foRoot ?? throw new ArgumentNullException(nameof(foRoot));
@@ -64,7 +64,7 @@ public sealed class FoDocument : IDisposable
         }
 
         // Parse FO DOM
-        var foRoot = Dom.FoParser.Parse(doc);
+        var foRoot = FoParser.Parse(doc);
 
         // Note: FoLoadOptions.ValidateStructure and ValidateProperties are available
         // but not enforced by default for performance. Validation happens during layout

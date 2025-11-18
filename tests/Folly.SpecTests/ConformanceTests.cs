@@ -1,6 +1,6 @@
 namespace Folly.SpecTests;
 
-using Folly.Dom;
+using Folly.Xslfo;
 
 /// <summary>
 /// Conformance tests for XSL-FO 1.1 specification compliance.
