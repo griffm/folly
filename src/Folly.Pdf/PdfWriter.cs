@@ -760,6 +760,14 @@ internal sealed class PdfWriter : IDisposable
                     colorType = pngData[offset + 8 + 9];
                     interlaceMethod = pngData[offset + 8 + 12];
 
+                    // Validate bit depth
+                    if (bitDepth != 1 && bitDepth != 2 && bitDepth != 4 && bitDepth != 8 && bitDepth != 16)
+                        throw new InvalidDataException($"PNG bit depth {bitDepth} is invalid. Valid values are 1, 2, 4, 8, or 16.");
+
+                    // Validate color type
+                    if (colorType != 0 && colorType != 2 && colorType != 3 && colorType != 4 && colorType != 6)
+                        throw new InvalidDataException($"PNG color type {colorType} is invalid. Valid values are 0, 2, 3, 4, or 6.");
+
                     // Interlacing is now supported (both 0=none and 1=Adam7)
                 }
                 else if (chunkType == "PLTE")

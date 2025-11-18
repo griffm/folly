@@ -3301,6 +3301,16 @@ internal sealed class LayoutEngine
                 intrinsicHeight = heightInPoints;
             }
         }
+        catch (NotSupportedException)
+        {
+            // Validation failed (e.g., unsupported image feature) - re-throw to caller
+            throw;
+        }
+        catch (InvalidDataException)
+        {
+            // Validation failed (e.g., corrupted image data) - re-throw to caller
+            throw;
+        }
         catch (Exception ex)
         {
             // Image not found or couldn't be loaded
@@ -3387,9 +3397,19 @@ internal sealed class LayoutEngine
                     return null;
             }
         }
+        catch (NotSupportedException)
+        {
+            // Validation failed (e.g., interlaced PNG) - re-throw to caller
+            throw;
+        }
+        catch (InvalidDataException)
+        {
+            // Validation failed (e.g., invalid color type, bit depth) - re-throw to caller
+            throw;
+        }
         catch (Exception ex)
         {
-            // Parser failed, return null
+            // Other parser failures, return null
             _options.Logger.Debug($"Image format parsing failed: {ex.Message}");
             return null;
         }
