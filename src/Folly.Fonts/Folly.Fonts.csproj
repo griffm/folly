@@ -9,7 +9,18 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Folly.Core\Folly.Core.csproj" />
+    <InternalsVisibleTo Include="Folly.Xslfo.Layout" />
+    <InternalsVisibleTo Include="Folly.Core" />
+    <InternalsVisibleTo Include="Folly.Pdf" />
+    <InternalsVisibleTo Include="Folly.UnitTests" />
+    <InternalsVisibleTo Include="Folly.SpecTests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Folly.Typography\Folly.Typography.csproj" />
+    <ProjectReference Include="..\Folly.SourceGenerators.Fonts\Folly.SourceGenerators.Fonts.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 </Project>

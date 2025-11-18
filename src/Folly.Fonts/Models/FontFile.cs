@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Folly.Core.Logging;
+using Folly.Fonts.Logging;
 using Folly.Fonts.CFF;
 using Folly.Fonts.OpenType;
 

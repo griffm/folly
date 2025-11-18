@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>Folly.Xslfo</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Description>Folly.Xslfo.Layout - XSL-FO layout engine converting FO documents to Area Trees. Supports tables, lists, footnotes, markers, multi-column layout.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Folly.Xslfo.Model/Folly.Xslfo.Model.csproj" />
+    <ProjectReference Include="../Folly.Layout/Folly.Layout.csproj" />
+    <ProjectReference Include="../Folly.Typography/Folly.Typography.csproj" />
+    <ProjectReference Include="../Folly.Fonts/Folly.Fonts.csproj" />
+    <ProjectReference Include="../Folly.Images/Folly.Images.csproj" />
+    <ProjectReference Include="../Folly.Svg/Folly.Svg.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Folly.Core" />
+    <InternalsVisibleTo Include="Folly.UnitTests" />
+    <InternalsVisibleTo Include="Folly.SpecTests" />
+  </ItemGroup>
+
+</Project>

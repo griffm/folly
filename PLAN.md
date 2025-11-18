@@ -741,10 +741,10 @@ namespace Folly.Svg
 - All layout tests pass
 
 **Deliverables:**
-- [ ] New Folly.Xslfo.Layout.csproj
-- [ ] LayoutEngine moved
-- [ ] All dependencies referenced
-- [ ] All tests passing
+- [x] New Folly.Xslfo.Layout.csproj
+- [x] LayoutEngine moved
+- [x] All dependencies referenced
+- [x] All tests passing (436 tests pass)
 - [ ] NuGet package published
 
 ---

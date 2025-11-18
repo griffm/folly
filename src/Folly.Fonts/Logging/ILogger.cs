@@ -1,6 +1,6 @@
 using System;
 
-namespace Folly.Core.Logging;
+namespace Folly.Fonts.Logging;
 
 /// <summary>
 /// Represents a logger for diagnostic and error messages.
