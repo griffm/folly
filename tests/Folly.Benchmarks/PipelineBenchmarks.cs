@@ -1,6 +1,7 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Engines;
 using Folly;
+using Folly.Layout;
 using Folly.Pdf;
 
 namespace Folly.Benchmarks;
