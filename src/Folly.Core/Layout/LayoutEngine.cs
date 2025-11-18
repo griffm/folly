@@ -3711,6 +3711,16 @@ internal sealed class LayoutEngine
                 }
             }
         }
+        catch (NotSupportedException)
+        {
+            // Validation failed (e.g., unsupported image feature) - re-throw to caller
+            throw;
+        }
+        catch (InvalidDataException)
+        {
+            // Validation failed (e.g., corrupted image data) - re-throw to caller
+            throw;
+        }
         catch
         {
             // File not found or couldn't be loaded
