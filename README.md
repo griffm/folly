@@ -85,6 +85,7 @@ Folly is designed as a modular suite of composable libraries:
 
 - **Folly.Typography** - Text layout primitives: Unicode BiDi (UAX#9), hyphenation (Liang's algorithm), optimal line breaking (Knuth-Plass). Zero dependencies.
 - **Folly.Images** - Image format parsers for JPEG, PNG, BMP, GIF, TIFF with DPI extraction and ICC profile support. Zero dependencies.
+- **Folly.Svg** - Complete SVG 1.1 parser with CSS support and PDF rendering backend. Zero dependencies.
 - **Folly.Fonts** - TrueType/OpenType font parser with subsetting and embedding. Zero dependencies.
 - **Folly.Core** - FO DOM, property system, layout engine, and area tree builder
 - **Folly.Pdf** - PDF 1.7 renderer with font embedding and subsetting
@@ -96,7 +97,7 @@ The rendering pipeline follows this flow:
 XSL-FO XML → FO DOM → Area Tree → PDF 1.7
 ```
 
-**Note:** Folly.Typography and Folly.Images are standalone libraries that can be used independently in any .NET project, not just for XSL-FO processing.
+**Note:** Folly.Typography, Folly.Images, and Folly.Svg are standalone libraries that can be used independently in any .NET project, not just for XSL-FO processing.
 
 ## Building from Source
 

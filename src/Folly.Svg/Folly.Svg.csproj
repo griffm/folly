@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Title>Folly.Svg</Title>
+    <Description>Complete SVG 1.1 parser with CSS support and abstraction for multiple rendering backends. Zero dependencies. Pure .NET 8.</Description>
+    <PackageTags>svg;vector;graphics;parser;pdf;rendering</PackageTags>
+  </PropertyGroup>
+
+</Project>
