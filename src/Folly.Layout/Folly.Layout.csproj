@@ -8,7 +8,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Folly.Xslfo.Layout" />
     <InternalsVisibleTo Include="Folly.Core" />
+    <InternalsVisibleTo Include="Folly.Pdf" />
     <InternalsVisibleTo Include="Folly.UnitTests" />
     <InternalsVisibleTo Include="Folly.SpecTests" />
   </ItemGroup>

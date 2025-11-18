@@ -1,7 +1,6 @@
 namespace Folly.UnitTests;
 
 using System.IO;
-using Folly.Core;
 using Folly.Pdf;
 
 /// <summary>

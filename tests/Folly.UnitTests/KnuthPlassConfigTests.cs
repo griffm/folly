@@ -1,4 +1,3 @@
-using Folly.Core;
 using Xunit;
 
 namespace Folly.UnitTests;

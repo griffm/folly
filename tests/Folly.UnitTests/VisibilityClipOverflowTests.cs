@@ -1,5 +1,4 @@
 using Folly;
-using Folly.Core;
 using Folly.Pdf;
 using Folly.UnitTests.Helpers;
 using Xunit;

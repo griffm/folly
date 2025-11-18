@@ -8,14 +8,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Folly.Fonts\Folly.Fonts.csproj" />
     <ProjectReference Include="..\Folly.Layout\Folly.Layout.csproj" />
     <ProjectReference Include="..\Folly.Typography\Folly.Typography.csproj" />
     <ProjectReference Include="..\Folly.Images\Folly.Images.csproj" />
     <ProjectReference Include="..\Folly.Svg\Folly.Svg.csproj" />
     <ProjectReference Include="..\Folly.Xslfo.Model\Folly.Xslfo.Model.csproj" />
-    <ProjectReference Include="..\Folly.SourceGenerators.Fonts\Folly.SourceGenerators.Fonts.csproj"
-                      OutputItemType="Analyzer"
-                      ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\Folly.Xslfo.Layout\Folly.Xslfo.Layout.csproj" />
   </ItemGroup>
 
 </Project>

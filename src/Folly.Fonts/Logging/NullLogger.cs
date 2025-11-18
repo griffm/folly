@@ -1,6 +1,6 @@
 using System;
 
-namespace Folly.Core.Logging;
+namespace Folly.Fonts.Logging;
 
 /// <summary>
 /// A logger implementation that discards all messages.

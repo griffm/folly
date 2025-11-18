@@ -1,4 +1,4 @@
-using Folly.Core.Logging;
+using Folly.Fonts.Logging;
 
 namespace Folly;
 
