@@ -1,7 +1,7 @@
 using System.Text;
 using System.Text.Json;
 
-namespace Folly.Testing;
+namespace Folly.Layout.Testing;
 
 /// <summary>
 /// Provides utilities for inspecting, querying, and debugging area trees.

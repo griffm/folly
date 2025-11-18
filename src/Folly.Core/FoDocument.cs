@@ -1,3 +1,5 @@
+using Folly.Layout;
+
 namespace Folly;
 
 /// <summary>
@@ -86,7 +88,7 @@ public sealed class FoDocument : IDisposable
         options ??= new LayoutOptions();
 
         // Build area tree from FO DOM using layout engine
-        var layoutEngine = new Layout.LayoutEngine(options);
+        var layoutEngine = new LayoutEngine(options);
         return layoutEngine.Layout(_foRoot);
     }
 

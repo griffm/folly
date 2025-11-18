@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>Folly.Layout</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Description>Folly.Layout - Format-agnostic layout abstraction (Area Tree). Intermediate representation for document layout engines. Zero dependencies. Pure .NET 8.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Folly.Core" />
+    <InternalsVisibleTo Include="Folly.UnitTests" />
+    <InternalsVisibleTo Include="Folly.SpecTests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Folly.Svg\Folly.Svg.csproj" />
+  </ItemGroup>
+
+</Project>
