@@ -79,7 +79,7 @@ internal sealed class PdfWriter : IDisposable
     /// Also reserves object ID 2 for the pages tree.
     /// This MUST be called before any other objects are created to ensure correct object numbering.
     /// </summary>
-    public int WriteCatalog(int pageCount, Dom.FoBookmarkTree? bookmarkTree = null, int structTreeRootId = 0, int xmpMetadataId = 0, int outputIntentId = 0)
+    public int WriteCatalog(int pageCount, FoBookmarkTree? bookmarkTree = null, int structTreeRootId = 0, int xmpMetadataId = 0, int outputIntentId = 0)
     {
         // Reserve object 1 for catalog
         var catalogId = 1;
@@ -139,7 +139,7 @@ internal sealed class PdfWriter : IDisposable
     /// that weren't known when the catalog was first written.
     /// This rewrites object 1 at the current position.
     /// </summary>
-    public void UpdateCatalog(int catalogId, Dom.FoBookmarkTree? bookmarkTree, int structTreeRootId, int xmpMetadataId, int outputIntentId)
+    public void UpdateCatalog(int catalogId, FoBookmarkTree? bookmarkTree, int structTreeRootId, int xmpMetadataId, int outputIntentId)
     {
         // Write outline (bookmarks) if present and not already written
         int? outlineId = null;
@@ -1872,7 +1872,7 @@ internal sealed class PdfWriter : IDisposable
     /// <summary>
     /// Writes the PDF outline (bookmarks) and returns the root outline object ID.
     /// </summary>
-    private int WriteOutline(Dom.FoBookmarkTree bookmarkTree)
+    private int WriteOutline(FoBookmarkTree bookmarkTree)
     {
         // Write all bookmark items first, collecting their IDs
         var bookmarkIds = new List<int>();
@@ -1913,7 +1913,7 @@ internal sealed class PdfWriter : IDisposable
     /// Writes a single bookmark item and its children recursively.
     /// Returns the object ID of this bookmark.
     /// </summary>
-    private int WriteBookmarkItem(Dom.FoBookmark bookmark, int? parentId, int? prevId)
+    private int WriteBookmarkItem(FoBookmark bookmark, int? parentId, int? prevId)
     {
         // Recursively write child bookmarks first
         var childIds = new List<int>();

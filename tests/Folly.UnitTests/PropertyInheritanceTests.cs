@@ -1,6 +1,6 @@
 namespace Folly.UnitTests;
 
-using Folly.Dom;
+using Folly.Xslfo;
 
 public class PropertyInheritanceTests
 {

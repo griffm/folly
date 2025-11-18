@@ -44,7 +44,7 @@ public static class FoDocumentExtensions
     /// Extracts metadata from FO declarations and merges with existing metadata.
     /// Existing metadata values take precedence over declarations.
     /// </summary>
-    private static void ExtractAndMergeMetadata(Dom.FoDeclarations? declarations, PdfMetadata metadata)
+    private static void ExtractAndMergeMetadata(FoDeclarations? declarations, PdfMetadata metadata)
     {
         if (declarations?.Info == null)
             return;

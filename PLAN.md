@@ -726,11 +726,11 @@ namespace Folly.Svg
 - Zero dependencies (pure FO DOM)
 
 **Deliverables:**
-- [ ] New Folly.Xslfo.Model.csproj
-- [ ] FO DOM classes moved
-- [ ] FoParser moved
-- [ ] Property system moved
-- [ ] All tests passing
+- [x] New Folly.Xslfo.Model.csproj
+- [x] FO DOM classes moved
+- [x] FoParser moved
+- [x] Property system moved
+- [x] All tests passing (436 tests pass)
 - [ ] NuGet package published
 
 ---

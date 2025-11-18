@@ -12,12 +12,12 @@ internal sealed class LayoutEngine
     private const double DefaultFontSize = 12.0; // Default font size when invalid
 
     private readonly LayoutOptions _options;
-    private readonly Dictionary<string, List<(int PageNumber, int Sequence, Dom.FoMarker Marker)>> _markers = new();
+    private readonly Dictionary<string, List<(int PageNumber, int Sequence, FoMarker Marker)>> _markers = new();
     private readonly Dictionary<string, int> _markerSequenceCounters = new();
-    private readonly Dictionary<string, List<(int Sequence, Dom.FoMarker Marker)>> _tableMarkers = new();
+    private readonly Dictionary<string, List<(int Sequence, FoMarker Marker)>> _tableMarkers = new();
     private readonly Dictionary<string, int> _tableMarkerSequenceCounters = new();
-    private readonly List<Dom.FoFootnote> _currentPageFootnotes = new();
-    private readonly List<Dom.FoFloat> _currentPageFloats = new();
+    private readonly List<FoFootnote> _currentPageFootnotes = new();
+    private readonly List<FoFloat> _currentPageFloats = new();
     private readonly List<LinkArea> _currentPageLinks = new();
     private Typography.Hyphenation.HyphenationEngine? _hyphenationEngine;
 
@@ -34,7 +34,7 @@ internal sealed class LayoutEngine
     /// <summary>
     /// Performs layout and generates the area tree.
     /// </summary>
-    public AreaTree Layout(Dom.FoRoot foRoot)
+    public AreaTree Layout(FoRoot foRoot)
     {
         ArgumentNullException.ThrowIfNull(foRoot);
 
@@ -52,7 +52,7 @@ internal sealed class LayoutEngine
         return areaTree;
     }
 
-    private void LayoutPageSequence(AreaTree areaTree, Dom.FoRoot foRoot, Dom.FoPageSequence pageSequence)
+    private void LayoutPageSequence(AreaTree areaTree, FoRoot foRoot, FoPageSequence pageSequence)
     {
         // Get the flow
         var flow = pageSequence.Flow;
@@ -74,7 +74,7 @@ internal sealed class LayoutEngine
     /// Applies the force-page-count property to ensure the page sequence ends on the correct parity.
     /// Adds blank pages if necessary to satisfy even/odd requirements.
     /// </summary>
-    private void ApplyForcePageCount(AreaTree areaTree, Dom.FoRoot foRoot, Dom.FoPageSequence pageSequence, int pageCountBeforeSequence)
+    private void ApplyForcePageCount(AreaTree areaTree, FoRoot foRoot, FoPageSequence pageSequence, int pageCountBeforeSequence)
     {
         var forcePageCount = pageSequence.ForcePageCount.ToLowerInvariant();
 
@@ -119,7 +119,7 @@ internal sealed class LayoutEngine
         }
     }
 
-    private PageViewport CreatePage(Dom.FoSimplePageMaster pageMaster, Dom.FoPageSequence pageSequence, int pageNumber)
+    private PageViewport CreatePage(FoSimplePageMaster pageMaster, FoPageSequence pageSequence, int pageNumber)
     {
         var page = new PageViewport
         {
@@ -134,7 +134,7 @@ internal sealed class LayoutEngine
         return page;
     }
 
-    private void AddStaticContent(PageViewport page, Dom.FoSimplePageMaster pageMaster, Dom.FoPageSequence pageSequence, int pageNumber)
+    private void AddStaticContent(PageViewport page, FoSimplePageMaster pageMaster, FoPageSequence pageSequence, int pageNumber)
     {
         foreach (var staticContent in pageSequence.StaticContents)
         {
@@ -143,7 +143,7 @@ internal sealed class LayoutEngine
             if (flowName == "xsl-region-before" && pageMaster.RegionBefore != null)
             {
                 // Layout content in header region
-                var extent = (pageMaster.RegionBefore as Dom.FoRegionBefore)?.Extent ?? 36;
+                var extent = (pageMaster.RegionBefore as FoRegionBefore)?.Extent ?? 36;
                 var y = pageMaster.MarginTop;
                 var x = pageMaster.MarginLeft + pageMaster.RegionBefore.MarginLeft;
                 var width = pageMaster.PageWidth - pageMaster.MarginLeft - pageMaster.MarginRight - pageMaster.RegionBefore.MarginLeft - pageMaster.RegionBefore.MarginRight;
@@ -176,7 +176,7 @@ internal sealed class LayoutEngine
             else if (flowName == "xsl-region-after" && pageMaster.RegionAfter != null)
             {
                 // Layout content in footer region
-                var extent = (pageMaster.RegionAfter as Dom.FoRegionAfter)?.Extent ?? 36;
+                var extent = (pageMaster.RegionAfter as FoRegionAfter)?.Extent ?? 36;
                 var y = pageMaster.PageHeight - pageMaster.MarginBottom - extent;
                 var x = pageMaster.MarginLeft + pageMaster.RegionAfter.MarginLeft;
                 var width = pageMaster.PageWidth - pageMaster.MarginLeft - pageMaster.MarginRight - pageMaster.RegionAfter.MarginLeft - pageMaster.RegionAfter.MarginRight;
@@ -209,11 +209,11 @@ internal sealed class LayoutEngine
             else if (flowName == "xsl-region-start" && pageMaster.RegionStart != null)
             {
                 // Layout content in left sidebar region
-                var extent = (pageMaster.RegionStart as Dom.FoRegionStart)?.Extent ?? 36;
+                var extent = (pageMaster.RegionStart as FoRegionStart)?.Extent ?? 36;
                 var regionBeforeExtent = pageMaster.RegionBefore != null ?
-                    ((pageMaster.RegionBefore as Dom.FoRegionBefore)?.Extent ?? 36) : 0;
+                    ((pageMaster.RegionBefore as FoRegionBefore)?.Extent ?? 36) : 0;
                 var regionAfterExtent = pageMaster.RegionAfter != null ?
-                    ((pageMaster.RegionAfter as Dom.FoRegionAfter)?.Extent ?? 36) : 0;
+                    ((pageMaster.RegionAfter as FoRegionAfter)?.Extent ?? 36) : 0;
 
                 var x = pageMaster.MarginLeft + pageMaster.RegionStart.MarginLeft;
                 var y = pageMaster.MarginTop + regionBeforeExtent + pageMaster.RegionStart.MarginTop;
@@ -250,11 +250,11 @@ internal sealed class LayoutEngine
             else if (flowName == "xsl-region-end" && pageMaster.RegionEnd != null)
             {
                 // Layout content in right sidebar region
-                var extent = (pageMaster.RegionEnd as Dom.FoRegionEnd)?.Extent ?? 36;
+                var extent = (pageMaster.RegionEnd as FoRegionEnd)?.Extent ?? 36;
                 var regionBeforeExtent = pageMaster.RegionBefore != null ?
-                    ((pageMaster.RegionBefore as Dom.FoRegionBefore)?.Extent ?? 36) : 0;
+                    ((pageMaster.RegionBefore as FoRegionBefore)?.Extent ?? 36) : 0;
                 var regionAfterExtent = pageMaster.RegionAfter != null ?
-                    ((pageMaster.RegionAfter as Dom.FoRegionAfter)?.Extent ?? 36) : 0;
+                    ((pageMaster.RegionAfter as FoRegionAfter)?.Extent ?? 36) : 0;
 
                 var x = pageMaster.PageWidth - pageMaster.MarginRight - extent + pageMaster.RegionEnd.MarginLeft;
                 var y = pageMaster.MarginTop + regionBeforeExtent + pageMaster.RegionEnd.MarginTop;
@@ -299,17 +299,17 @@ internal sealed class LayoutEngine
     /// - last-starting-within-page: Last marker that starts on this page
     /// - last-ending-within-page: Last marker on or before this page (same as last-starting for point markers)
     /// </summary>
-    private IReadOnlyList<Dom.FoBlock> RetrieveMarkerContent(Dom.FoRetrieveMarker retrieveMarker, int pageNumber)
+    private IReadOnlyList<FoBlock> RetrieveMarkerContent(FoRetrieveMarker retrieveMarker, int pageNumber)
     {
         var className = retrieveMarker.RetrieveClassName;
         if (string.IsNullOrEmpty(className) || !_markers.ContainsKey(className))
-            return Array.Empty<Dom.FoBlock>();
+            return Array.Empty<FoBlock>();
 
         var markersForClass = _markers[className];
         var position = retrieveMarker.RetrievePosition;
         var boundary = retrieveMarker.RetrieveBoundary; // page, page-sequence, or document
 
-        Dom.FoMarker? selectedMarker = null;
+        FoMarker? selectedMarker = null;
 
         switch (position)
         {
@@ -370,7 +370,7 @@ internal sealed class LayoutEngine
                 break;
         }
 
-        return selectedMarker?.Blocks ?? Array.Empty<Dom.FoBlock>();
+        return selectedMarker?.Blocks ?? Array.Empty<FoBlock>();
     }
 
     /// <summary>
@@ -382,16 +382,16 @@ internal sealed class LayoutEngine
     /// - last-starting: Last marker in the table
     /// - last-ending: Last marker in the table (same as last-starting for tables)
     /// </summary>
-    private IReadOnlyList<Dom.FoBlock> RetrieveTableMarkerContent(Dom.FoRetrieveTableMarker retrieveMarker)
+    private IReadOnlyList<FoBlock> RetrieveTableMarkerContent(FoRetrieveTableMarker retrieveMarker)
     {
         var className = retrieveMarker.RetrieveClassName;
         if (string.IsNullOrEmpty(className) || !_tableMarkers.ContainsKey(className))
-            return Array.Empty<Dom.FoBlock>();
+            return Array.Empty<FoBlock>();
 
         var markersForClass = _tableMarkers[className];
         var position = retrieveMarker.RetrievePosition;
 
-        Dom.FoMarker? selectedMarker = null;
+        FoMarker? selectedMarker = null;
 
         switch (position)
         {
@@ -412,10 +412,10 @@ internal sealed class LayoutEngine
                 break;
         }
 
-        return selectedMarker?.Blocks ?? Array.Empty<Dom.FoBlock>();
+        return selectedMarker?.Blocks ?? Array.Empty<FoBlock>();
     }
 
-    private Dom.FoSimplePageMaster SelectPageMaster(Dom.FoRoot foRoot, Dom.FoPageSequence pageSequence, int pageNumber, int totalPages)
+    private FoSimplePageMaster SelectPageMaster(FoRoot foRoot, FoPageSequence pageSequence, int pageNumber, int totalPages)
     {
         var masterRef = pageSequence.MasterReference;
 
@@ -464,16 +464,16 @@ internal sealed class LayoutEngine
         }
 
         // Default page if no master found - use configured default page size
-        var defaultMaster = new Dom.FoSimplePageMaster
+        var defaultMaster = new FoSimplePageMaster
         {
-            Properties = new Dom.FoProperties()
+            Properties = new FoProperties()
         };
         defaultMaster.Properties["page-width"] = $"{_options.DefaultPageSize.Width}pt";
         defaultMaster.Properties["page-height"] = $"{_options.DefaultPageSize.Height}pt";
         return defaultMaster;
     }
 
-    private bool MatchesConditions(Dom.FoConditionalPageMasterReference conditionalRef, int pageNumber, int totalPages)
+    private bool MatchesConditions(FoConditionalPageMasterReference conditionalRef, int pageNumber, int totalPages)
     {
         // Check page-position
         var pagePosition = conditionalRef.PagePosition;
@@ -502,12 +502,12 @@ internal sealed class LayoutEngine
         return true;
     }
 
-    private void LayoutFlowWithPagination(AreaTree areaTree, Dom.FoRoot foRoot, Dom.FoPageSequence pageSequence)
+    private void LayoutFlowWithPagination(AreaTree areaTree, FoRoot foRoot, FoPageSequence pageSequence)
     {
         var flow = pageSequence.Flow!;
 
         // Helper function to calculate body margins for a given page master
-        void CalculateBodyMargins(Dom.FoSimplePageMaster pageMaster,
+        void CalculateBodyMargins(FoSimplePageMaster pageMaster,
             out double marginTop, out double marginBottom, out double marginLeft, out double marginRight,
             out double width, out double height)
         {
@@ -518,10 +518,10 @@ internal sealed class LayoutEngine
             var regionBodyMarginRight = regionBody?.MarginRight ?? 0;
 
             // Calculate region extents
-            var regionBeforeExtent = (pageMaster.RegionBefore as Dom.FoRegionBefore)?.Extent ?? 0;
-            var regionAfterExtent = (pageMaster.RegionAfter as Dom.FoRegionAfter)?.Extent ?? 0;
-            var regionStartExtent = (pageMaster.RegionStart as Dom.FoRegionStart)?.Extent ?? 0;
-            var regionEndExtent = (pageMaster.RegionEnd as Dom.FoRegionEnd)?.Extent ?? 0;
+            var regionBeforeExtent = (pageMaster.RegionBefore as FoRegionBefore)?.Extent ?? 0;
+            var regionAfterExtent = (pageMaster.RegionAfter as FoRegionAfter)?.Extent ?? 0;
+            var regionStartExtent = (pageMaster.RegionStart as FoRegionStart)?.Extent ?? 0;
+            var regionEndExtent = (pageMaster.RegionEnd as FoRegionEnd)?.Extent ?? 0;
 
             // Body position and dimensions must account for:
             // - Page margins (from simple-page-master)
@@ -543,8 +543,8 @@ internal sealed class LayoutEngine
 
         // Multi-column support
         var regionBody = firstPageMaster.RegionBody;
-        var columnCount = (regionBody as Dom.FoRegionBody)?.ColumnCount ?? 1;
-        var columnGap = (regionBody as Dom.FoRegionBody)?.ColumnGap ?? 12;
+        var columnCount = (regionBody as FoRegionBody)?.ColumnCount ?? 1;
+        var columnGap = (regionBody as FoRegionBody)?.ColumnGap ?? 12;
 
         // Calculate column width: (total width - gaps) / column count
         var columnWidth = columnCount > 1
@@ -559,7 +559,7 @@ internal sealed class LayoutEngine
         var currentColumn = 0;  // Current column index (0-based)
 
         // Track previous block for keep-with-next/previous constraints
-        Dom.FoBlock? previousBlock = null;
+        FoBlock? previousBlock = null;
         BlockArea? previousBlockArea = null;
         double previousBlockTotalHeight = 0;
 
@@ -991,7 +991,7 @@ internal sealed class LayoutEngine
         areaTree.AddPage(currentPage);
     }
 
-    private BlockArea? LayoutBlock(Dom.FoBlock foBlock, double x, double y, double availableWidth, int pageNumber = 0)
+    private BlockArea? LayoutBlock(FoBlock foBlock, double x, double y, double availableWidth, int pageNumber = 0)
     {
         var blockArea = new BlockArea
         {
@@ -1049,13 +1049,13 @@ internal sealed class LayoutEngine
         // Collect markers if present
         foreach (var child in foBlock.Children)
         {
-            if (child is Dom.FoMarker marker && pageNumber > 0)
+            if (child is FoMarker marker && pageNumber > 0)
             {
                 var className = marker.MarkerClassName;
                 if (!string.IsNullOrEmpty(className))
                 {
                     if (!_markers.ContainsKey(className))
-                        _markers[className] = new List<(int, int, Dom.FoMarker)>();
+                        _markers[className] = new List<(int, int, FoMarker)>();
 
                     if (!_markerSequenceCounters.ContainsKey(className))
                         _markerSequenceCounters[className] = 0;
@@ -1079,18 +1079,18 @@ internal sealed class LayoutEngine
         }
 
         // Check for inline page number and link elements
-        var hasPageNumber = foBlock.Children.Any(c => c is Dom.FoPageNumber);
-        var hasBasicLink = foBlock.Children.Any(c => c is Dom.FoBasicLink);
-        var hasInline = foBlock.Children.Any(c => c is Dom.FoInline);
-        var hasLeader = foBlock.Children.Any(c => c is Dom.FoLeader);
-        var hasBlockChildren = foBlock.Children.Any(c => c is Dom.FoBlock or Dom.FoExternalGraphic or Dom.FoInstreamForeignObject);
+        var hasPageNumber = foBlock.Children.Any(c => c is FoPageNumber);
+        var hasBasicLink = foBlock.Children.Any(c => c is FoBasicLink);
+        var hasInline = foBlock.Children.Any(c => c is FoInline);
+        var hasLeader = foBlock.Children.Any(c => c is FoLeader);
+        var hasBlockChildren = foBlock.Children.Any(c => c is FoBlock or FoExternalGraphic or FoInstreamForeignObject);
 
         // Handle block-level children (images, nested blocks)
         if (hasBlockChildren)
         {
             foreach (var child in foBlock.Children)
             {
-                if (child is Dom.FoExternalGraphic graphic)
+                if (child is FoExternalGraphic graphic)
                 {
                     var area = LayoutImageOrSvg(graphic.Src, graphic, foBlock.PaddingLeft, currentY, contentWidth);
                     if (area != null)
@@ -1099,7 +1099,7 @@ internal sealed class LayoutEngine
                         currentY += area.Height;
                     }
                 }
-                else if (child is Dom.FoInstreamForeignObject foreignObject)
+                else if (child is FoInstreamForeignObject foreignObject)
                 {
                     var svgArea = LayoutEmbeddedSvg(foreignObject, foBlock.PaddingLeft, currentY, contentWidth);
                     if (svgArea != null)
@@ -1108,7 +1108,7 @@ internal sealed class LayoutEngine
                         currentY += svgArea.Height;
                     }
                 }
-                else if (child is Dom.FoBlock nestedBlock)
+                else if (child is FoBlock nestedBlock)
                 {
                     var nestedArea = LayoutBlock(nestedBlock, foBlock.PaddingLeft, currentY, contentWidth, pageNumber);
                     if (nestedArea != null)
@@ -1156,7 +1156,7 @@ internal sealed class LayoutEngine
 
             foreach (var child in foBlock.Children)
             {
-                if (child is Dom.FoInline inline)
+                if (child is FoInline inline)
                 {
                     var inlineText = inline.TextContent ?? "";
                     if (!string.IsNullOrWhiteSpace(inlineText))
@@ -1200,7 +1200,7 @@ internal sealed class LayoutEngine
                     }
                     inlineIndex++;
                 }
-                else if (child is Dom.FoLeader leader)
+                else if (child is FoLeader leader)
                 {
                     // Calculate leader width (fill remaining space in line)
                     var leaderWidth = contentWidth - currentX;
@@ -1237,7 +1237,7 @@ internal sealed class LayoutEngine
 
                     currentX += leaderWidth;
                 }
-                else if (child is Dom.FoBidiOverride bidiOverride)
+                else if (child is FoBidiOverride bidiOverride)
                 {
                     var bidiText = bidiOverride.TextContent ?? "";
                     if (!string.IsNullOrWhiteSpace(bidiText))
@@ -1320,7 +1320,7 @@ internal sealed class LayoutEngine
         {
             foreach (var child in foBlock.Children)
             {
-                if (child is Dom.FoBasicLink basicLink)
+                if (child is FoBasicLink basicLink)
                 {
                     var linkText = basicLink.TextContent ?? "";
                     if (!string.IsNullOrWhiteSpace(linkText))
@@ -1391,7 +1391,7 @@ internal sealed class LayoutEngine
         return blockArea;
     }
 
-    private List<string> BreakLines(string text, double availableWidth, Fonts.FontMetrics fontMetrics, Dom.FoBlock foBlock)
+    private List<string> BreakLines(string text, double availableWidth, Fonts.FontMetrics fontMetrics, FoBlock foBlock)
     {
         var lines = new List<string>();
 
@@ -1419,7 +1419,7 @@ internal sealed class LayoutEngine
     /// <summary>
     /// Greedy (first-fit) line breaking algorithm. Fast, single-pass, O(n) complexity.
     /// </summary>
-    private List<string> BreakLinesGreedy(string text, double availableWidth, Fonts.FontMetrics fontMetrics, Dom.FoBlock foBlock)
+    private List<string> BreakLinesGreedy(string text, double availableWidth, Fonts.FontMetrics fontMetrics, FoBlock foBlock)
     {
         var lines = new List<string>();
 
@@ -1581,7 +1581,7 @@ internal sealed class LayoutEngine
     /// Uses dynamic programming to minimize total badness across the entire paragraph.
     /// Slower than greedy (O(n²) vs O(n)) but produces superior typography.
     /// </summary>
-    private List<string> BreakLinesOptimal(string text, double availableWidth, Fonts.FontMetrics fontMetrics, Dom.FoBlock foBlock)
+    private List<string> BreakLinesOptimal(string text, double availableWidth, Fonts.FontMetrics fontMetrics, FoBlock foBlock)
     {
         var lines = new List<string>();
 
@@ -1889,7 +1889,7 @@ internal sealed class LayoutEngine
         return words;
     }
 
-    private LineArea CreateLineArea(string text, double x, double y, double availableWidth, Fonts.FontMetrics fontMetrics, Dom.FoBlock foBlock, bool isLastLine = false)
+    private LineArea CreateLineArea(string text, double x, double y, double availableWidth, Fonts.FontMetrics fontMetrics, FoBlock foBlock, bool isLastLine = false)
     {
         var lineArea = new LineArea
         {
@@ -1980,7 +1980,7 @@ internal sealed class LayoutEngine
         return lineArea;
     }
 
-    private TableArea? LayoutTable(Dom.FoTable foTable, double x, double y, double availableWidth)
+    private TableArea? LayoutTable(FoTable foTable, double x, double y, double availableWidth)
     {
         // Clear table markers at the start of each table
         _tableMarkers.Clear();
@@ -2003,7 +2003,7 @@ internal sealed class LayoutEngine
 
         // Two-pass layout for row spanning support:
         // Pass 1: Calculate row heights (without row spanning)
-        var allRows = new List<Dom.FoTableRow>();
+        var allRows = new List<FoTableRow>();
         if (foTable.Header != null)
             allRows.AddRange(foTable.Header.Rows);
         if (foTable.Body != null)
@@ -2072,7 +2072,7 @@ internal sealed class LayoutEngine
     /// Calculates the heights of all rows in a table (without row spanning).
     /// This is used for the first pass of two-pass layout.
     /// </summary>
-    private List<double> CalculateTableRowHeights(List<Dom.FoTableRow> rows, List<double> columnWidths, double borderSpacing)
+    private List<double> CalculateTableRowHeights(List<FoTableRow> rows, List<double> columnWidths, double borderSpacing)
     {
         var rowHeights = new List<double>();
         var tempGrid = new TableCellGrid(); // Temporary grid for calculation
@@ -2132,12 +2132,12 @@ internal sealed class LayoutEngine
     /// - Row spanning with grid tracking
     /// </summary>
     private void LayoutTableWithPageBreaking(
-        Dom.FoTable foTable,
-        Dom.FoRoot foRoot,
-        Dom.FoPageSequence pageSequence,
+        FoTable foTable,
+        FoRoot foRoot,
+        FoPageSequence pageSequence,
         AreaTree areaTree,
         ref PageViewport currentPage,
-        ref Dom.FoSimplePageMaster currentPageMaster,
+        ref FoSimplePageMaster currentPageMaster,
         ref int pageNumber,
         ref double currentY,
         ref int currentColumn,
@@ -2159,9 +2159,9 @@ internal sealed class LayoutEngine
         var calculatedTableWidth = columnWidths.Sum() + (foTable.BorderSpacing * (columnWidths.Count + 1));
 
         // Pre-calculate row heights for all sections (for row spanning support)
-        var allHeaderRows = foTable.Header?.Rows.ToList() ?? new List<Dom.FoTableRow>();
-        var allBodyRows = foTable.Body?.Rows.ToList() ?? new List<Dom.FoTableRow>();
-        var allFooterRows = foTable.Footer?.Rows.ToList() ?? new List<Dom.FoTableRow>();
+        var allHeaderRows = foTable.Header?.Rows.ToList() ?? new List<FoTableRow>();
+        var allBodyRows = foTable.Body?.Rows.ToList() ?? new List<FoTableRow>();
+        var allFooterRows = foTable.Footer?.Rows.ToList() ?? new List<FoTableRow>();
 
         var headerRowHeights = allHeaderRows.Count > 0 ? CalculateTableRowHeights(allHeaderRows, columnWidths, foTable.BorderSpacing) : new List<double>();
         var bodyRowHeights = allBodyRows.Count > 0 ? CalculateTableRowHeights(allBodyRows, columnWidths, foTable.BorderSpacing) : new List<double>();
@@ -2261,8 +2261,8 @@ internal sealed class LayoutEngine
                         var regionBodyMarginLeft = regionBody?.MarginLeft ?? 0;
                         var regionBodyMarginRight = regionBody?.MarginRight ?? 0;
 
-                        var regionBeforeExtent = (currentPageMaster.RegionBefore as Dom.FoRegionBefore)?.Extent ?? 0;
-                        var regionAfterExtent = (currentPageMaster.RegionAfter as Dom.FoRegionAfter)?.Extent ?? 0;
+                        var regionBeforeExtent = (currentPageMaster.RegionBefore as FoRegionBefore)?.Extent ?? 0;
+                        var regionAfterExtent = (currentPageMaster.RegionAfter as FoRegionAfter)?.Extent ?? 0;
 
                         bodyMarginTop = currentPageMaster.MarginTop + regionBeforeExtent + regionBodyMarginTop;
                         bodyMarginBottom = currentPageMaster.MarginBottom + regionAfterExtent + regionBodyMarginBottom;
@@ -2358,12 +2358,12 @@ internal sealed class LayoutEngine
     /// The caption is positioned according to the caption-side property.
     /// </summary>
     private void LayoutTableAndCaptionWithPageBreaking(
-        Dom.FoTableAndCaption foTableAndCaption,
-        Dom.FoRoot foRoot,
-        Dom.FoPageSequence pageSequence,
+        FoTableAndCaption foTableAndCaption,
+        FoRoot foRoot,
+        FoPageSequence pageSequence,
         AreaTree areaTree,
         ref PageViewport currentPage,
-        ref Dom.FoSimplePageMaster currentPageMaster,
+        ref FoSimplePageMaster currentPageMaster,
         ref int pageNumber,
         ref double currentY,
         ref int currentColumn,
@@ -2460,12 +2460,12 @@ internal sealed class LayoutEngine
     /// Layouts a table caption as a series of blocks.
     /// </summary>
     private void LayoutTableCaption(
-        Dom.FoTableCaption caption,
-        Dom.FoRoot foRoot,
-        Dom.FoPageSequence pageSequence,
+        FoTableCaption caption,
+        FoRoot foRoot,
+        FoPageSequence pageSequence,
         AreaTree areaTree,
         ref PageViewport currentPage,
-        ref Dom.FoSimplePageMaster currentPageMaster,
+        ref FoSimplePageMaster currentPageMaster,
         ref int pageNumber,
         ref double currentY,
         ref int currentColumn,
@@ -2501,8 +2501,8 @@ internal sealed class LayoutEngine
     /// This helper is used both for footer repetition at page breaks and for the final footer.
     /// </summary>
     private void RenderTableFooter(
-        Dom.FoTable foTable,
-        List<Dom.FoTableRow> footerRows,
+        FoTable foTable,
+        List<FoTableRow> footerRows,
         List<double> footerRowHeights,
         List<double> columnWidths,
         double tableX,
@@ -2543,12 +2543,12 @@ internal sealed class LayoutEngine
     }
 
     private void LayoutListBlockWithPageBreaking(
-        Dom.FoListBlock foList,
-        Dom.FoRoot foRoot,
-        Dom.FoPageSequence pageSequence,
+        FoListBlock foList,
+        FoRoot foRoot,
+        FoPageSequence pageSequence,
         AreaTree areaTree,
         ref PageViewport currentPage,
-        ref Dom.FoSimplePageMaster currentPageMaster,
+        ref FoSimplePageMaster currentPageMaster,
         ref int pageNumber,
         ref double currentY,
         ref int currentColumn,
@@ -2652,8 +2652,8 @@ internal sealed class LayoutEngine
                     var regionBodyMarginLeft = regionBody?.MarginLeft ?? 0;
                     var regionBodyMarginRight = regionBody?.MarginRight ?? 0;
 
-                    var regionBeforeExtent = (currentPageMaster.RegionBefore as Dom.FoRegionBefore)?.Extent ?? 0;
-                    var regionAfterExtent = (currentPageMaster.RegionAfter as Dom.FoRegionAfter)?.Extent ?? 0;
+                    var regionBeforeExtent = (currentPageMaster.RegionBefore as FoRegionBefore)?.Extent ?? 0;
+                    var regionAfterExtent = (currentPageMaster.RegionAfter as FoRegionAfter)?.Extent ?? 0;
 
                     bodyMarginTop = currentPageMaster.MarginTop + regionBeforeExtent + regionBodyMarginTop;
                     bodyMarginBottom = currentPageMaster.MarginBottom + regionAfterExtent + regionBodyMarginBottom;
@@ -2696,7 +2696,7 @@ internal sealed class LayoutEngine
         currentY += foList.SpaceAfter;
     }
 
-    private List<double> CalculateColumnWidths(Dom.FoTable foTable, double availableWidth)
+    private List<double> CalculateColumnWidths(FoTable foTable, double availableWidth)
     {
         var columnWidths = new List<double>();
 
@@ -2867,7 +2867,7 @@ internal sealed class LayoutEngine
     /// <param name="foFloat">The float element</param>
     /// <param name="bodyWidth">Available body width</param>
     /// <returns>The calculated float width in points</returns>
-    private double CalculateFloatWidth(Dom.FoFloat foFloat, double bodyWidth)
+    private double CalculateFloatWidth(FoFloat foFloat, double bodyWidth)
     {
         // Check for explicit width property
         var widthSpec = foFloat.Properties.GetString("width", "auto");
@@ -2886,7 +2886,7 @@ internal sealed class LayoutEngine
             else
             {
                 // Absolute length
-                var explicitWidth = Dom.LengthParser.Parse(widthSpec);
+                var explicitWidth = LengthParser.Parse(widthSpec);
                 if (explicitWidth > Epsilon)
                 {
                     return Math.Max(MinimumColumnWidth, explicitWidth);
@@ -2905,7 +2905,7 @@ internal sealed class LayoutEngine
     /// <summary>
     /// Measures the minimum width needed to display the float's content.
     /// </summary>
-    private double MeasureFloatMinimumWidth(Dom.FoFloat foFloat)
+    private double MeasureFloatMinimumWidth(FoFloat foFloat)
     {
         double maxWidth = 0;
 
@@ -2935,7 +2935,7 @@ internal sealed class LayoutEngine
     /// Measures the minimum width required for a block's content (longest word/element).
     /// This is used for content-based column sizing.
     /// </summary>
-    private double MeasureBlockMinimumWidth(Dom.FoBlock foBlock)
+    private double MeasureBlockMinimumWidth(FoBlock foBlock)
     {
         // Get font metrics for this block
         var blockFontFamily = Fonts.PdfBaseFontMapper.ResolveFont(
@@ -2967,7 +2967,7 @@ internal sealed class LayoutEngine
         // Handle inline elements
         foreach (var child in foBlock.Children)
         {
-            if (child is Dom.FoInline inline)
+            if (child is FoInline inline)
             {
                 var inlineText = inline.TextContent ?? "";
                 if (!string.IsNullOrWhiteSpace(inlineText))
@@ -3003,7 +3003,7 @@ internal sealed class LayoutEngine
     /// Measures the minimum width required for a table cell's content.
     /// Includes padding and borders.
     /// </summary>
-    private double MeasureCellMinimumWidth(Dom.FoTableCell foCell)
+    private double MeasureCellMinimumWidth(FoTableCell foCell)
     {
         var minWidth = 0.0;
 
@@ -3024,14 +3024,14 @@ internal sealed class LayoutEngine
     /// Measures content widths for all columns in a table.
     /// Returns a list of minimum widths for each column based on cell content.
     /// </summary>
-    private List<double> MeasureColumnContentWidths(Dom.FoTable foTable, int columnCount)
+    private List<double> MeasureColumnContentWidths(FoTable foTable, int columnCount)
     {
         var columnWidths = new List<double>();
         for (int i = 0; i < columnCount; i++)
             columnWidths.Add(0);
 
         // Collect all rows (header, body, footer)
-        var allRows = new List<Dom.FoTableRow>();
+        var allRows = new List<FoTableRow>();
         if (foTable.Header != null)
             allRows.AddRange(foTable.Header.Rows);
         if (foTable.Body != null)
@@ -3068,7 +3068,7 @@ internal sealed class LayoutEngine
         return columnWidths;
     }
 
-    private TableRowArea? LayoutTableRow(Dom.FoTableRow foRow, double x, double y, List<double> columnWidths, double borderSpacing)
+    private TableRowArea? LayoutTableRow(FoTableRow foRow, double x, double y, List<double> columnWidths, double borderSpacing)
     {
         // Use the row spanning version with an empty grid (for backward compatibility)
         var grid = new TableCellGrid();
@@ -3088,7 +3088,7 @@ internal sealed class LayoutEngine
     /// <param name="rowIndex">The current row index (0-based).</param>
     /// <param name="rowHeights">Pre-calculated row heights for row spanning.</param>
     private TableRowArea? LayoutTableRowWithSpanning(
-        Dom.FoTableRow foRow,
+        FoTableRow foRow,
         double x,
         double y,
         List<double> columnWidths,
@@ -3166,7 +3166,7 @@ internal sealed class LayoutEngine
         return rowArea;
     }
 
-    private TableCellArea? LayoutTableCell(Dom.FoTableCell foCell, double x, double y, double cellWidth, double specifiedCellHeight = 0)
+    private TableCellArea? LayoutTableCell(FoTableCell foCell, double x, double y, double cellWidth, double specifiedCellHeight = 0)
     {
         var cellArea = new TableCellArea
         {
@@ -3197,13 +3197,13 @@ internal sealed class LayoutEngine
             // Track markers within table scope
             foreach (var child in foBlock.Children)
             {
-                if (child is Dom.FoMarker marker)
+                if (child is FoMarker marker)
                 {
                     var className = marker.MarkerClassName;
                     if (!string.IsNullOrEmpty(className))
                     {
                         if (!_tableMarkers.ContainsKey(className))
-                            _tableMarkers[className] = new List<(int, Dom.FoMarker)>();
+                            _tableMarkers[className] = new List<(int, FoMarker)>();
 
                         if (!_tableMarkerSequenceCounters.ContainsKey(className))
                             _tableMarkerSequenceCounters[className] = 0;
@@ -3245,7 +3245,7 @@ internal sealed class LayoutEngine
         return cellArea;
     }
 
-    private ImageArea? LayoutImage(Dom.FoExternalGraphic graphic, double x, double y, double availableWidth)
+    private ImageArea? LayoutImage(FoExternalGraphic graphic, double x, double y, double availableWidth)
     {
         var src = graphic.Src;
         if (string.IsNullOrWhiteSpace(src))
@@ -3615,7 +3615,7 @@ internal sealed class LayoutEngine
     }
 
     private (double Width, double Height) CalculateImageDimensions(
-        Dom.FoExternalGraphic graphic,
+        FoExternalGraphic graphic,
         double intrinsicWidth,
         double intrinsicHeight,
         double availableWidth)
@@ -3629,12 +3629,12 @@ internal sealed class LayoutEngine
 
         if (contentWidth != "auto")
         {
-            explicitWidth = Dom.LengthParser.Parse(contentWidth);
+            explicitWidth = LengthParser.Parse(contentWidth);
         }
 
         if (contentHeight != "auto")
         {
-            explicitHeight = Dom.LengthParser.Parse(contentHeight);
+            explicitHeight = LengthParser.Parse(contentHeight);
         }
 
         // If both dimensions specified, use them
@@ -3670,7 +3670,7 @@ internal sealed class LayoutEngine
     /// <summary>
     /// Routes to either LayoutImage or LayoutSvg based on file format.
     /// </summary>
-    private Area? LayoutImageOrSvg(string src, Dom.FoExternalGraphic graphic, double x, double y, double availableWidth)
+    private Area? LayoutImageOrSvg(string src, FoExternalGraphic graphic, double x, double y, double availableWidth)
     {
         if (string.IsNullOrWhiteSpace(src))
             return null;
@@ -3733,7 +3733,7 @@ internal sealed class LayoutEngine
     /// <summary>
     /// Layouts SVG content from fo:instream-foreign-object.
     /// </summary>
-    private SvgArea? LayoutEmbeddedSvg(Dom.FoInstreamForeignObject foreignObject, double x, double y, double availableWidth)
+    private SvgArea? LayoutEmbeddedSvg(FoInstreamForeignObject foreignObject, double x, double y, double availableWidth)
     {
         if (foreignObject.ForeignContent == null)
             return null;
@@ -3783,7 +3783,7 @@ internal sealed class LayoutEngine
     /// <summary>
     /// Layouts SVG content from an external file via fo:external-graphic.
     /// </summary>
-    private SvgArea? LayoutSvgFromFile(string path, byte[] svgData, Dom.FoExternalGraphic graphic, double x, double y, double availableWidth)
+    private SvgArea? LayoutSvgFromFile(string path, byte[] svgData, FoExternalGraphic graphic, double x, double y, double availableWidth)
     {
         try
         {
@@ -3846,7 +3846,7 @@ internal sealed class LayoutEngine
     /// Calculates display dimensions for SVG based on FO properties.
     /// </summary>
     private (double Width, double Height) CalculateSvgDimensions(
-        Dom.FoInstreamForeignObject foreignObject,
+        FoInstreamForeignObject foreignObject,
         double intrinsicWidth,
         double intrinsicHeight,
         double availableWidth)
@@ -3860,12 +3860,12 @@ internal sealed class LayoutEngine
 
         if (contentWidth != "auto")
         {
-            explicitWidth = Dom.LengthParser.Parse(contentWidth);
+            explicitWidth = LengthParser.Parse(contentWidth);
         }
 
         if (contentHeight != "auto")
         {
-            explicitHeight = Dom.LengthParser.Parse(contentHeight);
+            explicitHeight = LengthParser.Parse(contentHeight);
         }
 
         // If both dimensions specified, use them
@@ -3898,7 +3898,7 @@ internal sealed class LayoutEngine
         return (intrinsicWidth, intrinsicHeight);
     }
 
-    private BlockArea? LayoutListBlock(Dom.FoListBlock foList, double x, double y, double availableWidth)
+    private BlockArea? LayoutListBlock(FoListBlock foList, double x, double y, double availableWidth)
     {
         var listArea = new BlockArea
         {
@@ -4001,7 +4001,7 @@ internal sealed class LayoutEngine
         return listArea;
     }
 
-    private void RenderFootnotes(PageViewport page, Dom.FoSimplePageMaster pageMaster, Dom.FoPageSequence pageSequence)
+    private void RenderFootnotes(PageViewport page, FoSimplePageMaster pageMaster, FoPageSequence pageSequence)
     {
         if (_currentPageFootnotes.Count == 0)
             return;
@@ -4055,7 +4055,7 @@ internal sealed class LayoutEngine
         _currentPageFootnotes.Clear();
     }
 
-    private void RenderFloats(PageViewport page, Dom.FoSimplePageMaster pageMaster, double currentY)
+    private void RenderFloats(PageViewport page, FoSimplePageMaster pageMaster, double currentY)
     {
         if (_currentPageFloats.Count == 0)
             return;
@@ -4201,7 +4201,7 @@ internal sealed class LayoutEngine
     /// </summary>
     private static int CalculateOptimalSplitPoint(
         BlockArea blockArea,
-        Dom.FoBlock foBlock,
+        FoBlock foBlock,
         double availableHeight,
         double lineHeight)
     {
@@ -4252,7 +4252,7 @@ internal sealed class LayoutEngine
     /// </summary>
     private static (BlockArea firstPart, BlockArea secondPart) SplitBlockAtLine(
         BlockArea originalBlock,
-        Dom.FoBlock foBlock,
+        FoBlock foBlock,
         int splitAtLine,
         double firstPageX,
         double firstPageY,
@@ -4445,7 +4445,7 @@ internal sealed class LayoutEngine
     /// Lays out a block container with normal flow positioning.
     /// </summary>
     private BlockArea? LayoutNormalFlowBlockContainer(
-        Dom.FoBlockContainer blockContainer,
+        FoBlockContainer blockContainer,
         double x,
         double y,
         double availableWidth,
@@ -4508,19 +4508,19 @@ internal sealed class LayoutEngine
         {
             Area? childArea = null;
 
-            if (child is Dom.FoBlock foBlock)
+            if (child is FoBlock foBlock)
             {
                 childArea = LayoutBlock(foBlock, contentX, currentY, contentWidth, pageNumber);
             }
-            else if (child is Dom.FoTable foTable)
+            else if (child is FoTable foTable)
             {
                 childArea = LayoutTable(foTable, contentX, currentY, contentWidth);
             }
-            else if (child is Dom.FoListBlock foList)
+            else if (child is FoListBlock foList)
             {
                 childArea = LayoutListBlock(foList, contentX, currentY, contentWidth);
             }
-            else if (child is Dom.FoBlockContainer nestedContainer)
+            else if (child is FoBlockContainer nestedContainer)
             {
                 // Recursively layout nested containers
                 if (nestedContainer.AbsolutePosition == "absolute")
@@ -4573,8 +4573,8 @@ internal sealed class LayoutEngine
     /// Lays out a block container with absolute positioning.
     /// </summary>
     private AbsolutePositionedArea? LayoutBlockContainer(
-        Dom.FoBlockContainer blockContainer,
-        Dom.FoSimplePageMaster pageMaster,
+        FoBlockContainer blockContainer,
+        FoSimplePageMaster pageMaster,
         int pageNumber,
         double parentX = 0,
         double parentY = 0,
@@ -4646,19 +4646,19 @@ internal sealed class LayoutEngine
         {
             Area? childArea = null;
 
-            if (child is Dom.FoBlock foBlock)
+            if (child is FoBlock foBlock)
             {
                 childArea = LayoutBlock(foBlock, contentX, currentY, contentWidth, pageNumber);
             }
-            else if (child is Dom.FoTable foTable)
+            else if (child is FoTable foTable)
             {
                 childArea = LayoutTable(foTable, contentX, currentY, contentWidth);
             }
-            else if (child is Dom.FoListBlock foList)
+            else if (child is FoListBlock foList)
             {
                 childArea = LayoutListBlock(foList, contentX, currentY, contentWidth);
             }
-            else if (child is Dom.FoBlockContainer nestedContainer)
+            else if (child is FoBlockContainer nestedContainer)
             {
                 // Nested absolute containers are positioned relative to the parent container's content area
                 var contentHeight = containerHeight - blockContainer.PaddingBefore - blockContainer.PaddingAfter -
@@ -4670,7 +4670,7 @@ internal sealed class LayoutEngine
                     childArea = nestedArea;
                 }
             }
-            else if (child is Dom.FoMultiSwitch foMultiSwitch)
+            else if (child is FoMultiSwitch foMultiSwitch)
             {
                 // Static rendering: select the first case with starting-state="show", or the first case
                 var selectedCase = foMultiSwitch.MultiCases.FirstOrDefault(c => c.StartingState == "show")
@@ -4690,14 +4690,14 @@ internal sealed class LayoutEngine
                     childArea = null; // Already added children
                 }
             }
-            else if (child is Dom.FoMultiProperties foMultiProperties)
+            else if (child is FoMultiProperties foMultiProperties)
             {
                 // Static rendering: apply the first property set and render the wrapper
                 if (foMultiProperties.Wrapper != null)
                 {
                     // For now, just render the wrapper without applying property sets
                     // (applying property sets would require merging properties)
-                    if (foMultiProperties.Wrapper is Dom.FoBlock wrapperBlock)
+                    if (foMultiProperties.Wrapper is FoBlock wrapperBlock)
                     {
                         childArea = LayoutBlock(wrapperBlock, contentX, currentY, contentWidth, pageNumber);
                     }
@@ -4734,8 +4734,8 @@ internal sealed class LayoutEngine
     /// Calculates the absolute position and dimensions of a block container.
     /// </summary>
     private (double x, double y, double width, double height) CalculateAbsolutePosition(
-        Dom.FoBlockContainer blockContainer,
-        Dom.FoSimplePageMaster pageMaster,
+        FoBlockContainer blockContainer,
+        FoSimplePageMaster pageMaster,
         double parentX = 0,
         double parentY = 0,
         double? parentWidth = null,
@@ -4844,7 +4844,7 @@ internal sealed class LayoutEngine
             }
         }
 
-        return Dom.LengthParser.Parse(value);
+        return LengthParser.Parse(value);
     }
 
     /// <summary>
@@ -4924,13 +4924,13 @@ internal sealed class LayoutEngine
     /// Processes element tree to track index entries (index-range-begin/end).
     /// This must be called as we traverse the FO tree during layout.
     /// </summary>
-    private void TrackIndexElements(Dom.FoElement element, int pageNumber)
+    private void TrackIndexElements(FoElement element, int pageNumber)
     {
         // Update current page number
         _currentPageNumber = pageNumber;
 
         // Handle index-range-begin
-        if (element is Dom.FoIndexRangeBegin rangeBegin)
+        if (element is FoIndexRangeBegin rangeBegin)
         {
             var id = rangeBegin.Id;
             var key = rangeBegin.IndexKey;
@@ -4948,7 +4948,7 @@ internal sealed class LayoutEngine
         }
 
         // Handle index-range-end
-        if (element is Dom.FoIndexRangeEnd rangeEnd)
+        if (element is FoIndexRangeEnd rangeEnd)
         {
             var refId = rangeEnd.RefId;
 
@@ -4983,7 +4983,7 @@ internal sealed class LayoutEngine
     /// Generates index content for an index-key-reference element.
     /// Returns formatted text with page numbers for the referenced index key.
     /// </summary>
-    private string GenerateIndexContent(Dom.FoIndexKeyReference keyRef)
+    private string GenerateIndexContent(FoIndexKeyReference keyRef)
     {
         var refKey = keyRef.RefIndexKey;
         var indexClass = keyRef.IndexClass;

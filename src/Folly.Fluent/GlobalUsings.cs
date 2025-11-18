@@ -6,5 +6,5 @@ global using System.IO;
 global using System.Linq;
 global using System.Xml.Linq;
 global using Folly;
-global using Folly.Dom;
+global using Folly.Xslfo;
 global using Folly.Pdf;
