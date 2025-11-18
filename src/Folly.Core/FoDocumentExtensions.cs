@@ -1,4 +1,6 @@
-namespace Folly.Pdf;
+using Folly.Pdf;
+
+namespace Folly;
 
 /// <summary>
 /// Extension methods for FoDocument to support PDF rendering.

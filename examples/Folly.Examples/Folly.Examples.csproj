@@ -7,7 +7,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Folly.Core\Folly.Core.csproj" />
-    <ProjectReference Include="..\..\src\Folly.Pdf\Folly.Pdf.csproj" />
+    <ProjectReference Include="..\..\src\Folly.Pdf.Core\Folly.Pdf.Core.csproj" />
   </ItemGroup>
 
 </Project>

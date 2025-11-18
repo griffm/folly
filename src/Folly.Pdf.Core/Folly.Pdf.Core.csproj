@@ -4,7 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <RootNamespace>Folly.Pdf</RootNamespace>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <Description>Folly PDF - PDF 1.7 renderer for XSL-FO area trees</Description>
+    <Description>Folly PDF Core - Low-level PDF 1.7 writer with font embedding, image support, metadata, and PDF/A compliance</Description>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,9 +13,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Folly.Layout\Folly.Layout.csproj" />
-    <ProjectReference Include="..\Folly.Core\Folly.Core.csproj" />
     <ProjectReference Include="..\Folly.Fonts\Folly.Fonts.csproj" />
     <ProjectReference Include="..\Folly.Svg\Folly.Svg.csproj" />
+    <ProjectReference Include="..\Folly.Images\Folly.Images.csproj" />
+    <ProjectReference Include="..\Folly.Xslfo.Model\Folly.Xslfo.Model.csproj" />
     <ProjectReference Include="..\Folly.SourceGenerators.Glyphs\Folly.SourceGenerators.Glyphs.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false" />

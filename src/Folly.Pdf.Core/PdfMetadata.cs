@@ -1,4 +1,4 @@
-namespace Folly;
+namespace Folly.Pdf;
 
 /// <summary>
 /// PDF document metadata.
