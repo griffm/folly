@@ -1,20 +1,20 @@
 # Folly Performance Guide
 
-This document details the performance characteristics of the Folly XSL-FO to PDF renderer and provides guidance for optimal performance.
+This document provides guidance for optimal performance when using Folly XSL-FO to PDF renderer.
+
+> **Note on Benchmark Data:** This guide contains point-in-time benchmark results for reference purposes. Actual performance may vary based on .NET version, hardware, operating system, and workload characteristics. For current performance metrics on your system, run the benchmark suite in `tests/Folly.Benchmarks/`.
 
 ## Performance Overview
 
-Folly significantly exceeds its v1.0 performance targets:
+Folly demonstrates excellent performance characteristics:
 
-| Metric | Target | Actual | Status |
-|--------|--------|--------|--------|
-| **200-page throughput** | <10 seconds | Well under target | ✓ **Significantly faster** |
-| **Memory footprint** | <600MB | Minimal footprint | ✓ **Significantly better** |
-| **Pages/second** | 20 pages/sec | Excellent throughput | ✓ **Significantly faster** |
+- **Throughput:** Excellent rendering speed for complex documents
+- **Memory footprint:** Minimal memory usage with low GC pressure
+- **Scaling:** Linear to sub-linear scaling with document size
 
-## Benchmark Results
+## Sample Benchmark Results
 
-All benchmarks performed on .NET 8.0, X64 RyuJIT with AVX-512 support.
+The following benchmark results are provided as reference examples. Run the benchmark suite on your target hardware for accurate measurements.
 
 ### Simple Documents (Text-Only)
 

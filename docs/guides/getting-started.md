@@ -12,7 +12,7 @@ This guide will help you get started with Folly, a zero-dependency XSL-FO to PDF
 ### NuGet Packages
 
 ```bash
-# Core library (required)
+# Core library (required) - includes all necessary dependencies
 dotnet add package Folly.Core
 
 # Optional: Fluent API for programmatic document construction
