@@ -1,4 +1,4 @@
-namespace Folly.BiDi;
+namespace Folly.Typography.BiDi;
 
 /// <summary>
 /// Pure .NET implementation of the Unicode Bidirectional Algorithm (UAX#9).

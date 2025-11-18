@@ -1,4 +1,4 @@
-namespace Folly.Layout;
+namespace Folly.Typography.LineBreaking;
 
 /// <summary>
 /// Implements the Knuth-Plass optimal line breaking algorithm from TeX.
@@ -7,7 +7,7 @@ namespace Folly.Layout;
 ///
 /// All algorithm parameters (stretch, shrink, penalties) are now configurable via LayoutOptions.
 /// </summary>
-internal sealed class KnuthPlassLineBreaker
+public sealed class KnuthPlassLineBreaker
 {
     // Constant for infinity badness (not configurable)
     private const double InfinityBadness = 10000.0;
@@ -78,12 +78,23 @@ internal sealed class KnuthPlassLineBreaker
         public double TotalShrink { get; init; }      // Accumulated shrink up to this point
     }
 
-    private readonly Fonts.FontMetrics _fontMetrics;
+    private readonly ITextMeasurer _textMeasurer;
     private readonly double _lineWidth;
     private readonly double _tolerance;  // How much variation from ideal width we tolerate
 
+    /// <summary>
+    /// Initializes a new instance of the KnuthPlassLineBreaker class.
+    /// </summary>
+    /// <param name="textMeasurer">The text measurer for measuring text widths.</param>
+    /// <param name="lineWidth">The target line width in points.</param>
+    /// <param name="tolerance">How much variation from ideal width is acceptable (default 1.0).</param>
+    /// <param name="spaceStretchRatio">Ratio for space stretching (default 0.5).</param>
+    /// <param name="spaceShrinkRatio">Ratio for space shrinking (default 0.333).</param>
+    /// <param name="linePenalty">Penalty for each line break (default 10.0).</param>
+    /// <param name="flaggedDemerit">Demerit for flagged breaks like hyphens (default 100.0).</param>
+    /// <param name="fitnessDemerit">Demerit for fitness class changes (default 100.0).</param>
     public KnuthPlassLineBreaker(
-        Fonts.FontMetrics fontMetrics,
+        ITextMeasurer textMeasurer,
         double lineWidth,
         double tolerance = 1.0,
         double spaceStretchRatio = 0.5,
@@ -92,7 +103,7 @@ internal sealed class KnuthPlassLineBreaker
         double flaggedDemerit = 100.0,
         double fitnessDemerit = 100.0)
     {
-        _fontMetrics = fontMetrics;
+        _textMeasurer = textMeasurer;
         _lineWidth = lineWidth;
         _tolerance = tolerance;
         _spaceStretchRatio = spaceStretchRatio;
@@ -128,7 +139,7 @@ internal sealed class KnuthPlassLineBreaker
     private List<Item> BuildItemList(List<string> words, List<(int start, int end)> wordPositions)
     {
         var items = new List<Item>();
-        var spaceWidth = _fontMetrics.MeasureWidth(" ");
+        var spaceWidth = _textMeasurer.MeasureWidth(" ");
 
         // Use configurable stretch and shrink ratios (from LayoutOptions)
         var spaceStretch = spaceWidth * _spaceStretchRatio;
@@ -137,7 +148,7 @@ internal sealed class KnuthPlassLineBreaker
         for (int i = 0; i < words.Count; i++)
         {
             var word = words[i];
-            var wordWidth = _fontMetrics.MeasureWidth(word);
+            var wordWidth = _textMeasurer.MeasureWidth(word);
 
             // Add box for the word
             items.Add(new Box

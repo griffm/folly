@@ -1,4 +1,4 @@
-namespace Folly.BiDi;
+namespace Folly.Typography.BiDi;
 
 /// <summary>
 /// Unicode Bidirectional Character Types as defined in UAX#9.

@@ -1,5 +1,5 @@
 using System.Linq;
-using Folly.Core.Hyphenation;
+using Folly.Typography.Hyphenation;
 using Xunit;
 
 namespace Folly.UnitTests;

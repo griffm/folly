@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Folly.Core.Hyphenation
+namespace Folly.Typography.Hyphenation
 {
     /// <summary>
     /// Implements Frank Liang's TeX hyphenation algorithm.

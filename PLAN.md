@@ -542,11 +542,11 @@ public class WebPParser : IImageParser
 - All existing tests pass unchanged
 
 **Deliverables:**
-- [ ] New Folly.Typography.csproj
-- [ ] BiDi, Hyphenation, Knuth-Plass moved
-- [ ] Folly.Core references Folly.Typography
-- [ ] All tests passing
-- [ ] Zero warnings, zero errors
+- [x] New Folly.Typography.csproj
+- [x] BiDi, Hyphenation, Knuth-Plass moved
+- [x] Folly.Core references Folly.Typography
+- [x] All tests passing
+- [x] Zero warnings, zero errors
 - [ ] NuGet package published
 
 **Success Metrics:**
@@ -563,13 +563,13 @@ public class WebPParser : IImageParser
 - All existing tests pass unchanged
 
 **Deliverables:**
-- [ ] New Folly.Images.csproj
-- [ ] All image parsers moved
-- [ ] IImageParser interface moved
-- [ ] ImageFormatDetector moved
-- [ ] Folly.Core references Folly.Images
-- [ ] All tests passing
-- [ ] Zero warnings, zero errors
+- [x] New Folly.Images.csproj
+- [x] All image parsers moved
+- [x] IImageParser interface moved
+- [x] ImageFormatDetector moved
+- [x] Folly.Core references Folly.Images
+- [x] All tests passing
+- [x] Zero warnings, zero errors
 - [ ] NuGet package published
 
 **Success Metrics:**
