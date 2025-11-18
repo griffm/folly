@@ -66,7 +66,7 @@ public class KerningInspectionTest
         }
 
         // Write to console for inspection
-        Console.WriteLine(output.ToString());
+        // Console.WriteLine(output.ToString());
 
         // Also save JSON
         var json = AreaTreeInspector.ToJson(areaTree, new AreaTreeSerializationOptions
@@ -80,7 +80,7 @@ public class KerningInspectionTest
         // Save to test output directory
         var jsonPath = "/tmp/kerning_inspection.json";
         File.WriteAllText(jsonPath, json);
-        Console.WriteLine($"\nArea tree JSON saved to: {jsonPath}");
+        // Console.WriteLine($"\nArea tree JSON saved to: {jsonPath}");
 
         // This test always passes - it's just for inspection
         Assert.True(true);
