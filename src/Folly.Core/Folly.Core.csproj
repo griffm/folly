@@ -4,7 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <RootNamespace>Folly</RootNamespace>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <Description>Folly Core - XSL-FO 1.1 parser, DOM, property system, layout engine, and area tree builder</Description>
+    <Description>Folly - Complete XSL-FO 1.1 to PDF 1.7 renderer. High-level API orchestrating all Folly packages. Zero runtime dependencies beyond .NET 8.</Description>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,6 +15,7 @@
     <ProjectReference Include="..\Folly.Svg\Folly.Svg.csproj" />
     <ProjectReference Include="..\Folly.Xslfo.Model\Folly.Xslfo.Model.csproj" />
     <ProjectReference Include="..\Folly.Xslfo.Layout\Folly.Xslfo.Layout.csproj" />
+    <ProjectReference Include="..\Folly.Pdf.Core\Folly.Pdf.Core.csproj" />
   </ItemGroup>
 
 </Project>

@@ -750,30 +750,34 @@ namespace Folly.Svg
 ---
 
 #### 3.4 Split Folly.Pdf into Folly.Pdf.Core
-- Extract core PDF writing to Folly.Pdf.Core
-- Keep FO-specific extensions in Folly (composition package)
-- Reference: Folly.Layout, Folly.Fonts, Folly.Images, Folly.Svg
+- Rename Folly.Pdf to Folly.Pdf.Core (core PDF writing)
+- Move FO-specific extensions (FoDocumentExtensions) to Folly.Core (composition package)
+- Move PdfOptions and PdfMetadata to Folly.Pdf.Core (they are PDF-specific, not FO-specific)
+- Reference: Folly.Layout, Folly.Fonts, Folly.Images, Folly.Svg, Folly.Xslfo.Model
 
 **Deliverables:**
-- [ ] New Folly.Pdf.Core.csproj
-- [ ] PdfWriter, PdfRenderer moved
-- [ ] All PDF tests passing
+- [x] Folly.Pdf renamed to Folly.Pdf.Core
+- [x] PdfWriter, PdfRenderer in Folly.Pdf.Core
+- [x] FoDocumentExtensions moved to Folly.Core
+- [x] PdfOptions and PdfMetadata moved to Folly.Pdf.Core
+- [x] All tests passing (407 tests pass, 0 failures)
 - [ ] NuGet package published
 
 ---
 
 #### 3.5 Create Folly Composition Package
-- Create Folly.csproj (or Folly.Xslfo.csproj)
-- Reference: Folly.Xslfo.Model, Folly.Xslfo.Layout, Folly.Pdf.Core
+- Folly.Core serves as the composition package (could be renamed to just "Folly" in future)
+- Reference: Folly.Xslfo.Model, Folly.Xslfo.Layout, Folly.Pdf.Core, Folly.Fonts, Folly.Layout, Folly.Typography, Folly.Images, Folly.Svg
 - FoDocument API (high-level orchestration)
-- Extension methods (SavePdf)
+- Extension methods (SavePdf from Folly.Pdf.Core moved here)
 
 **Deliverables:**
-- [ ] New Folly.csproj (composition package)
-- [ ] FoDocument API orchestration
-- [ ] All packages referenced
-- [ ] All tests passing
-- [ ] **API 100% identical to current Folly**
+- [x] Folly.Core acts as composition package
+- [x] FoDocument, FoLoadOptions in Folly.Core
+- [x] FoDocumentExtensions (SavePdf) in Folly.Core
+- [x] All packages referenced
+- [x] All tests passing (407 tests pass, 0 failures)
+- [x] **API 100% identical to current Folly**
 - [ ] NuGet package published
 
 **Success Metrics:**

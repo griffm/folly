@@ -5,7 +5,7 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Folly.Core", "src\Folly.Core\Folly.Core.csproj", "{2A1B1C1D-1E1F-2020-2122-232425262728}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Folly.Pdf", "src\Folly.Pdf\Folly.Pdf.csproj", "{3A1B1C1D-1E1F-2020-2122-232425262729}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Folly.Pdf.Core", "src\Folly.Pdf.Core\Folly.Pdf.Core.csproj", "{3A1B1C1D-1E1F-2020-2122-232425262729}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Folly.Fluent", "src\Folly.Fluent\Folly.Fluent.csproj", "{4A1B1C1D-1E1F-2020-2122-232425262730}"
 EndProject

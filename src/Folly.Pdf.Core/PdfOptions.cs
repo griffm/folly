@@ -1,6 +1,6 @@
 using Folly.Fonts.Logging;
 
-namespace Folly;
+namespace Folly.Pdf;
 
 /// <summary>
 /// Options for PDF rendering.
