@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
 namespace Folly.Pdf;
 
 /// <summary>
@@ -59,9 +54,9 @@ internal static class SrgbIccProfile
         profile.AddRange(new byte[] { 0, 0, 0, 0 }); // Rendering intent: perceptual
 
         // PCS illuminant (D50): X=0.9642, Y=1.0, Z=0.8249
-        profile.AddRange(BitConverter.GetBytes(0x0000F6D6).AsEnumerable().AsEnumerable().Reverse().ToArray()); // X
-        profile.AddRange(BitConverter.GetBytes(0x00010000).AsEnumerable().AsEnumerable().Reverse().ToArray()); // Y
-        profile.AddRange(BitConverter.GetBytes(0x0000D32D).AsEnumerable().AsEnumerable().Reverse().ToArray()); // Z
+        profile.AddRange(BitConverter.GetBytes(0x0000F6D6).AsEnumerable().Reverse().ToArray()); // X
+        profile.AddRange(BitConverter.GetBytes(0x00010000).AsEnumerable().Reverse().ToArray()); // Y
+        profile.AddRange(BitConverter.GetBytes(0x0000D32D).AsEnumerable().Reverse().ToArray()); // Z
 
         profile.AddRange(System.Text.Encoding.ASCII.GetBytes("Fly ")); // Profile creator signature
         profile.AddRange(new byte[44]); // Reserved (must be zero)
