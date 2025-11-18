@@ -97,7 +97,7 @@ public class PngSuiteTests
 
     #endregion
 
-    #region Interlaced Tests (Should Be Rejected)
+    #region Interlaced Tests (Adam7 Support)
 
     [Theory]
     [InlineData("basi0g01.png", "1-bit grayscale interlaced")]
@@ -106,19 +106,16 @@ public class PngSuiteTests
     [InlineData("basi3p04.png", "4-bit indexed interlaced")]
     [InlineData("basi4a08.png", "8-bit grayscale+alpha interlaced")]
     [InlineData("basi6a08.png", "8-bit RGBA interlaced")]
-    public void PngSuite_InterlacedImages_ThrowsNotSupportedException(string filename, string description)
+    public void PngSuite_InterlacedImages_RendersSuccessfully(string filename, string description)
     {
         // Arrange
         var pngPath = Path.Combine(_pngSuitePath, filename);
         var foXml = CreateFoDocumentWithImage(pngPath);
 
         // Act & Assert
-        var exception = Assert.Throws<Exception>(() => RenderToPdf(foXml, description));
-
-        // Check if it's the NotSupportedException we expect (might be wrapped)
-        var innerException = exception.InnerException ?? exception;
-        Assert.IsType<NotSupportedException>(innerException);
-        Assert.Contains("interlaced", innerException.Message, StringComparison.OrdinalIgnoreCase);
+        var pdf = RenderToPdf(foXml, description);
+        Assert.NotNull(pdf);
+        Assert.NotEmpty(pdf);
     }
 
     #endregion

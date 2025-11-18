@@ -70,6 +70,15 @@ public sealed class PngParser : IImageParser
                     compressionMethod = data[offset + 18];
                     filterMethod = data[offset + 19];
                     interlaceMethod = data[offset + 20];
+
+                    // Validate bit depth
+                    if (bitDepth != 1 && bitDepth != 2 && bitDepth != 4 && bitDepth != 8 && bitDepth != 16)
+                        throw new InvalidDataException($"PNG bit depth {bitDepth} is invalid. Valid values are 1, 2, 4, 8, or 16.");
+
+                    // Validate color type
+                    if (colorType != 0 && colorType != 2 && colorType != 3 && colorType != 4 && colorType != 6)
+                        throw new InvalidDataException($"PNG color type {colorType} is invalid. Valid values are 0, 2, 3, 4, or 6.");
+
                     break;
 
                 case "PLTE":
@@ -187,7 +196,8 @@ public sealed class PngParser : IImageParser
                 colorComponents = 3;
                 break;
             default:
-                throw new NotSupportedException($"PNG color type {colorType} is not supported");
+                // This should never be reached due to early validation in IHDR parsing
+                throw new InvalidDataException($"PNG color type {colorType} is invalid");
         }
 
         // Compress IDAT data using FlateDecode
