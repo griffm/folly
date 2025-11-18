@@ -2,7 +2,7 @@ using Folly.Images;
 using Folly.Images.Parsers;
 using Xunit;
 
-namespace Folly.UnitTests;
+namespace Folly.Images.Tests;
 
 public class TiffParserTests
 {

@@ -1,7 +1,7 @@
 using Folly.Typography.BiDi;
 using Xunit;
 
-namespace Folly.UnitTests;
+namespace Folly.Typography.Tests;
 
 /// <summary>
 /// Tests for BiDi paired bracket algorithm (Phase 10.2).

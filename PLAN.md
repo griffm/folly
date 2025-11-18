@@ -580,6 +580,70 @@ public class WebPParser : IImageParser
 
 ---
 
+### Test Organization Pattern
+
+**All extracted libraries must have corresponding test projects that prove zero dependencies.**
+
+#### Test Structure
+```
+tests/
+├── Folly.Typography.Tests/     → Tests Folly.Typography only
+├── Folly.Images.Tests/          → Tests Folly.Images only
+├── Folly.Fonts.Tests/           → Tests Folly.Fonts only (future)
+├── Folly.UnitTests/             → Integration tests for Folly.Core + Folly.Pdf
+└── Folly.SpecTests/             → XSL-FO spec conformance tests
+```
+
+#### Test Migration Guidelines
+
+**For each new extracted library:**
+
+1. **Create dedicated test project**
+   - Name pattern: `Folly.[LibraryName].Tests`
+   - Reference **only** the library being tested (proves zero dependencies)
+   - Use same xUnit packages as existing test projects
+
+2. **Move pure unit tests**
+   - Tests that only use the extracted library's public API
+   - Tests with no dependencies on Folly.Core, Folly.Pdf, etc.
+   - Example: BiDiTests, HyphenationTests → Folly.Typography.Tests
+
+3. **Keep integration tests in Folly.UnitTests**
+   - Tests that verify library integration with PDF rendering
+   - Tests that use FoDocument, PDF generation, etc.
+   - Example: PngSuiteTests, ImageDpiTests (test full rendering pipeline)
+
+4. **Update test namespaces**
+   - Change from `Folly.UnitTests` to `Folly.[LibraryName].Tests`
+   - Maintains test organization and discoverability
+
+#### Benefits
+
+- **Proves Independence**: Test projects with single reference validate zero dependencies
+- **Usage Documentation**: Tests serve as examples for standalone library usage
+- **Selective Testing**: `dotnet test tests/Folly.Typography.Tests/` runs only typography tests
+- **Clearer Intent**: Separates unit tests from integration tests
+
+#### Phase 1 Example
+
+Folly.Typography.Tests (45 tests):
+- BiDiTests.cs (26 tests) - Unicode BiDi algorithm
+- HyphenationTests.cs (14 tests) - Hyphenation patterns
+- PairedBracketTests.cs (5 tests) - BiDi bracket handling
+
+Folly.Images.Tests (17 tests):
+- BmpParserTests.cs (6 tests) - BMP format parsing
+- GifParserTests.cs (5 tests) - GIF format parsing
+- TiffParserTests.cs (6 tests) - TIFF format parsing
+
+Folly.UnitTests (345+ tests):
+- PngSuiteTests.cs - PNG rendering integration (uses Folly.Core + Folly.Pdf)
+- ImageDpiTests.cs - DPI handling integration (uses Folly.Core + Folly.Pdf)
+- ImageCmykTests.cs - CMYK integration (uses Folly.Core + Folly.Pdf)
+- All other Folly.Core integration tests
+
+---
+
 ### Phase 2: Abstract SVG Rendering (6-8 weeks)
 **Medium Risk | Requires Interface Design**
 

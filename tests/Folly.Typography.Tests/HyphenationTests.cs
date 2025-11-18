@@ -2,7 +2,7 @@ using System.Linq;
 using Folly.Typography.Hyphenation;
 using Xunit;
 
-namespace Folly.UnitTests;
+namespace Folly.Typography.Tests;
 
 public class HyphenationTests
 {
