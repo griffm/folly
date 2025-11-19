@@ -98,6 +98,100 @@ public class TiffParserTests
         Assert.Equal("TIFF", format);
     }
 
+    [Fact]
+    public void TiffParser_CanParse_EmptyData_ReturnsFalse()
+    {
+        // Arrange
+        var parser = new TiffParser();
+
+        // Act
+        bool canParse = parser.CanParse(Array.Empty<byte>());
+
+        // Assert
+        Assert.False(canParse);
+    }
+
+    [Fact]
+    public void TiffParser_CanParse_NullData_ReturnsFalse()
+    {
+        // Arrange
+        var parser = new TiffParser();
+
+        // Act
+        bool canParse = parser.CanParse(null!);
+
+        // Assert
+        Assert.False(canParse);
+    }
+
+    [Fact]
+    public void TiffParser_Parse_InvalidTiffSignature_ThrowsException()
+    {
+        // Arrange
+        var invalidData = new byte[] { 0xFF, 0xD8, 0xFF }; // JPEG signature
+        var parser = new TiffParser();
+
+        // Act & Assert
+        var exception = Assert.Throws<InvalidDataException>(() => parser.Parse(invalidData));
+        Assert.Contains("Invalid TIFF", exception.Message);
+    }
+
+    [Fact]
+    public void TiffParser_FormatName_ReturnsTiff()
+    {
+        // Arrange
+        var parser = new TiffParser();
+
+        // Act
+        string formatName = parser.FormatName;
+
+        // Assert
+        Assert.Equal("TIFF", formatName);
+    }
+
+    [Fact]
+    public void TiffParser_Parse_LargerTiffLE_ReturnsCorrectDimensions()
+    {
+        // Arrange
+        var tiffData = CreateSimpleTiffLE(200, 100);
+        var parser = new TiffParser();
+
+        // Act
+        var info = parser.Parse(tiffData);
+
+        // Assert
+        Assert.Equal(200, info.Width);
+        Assert.Equal(100, info.Height);
+    }
+
+    [Fact]
+    public void TiffParser_Parse_LargerTiffBE_ReturnsCorrectDimensions()
+    {
+        // Arrange
+        var tiffData = CreateSimpleTiffBE(150, 75);
+        var parser = new TiffParser();
+
+        // Act
+        var info = parser.Parse(tiffData);
+
+        // Assert
+        Assert.Equal(150, info.Width);
+        Assert.Equal(75, info.Height);
+    }
+
+    [Fact]
+    public void ImageFormatDetector_Detect_TiffBigEndianSignature_ReturnsTIFF()
+    {
+        // Arrange
+        var tiffData = CreateSimpleTiffBE(2, 2);
+
+        // Act
+        string format = ImageFormatDetector.Detect(tiffData);
+
+        // Assert
+        Assert.Equal("TIFF", format);
+    }
+
     // Helper method to create a minimal TIFF (little-endian) for testing
     private static byte[] CreateSimpleTiffLE(int width, int height)
     {
