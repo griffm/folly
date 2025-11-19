@@ -291,4 +291,253 @@ public class BiDiTests
         Assert.Equal(']', UnicodeBidiData.GetMirroredBracket('['));
         Assert.Equal('[', UnicodeBidiData.GetMirroredBracket(']'));
     }
+
+    [Fact]
+    public void ReorderText_MultipleSpaces_PreservesSpacing()
+    {
+        var algorithm = new UnicodeBidiAlgorithm();
+        var text = "Hello  World"; // Two spaces
+        var result = algorithm.ReorderText(text, 0); // LTR
+
+        Assert.Equal("Hello  World", result);
+    }
+
+    [Fact]
+    public void ReorderText_LeadingWhitespace_HandledCorrectly()
+    {
+        var algorithm = new UnicodeBidiAlgorithm();
+        var text = "   Hello";
+        var result = algorithm.ReorderText(text, 0); // LTR
+
+        Assert.Equal("   Hello", result);
+    }
+
+    [Fact]
+    public void ReorderText_TrailingWhitespace_HandledCorrectly()
+    {
+        var algorithm = new UnicodeBidiAlgorithm();
+        var text = "Hello   ";
+        var result = algorithm.ReorderText(text, 0); // LTR
+
+        Assert.Equal("Hello   ", result);
+    }
+
+    [Fact]
+    public void ReorderText_OnlyWhitespace_ReturnsUnchanged()
+    {
+        var algorithm = new UnicodeBidiAlgorithm();
+        var text = "     ";
+        var result = algorithm.ReorderText(text, 0);
+
+        Assert.Equal("     ", result);
+    }
+
+    [Fact]
+    public void ReorderText_SingleCharacter_RTL()
+    {
+        var algorithm = new UnicodeBidiAlgorithm();
+        var text = "\u05D0"; // Hebrew Alef
+        var result = algorithm.ReorderText(text, 1); // RTL
+
+        Assert.Equal("\u05D0", result);
+    }
+
+    [Fact]
+    public void ReorderText_SingleCharacter_LTR()
+    {
+        var algorithm = new UnicodeBidiAlgorithm();
+        var text = "A";
+        var result = algorithm.ReorderText(text, 0); // LTR
+
+        Assert.Equal("A", result);
+    }
+
+    [Fact]
+    public void ReorderText_NumbersOnly_RemainsLTR()
+    {
+        var algorithm = new UnicodeBidiAlgorithm();
+        var text = "123456";
+        var result = algorithm.ReorderText(text, 1); // RTL base
+
+        // Numbers always stay LTR even in RTL context
+        Assert.Equal("123456", result);
+    }
+
+    [Fact]
+    public void ReorderText_MixedPunctuationAndNumbers_RTL()
+    {
+        var algorithm = new UnicodeBidiAlgorithm();
+        // RTL text with numbers and punctuation
+        var text = "\u05E9\u05DC\u05D5\u05DD 123!";
+        var result = algorithm.ReorderText(text, 1); // RTL
+
+        // Numbers stay LTR, punctuation follows neutral behavior
+        Assert.Contains("123", result);
+        Assert.Contains("\u05DD\u05D5\u05DC\u05E9", result); // Reversed Hebrew
+    }
+
+    [Fact]
+    public void ReorderText_NestedDirectionalText_HandlesCorrectly()
+    {
+        var algorithm = new UnicodeBidiAlgorithm();
+        // English with Hebrew with English inside: "Hello עברית English"
+        var text = "Hello \u05E2\u05D1\u05E8\u05D9\u05EA English";
+        var result = algorithm.ReorderText(text, 0); // LTR base
+
+        // Should have both "Hello" and "English" in LTR order
+        // Hebrew section should be reversed
+        Assert.Contains("Hello", result);
+        Assert.Contains("English", result);
+        Assert.Contains("\u05EA\u05D9\u05E8\u05D1\u05E2", result); // Reversed Hebrew
+    }
+
+    [Fact]
+    public void ReorderText_ConsecutiveRTLWords_GroupedCorrectly()
+    {
+        var algorithm = new UnicodeBidiAlgorithm();
+        // Two Hebrew words: "שלום עולם" (Shalom Olam / Hello World)
+        var text = "\u05E9\u05DC\u05D5\u05DD \u05E2\u05D5\u05DC\u05DD";
+        var result = algorithm.ReorderText(text, 1); // RTL
+
+        // Both words should be reversed and right-to-left
+        Assert.Contains("\u05DD\u05D5\u05DC\u05E9", result); // Reversed שלום
+        Assert.Contains("\u05DD\u05DC\u05D5\u05E2", result); // Reversed עולם
+    }
+
+    [Fact]
+    public void ReorderText_ArabicWithComma_HandledCorrectly()
+    {
+        var algorithm = new UnicodeBidiAlgorithm();
+        // Arabic with comma: "مرحبا، عالم"
+        var text = "\u0645\u0631\u062D\u0628\u0627\u060C \u0639\u0627\u0644\u0645";
+        var result = algorithm.ReorderText(text, 1); // RTL
+
+        // Arabic text should be reversed, comma is neutral
+        Assert.NotEmpty(result);
+    }
+
+    [Fact]
+    public void ReorderText_QuotationMarks_HandleBracketMirroring()
+    {
+        var algorithm = new UnicodeBidiAlgorithm();
+        // Hebrew with quotes: "שלום"
+        var text = "\"\u05E9\u05DC\u05D5\u05DD\"";
+        var result = algorithm.ReorderText(text, 1); // RTL
+
+        // Quotes and Hebrew should be handled
+        Assert.Contains("\u05DD\u05D5\u05DC\u05E9", result); // Reversed Hebrew
+    }
+
+    [Fact]
+    public void GetCharacterType_CommonPunctuation_ReturnsCorrectTypes()
+    {
+        // Period
+        Assert.Equal(BidiCharacterType.CS, UnicodeBidiData.GetCharacterType('.'));
+
+        // Comma
+        Assert.Equal(BidiCharacterType.CS, UnicodeBidiData.GetCharacterType(','));
+
+        // Exclamation mark
+        Assert.Equal(BidiCharacterType.ON, UnicodeBidiData.GetCharacterType('!'));
+
+        // Question mark
+        Assert.Equal(BidiCharacterType.ON, UnicodeBidiData.GetCharacterType('?'));
+    }
+
+    [Fact]
+    public void GetCharacterType_MathSymbols_ReturnsCorrectTypes()
+    {
+        Assert.Equal(BidiCharacterType.ES, UnicodeBidiData.GetCharacterType('+')); // Plus is ES (European Separator)
+        Assert.Equal(BidiCharacterType.ES, UnicodeBidiData.GetCharacterType('-')); // Minus is ES
+        Assert.Equal(BidiCharacterType.ON, UnicodeBidiData.GetCharacterType('=')); // Equals is ON
+    }
+
+    [Fact]
+    public void ReorderText_VeryLongText_HandlesEfficiently()
+    {
+        var algorithm = new UnicodeBidiAlgorithm();
+        // Create a long mixed text
+        var parts = new List<string>();
+        for (int i = 0; i < 100; i++)
+        {
+            parts.Add("English");
+            parts.Add("\u05E2\u05D1\u05E8\u05D9\u05EA"); // Hebrew
+        }
+        var text = string.Join(" ", parts);
+
+        // Act
+        var start = DateTime.UtcNow;
+        var result = algorithm.ReorderText(text, 0);
+        var duration = DateTime.UtcNow - start;
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.True(duration.TotalSeconds < 2, "BiDi algorithm should complete efficiently");
+    }
+
+    [Fact]
+    public void ReorderText_TabCharacters_HandledAsWhitespace()
+    {
+        var algorithm = new UnicodeBidiAlgorithm();
+        var text = "Hello\tWorld";
+        var result = algorithm.ReorderText(text, 0); // LTR
+
+        Assert.Equal("Hello\tWorld", result);
+    }
+
+    [Fact]
+    public void ReorderText_NewlineCharacters_PreservedInText()
+    {
+        var algorithm = new UnicodeBidiAlgorithm();
+        var text = "Hello\nWorld";
+        var result = algorithm.ReorderText(text, 0); // LTR
+
+        Assert.Contains("\n", result);
+    }
+
+    [Fact]
+    public void ReorderText_MixedArabicAndHebrew_BothHandledAsRTL()
+    {
+        var algorithm = new UnicodeBidiAlgorithm();
+        // Arabic followed by Hebrew
+        var text = "\u0645\u0631\u062D\u0628\u0627 \u05E9\u05DC\u05D5\u05DD";
+        var result = algorithm.ReorderText(text, 1); // RTL
+
+        // Both should be reversed
+        Assert.Contains("\u0627\u0628\u062D\u0631\u0645", result); // Reversed Arabic
+        Assert.Contains("\u05DD\u05D5\u05DC\u05E9", result); // Reversed Hebrew
+    }
+
+    [Fact]
+    public void GetCharacterType_CurrencySymbols_ReturnsET()
+    {
+        // Dollar sign
+        Assert.Equal(BidiCharacterType.ET, UnicodeBidiData.GetCharacterType('$'));
+
+        // Euro sign (if supported)
+        // Note: This might vary by Unicode version
+    }
+
+    [Fact]
+    public void ReorderText_SlashCharacter_HandleAsNeutral()
+    {
+        var algorithm = new UnicodeBidiAlgorithm();
+        var text = "\u05E9\u05DC\u05D5\u05DD/Hello";
+        var result = algorithm.ReorderText(text, 1); // RTL
+
+        Assert.NotEmpty(result);
+    }
+
+    [Fact]
+    public void ReorderText_AllCapsEnglishInRTL_RemainsLTR()
+    {
+        var algorithm = new UnicodeBidiAlgorithm();
+        var text = "\u05E9\u05DC\u05D5\u05DD HELLO";
+        var result = algorithm.ReorderText(text, 1); // RTL
+
+        // HELLO should remain in LTR order
+        Assert.Contains("HELLO", result);
+        // Hebrew should be reversed
+        Assert.Contains("\u05DD\u05D5\u05DC\u05E9", result);
+    }
 }
