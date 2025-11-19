@@ -556,7 +556,8 @@ internal sealed class LayoutEngine
             : bodyWidth;
 
         // Create first page
-        var pageNumber = 1;
+        // Continue page numbering from previous page sequences
+        var pageNumber = areaTree.Pages.Count + 1;
         var currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
         var currentPage = CreatePage(currentPageMaster, pageSequence, pageNumber);
         var currentY = bodyMarginTop;

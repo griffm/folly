@@ -342,7 +342,7 @@ internal sealed class PdfWriter : IDisposable
     /// Expands indexed PNG with tRNS transparency to RGB + separate alpha channel.
     /// </summary>
     private (byte[] RgbData, byte[] AlphaData, byte[]? Palette, byte[]? Transparency) ExpandIndexedWithTransparency(
-        byte[] indexedData, byte[] palette, byte[] transparency, int width, int height)
+        byte[] indexedData, byte[] palette, byte[] transparency, int width, int height, int bitDepth)
     {
         using var indexedStream = new MemoryStream(indexedData);
         using var zlibStream = new System.IO.Compression.ZLibStream(indexedStream, System.IO.Compression.CompressionMode.Decompress);
@@ -354,15 +354,34 @@ internal sealed class PdfWriter : IDisposable
         byte[] rgbData = new byte[pixelCount * 3];
         byte[] alphaData = new byte[pixelCount];
 
-        int srcIdx = 0;
         int dstIdx = 0;
+        int pixelsPerByte = 8 / bitDepth;  // 8 for 1-bit, 4 for 2-bit, 2 for 4-bit, 1 for 8-bit
+        int bitMask = (1 << bitDepth) - 1;  // 0x1 for 1-bit, 0x3 for 2-bit, 0xF for 4-bit, 0xFF for 8-bit
 
         for (int i = 0; i < pixelCount; i++)
         {
-            if (srcIdx >= indices.Length)
-                break;
+            // Extract palette index based on bit depth
+            byte paletteIndex;
 
-            byte paletteIndex = indices[srcIdx++];
+            if (bitDepth == 8)
+            {
+                // 8-bit: one pixel per byte
+                paletteIndex = i < indices.Length ? indices[i] : (byte)0;
+            }
+            else
+            {
+                // Sub-byte pixels: extract bits from packed bytes
+                int byteIndex = i / pixelsPerByte;
+                int pixelInByte = i % pixelsPerByte;
+
+                if (byteIndex >= indices.Length)
+                    break;
+
+                // Extract bits (MSB first)
+                int shift = (pixelsPerByte - 1 - pixelInByte) * bitDepth;
+                paletteIndex = (byte)((indices[byteIndex] >> shift) & bitMask);
+            }
+
             int paletteOffset = paletteIndex * 3;
 
             // Get RGB from palette
@@ -401,13 +420,17 @@ internal sealed class PdfWriter : IDisposable
     private int WritePngXObject(byte[] pngData, int width, int height, string? imagePath = null)
     {
         // Decode PNG and write as FlateDecode image with PNG predictors
-        var (compressedData, bitsPerComponent, colorSpace, colorComponents, palette, transparency, alphaData) = DecodePng(pngData, width, height, imagePath);
+        var (compressedData, bitsPerComponent, colorSpace, colorComponents, palette, transparency, alphaData, actualWidth, actualHeight) = DecodePng(pngData, width, height, imagePath);
+
+        // Use actual PNG dimensions from IHDR, not scaled layout dimensions
+        width = actualWidth;
+        height = actualHeight;
 
         // Handle indexed color with tRNS transparency by expanding to RGB + SMask
         if (palette != null && transparency != null && alphaData == null)
         {
             (compressedData, alphaData, _, _) = ExpandIndexedWithTransparency(
-                compressedData, palette, transparency, width, height);
+                compressedData, palette, transparency, width, height, bitsPerComponent);
             palette = null; // Clear palette since we've expanded to RGB
             transparency = null; // Clear transparency since we've created alpha channel
             colorSpace = "DeviceRGB";
@@ -483,8 +506,10 @@ internal sealed class PdfWriter : IDisposable
 
         WriteLine("  /Filter /FlateDecode");
 
-        // Only use PNG predictors if we haven't already unfiltered (i.e., no alpha channel)
-        if (!smaskId.HasValue)
+        // Only use PNG predictors if we haven't already unfiltered
+        // We unfilter for: alpha channels, interlaced images, and sub-byte indexed color
+        bool wasUnfiltered = smaskId.HasValue || (palette != null && bitsPerComponent < 8);
+        if (!wasUnfiltered)
         {
             WriteLine("  /DecodeParms <<");
             WriteLine("    /Predictor 15");
@@ -701,7 +726,7 @@ internal sealed class PdfWriter : IDisposable
         return profileId;
     }
 
-    private (byte[] CompressedData, int BitsPerComponent, string ColorSpace, int ColorComponents, byte[]? Palette, byte[]? Transparency, byte[]? AlphaData) DecodePng(byte[] pngData, int width, int height, string? imagePath = null)
+    private (byte[] CompressedData, int BitsPerComponent, string ColorSpace, int ColorComponents, byte[]? Palette, byte[]? Transparency, byte[]? AlphaData, int Width, int Height) DecodePng(byte[] pngData, int width, int height, string? imagePath = null)
     {
         // Simplified PNG decoder - extract IDAT chunks and parse IHDR for metadata
         // For production use, consider using a PNG library like SixLabors.ImageSharp
@@ -756,6 +781,10 @@ internal sealed class PdfWriter : IDisposable
                 if (chunkType == "IHDR" && chunkLength >= 13)
                 {
                     // Parse IHDR: width(4) height(4) bitdepth(1) colortype(1) compression(1) filter(1) interlace(1)
+                    // Extract actual PNG dimensions (overrides passed-in layout dimensions)
+                    width = (pngData[offset + 8] << 24) | (pngData[offset + 9] << 16) | (pngData[offset + 10] << 8) | pngData[offset + 11];
+                    height = (pngData[offset + 12] << 24) | (pngData[offset + 13] << 16) | (pngData[offset + 14] << 8) | pngData[offset + 15];
+
                     bitDepth = pngData[offset + 8 + 8];
                     colorType = pngData[offset + 8 + 9];
                     interlaceMethod = pngData[offset + 8 + 12];
@@ -889,9 +918,13 @@ internal sealed class PdfWriter : IDisposable
             byte[]? alphaData = null;
             byte[] compressedColorData;
 
-            if (hasAlpha || interlaceMethod == 1)
+            // For sub-byte indexed color (1-bit, 2-bit, 4-bit), we need to decompress and recompress
+            // because PDF predictor doesn't work correctly with packed pixels
+            bool needsUnfiltering = hasAlpha || interlaceMethod == 1 || (colorType == 3 && bitDepth < 8);
+
+            if (needsUnfiltering)
             {
-                // Decompress and unfilter the PNG data (required for alpha separation or deinterlacing)
+                // Decompress and unfilter the PNG data
                 byte[] unfilteredData = DecompressAndUnfilterPng(idatData.ToArray(), width, height, bitDepth, totalComponents, interlaceMethod);
 
                 if (hasAlpha)
@@ -905,20 +938,20 @@ internal sealed class PdfWriter : IDisposable
                 }
                 else
                 {
-                    // Interlaced but no alpha - recompress the deinterlaced data
+                    // Interlaced or sub-byte indexed but no alpha - recompress the unfiltered data
                     compressedColorData = CompressWithDeflate(unfilteredData);
                 }
             }
             else
             {
-                // No alpha channel and not interlaced, use original compressed data
+                // No alpha channel, not interlaced, not sub-byte indexed - use original compressed data
                 compressedColorData = idatData.ToArray();
             }
 
             // Return compressed color data (and alpha data if present)
             // PDF readers will decompress with FlateDecode and apply PNG predictor filters (if no alpha)
             // For alpha images, we've already unfiltered and separated, so no predictor params needed
-            return (compressedColorData, bitDepth, colorSpace, colorComponents, palette, transparency, alphaData);
+            return (compressedColorData, bitDepth, colorSpace, colorComponents, palette, transparency, alphaData, width, height);
         }
         catch (NotSupportedException)
         {
@@ -952,7 +985,7 @@ internal sealed class PdfWriter : IDisposable
                     ex);
 
                 byte[] fallback = new byte[] { 255, 255, 255 };
-                return (fallback, 8, "DeviceRGB", 3, null, null, null);
+                return (fallback, 8, "DeviceRGB", 3, null, null, null, width, height);
             }
             else // SkipImage
             {
@@ -964,7 +997,7 @@ internal sealed class PdfWriter : IDisposable
                     (imagePath != null ? $"Image path: {imagePath}" : "Image: embedded data"));
 
                 byte[] fallback = new byte[] { 255, 255, 255 };
-                return (fallback, 8, "DeviceRGB", 3, null, null, null);
+                return (fallback, 8, "DeviceRGB", 3, null, null, null, width, height);
             }
         }
     }
@@ -1005,6 +1038,8 @@ internal sealed class PdfWriter : IDisposable
 
         if (decompressed.Length != scanlineSize * height)
         {
+            Console.Error.WriteLine($"DEBUG: width={width}, height={height}, bitsPerComponent={bitsPerComponent}, colorComponents={colorComponents}");
+            Console.Error.WriteLine($"DEBUG: scanlineSize={scanlineSize}, expected total={scanlineSize * height}, got={decompressed.Length}");
             throw new InvalidDataException($"Decompressed PNG data size mismatch. Expected {scanlineSize * height}, got {decompressed.Length}");
         }
 
