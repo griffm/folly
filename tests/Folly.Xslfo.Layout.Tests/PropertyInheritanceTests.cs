@@ -1,6 +1,7 @@
-namespace Folly.UnitTests;
-
 using Folly.Xslfo;
+using Xunit;
+
+namespace Folly.Xslfo.Layout.Tests;
 
 public class PropertyInheritanceTests
 {

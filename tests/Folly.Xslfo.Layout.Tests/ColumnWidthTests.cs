@@ -1,8 +1,9 @@
 using Folly;
-using Folly.UnitTests.Helpers;
+using Folly.Layout;
+using Folly.Xslfo.Layout.Tests.Helpers;
 using Xunit;
 
-namespace Folly.UnitTests;
+namespace Folly.Xslfo.Layout.Tests;
 
 /// <summary>
 /// Tests for proportional, percentage, and auto column widths (Phase 11.2).

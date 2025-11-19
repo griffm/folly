@@ -1,9 +1,10 @@
 using Folly;
+using Folly.Layout;
 using Folly.Pdf;
-using Folly.UnitTests.Helpers;
+using Folly.Xslfo.Layout.Tests.Helpers;
 using Xunit;
 
-namespace Folly.UnitTests;
+namespace Folly.Xslfo.Layout.Tests;
 
 /// <summary>
 /// Tests for visibility, clip, and overflow properties (Phase 13.5).

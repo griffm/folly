@@ -1,6 +1,7 @@
 using Folly.Layout.Testing;
+using Xunit;
 
-namespace Folly.UnitTests;
+namespace Folly.Xslfo.Layout.Tests;
 
 /// <summary>
 /// Demonstrates precise layout verification using the AreaTreeQuery fluent API.
