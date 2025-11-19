@@ -567,6 +567,12 @@ internal sealed class LayoutEngine
         BlockArea? previousBlockArea = null;
         double previousBlockTotalHeight = 0;
 
+        // Collect floats from flow (fo:float elements as direct children of fo:flow)
+        foreach (var foFloat in flow.Floats)
+        {
+            _currentPageFloats.Add(foFloat);
+        }
+
         // Layout each block in the flow
         foreach (var foBlock in flow.Blocks)
         {
@@ -2873,12 +2879,12 @@ internal sealed class LayoutEngine
     /// <returns>The calculated float width in points</returns>
     private double CalculateFloatWidth(FoFloat foFloat, double bodyWidth)
     {
-        // Check for explicit width property
+        // Check for explicit width property on the float element
         var widthSpec = foFloat.Properties.GetString("width", "auto");
 
         if (widthSpec != "auto")
         {
-            // Explicit width specified
+            // Explicit width specified on fo:float
             if (widthSpec.EndsWith("%"))
             {
                 // Percentage width
@@ -2894,6 +2900,35 @@ internal sealed class LayoutEngine
                 if (explicitWidth > Epsilon)
                 {
                     return Math.Max(MinimumColumnWidth, explicitWidth);
+                }
+            }
+        }
+
+        // Check if the first block inside the float has an explicit width
+        if (foFloat.Blocks.Count > 0)
+        {
+            var firstBlock = foFloat.Blocks[0];
+            var blockWidthSpec = firstBlock.Properties.GetString("width", "auto");
+
+            if (blockWidthSpec != "auto")
+            {
+                // Explicit width specified on first block
+                if (blockWidthSpec.EndsWith("%"))
+                {
+                    // Percentage width
+                    if (double.TryParse(blockWidthSpec.TrimEnd('%'), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var pct))
+                    {
+                        return Math.Max(MinimumColumnWidth, (pct / 100.0) * bodyWidth);
+                    }
+                }
+                else
+                {
+                    // Absolute length
+                    var explicitWidth = LengthParser.Parse(blockWidthSpec);
+                    if (explicitWidth > Epsilon)
+                    {
+                        return Math.Max(MinimumColumnWidth, explicitWidth);
+                    }
                 }
             }
         }
@@ -4093,17 +4128,36 @@ internal sealed class LayoutEngine
             // Use appropriate Y position based on float side
             var floatY = isStartFloat ? startFloatY : endFloatY;
 
-            // Layout the float blocks
+            // Create FloatArea to wrap the float content
+            var floatArea = new FloatArea
+            {
+                X = floatX,
+                Y = floatY,
+                Width = floatWidth,
+                Float = floatPosition,
+                BackgroundColor = foFloat.Properties.GetString("background-color", "transparent"),
+                BorderWidth = foFloat.Properties.GetLength("border-width", 0),
+                BorderColor = foFloat.Properties.GetString("border-color", "black"),
+                BorderStyle = foFloat.Properties.GetString("border-style", "none")
+            };
+
+            // Layout the float blocks and add them to the FloatArea
             var floatTotalHeight = 0.0;
             foreach (var block in foFloat.Blocks)
             {
                 var blockArea = LayoutBlock(block, floatX, floatY + floatTotalHeight, floatWidth);
                 if (blockArea != null)
                 {
-                    page.AddArea(blockArea);
+                    floatArea.AddBlock(blockArea);
                     floatTotalHeight += blockArea.Height + blockArea.MarginTop + blockArea.MarginBottom;
                 }
             }
+
+            // Set the float area height based on its content
+            floatArea.Height = floatTotalHeight;
+
+            // Add the FloatArea to the page
+            page.AddArea(floatArea);
 
             // Update Y position for this float side
             if (isStartFloat)
