@@ -265,8 +265,8 @@ public sealed class PdfRenderer : IDisposable
                         images[imageArea.Source] = (
                             imageArea.ImageData,
                             imageArea.Format,
-                            (int)imageArea.IntrinsicWidth,
-                            (int)imageArea.IntrinsicHeight
+                            imageArea.PixelWidth,
+                            imageArea.PixelHeight
                         );
                     }
                 }

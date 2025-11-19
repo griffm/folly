@@ -556,7 +556,8 @@ internal sealed class LayoutEngine
             : bodyWidth;
 
         // Create first page
-        var pageNumber = 1;
+        // Continue page numbering from existing pages in the area tree
+        var pageNumber = areaTree.Pages.Count + 1;
         var currentPageMaster = SelectPageMaster(foRoot, pageSequence, pageNumber, totalPages: 999);
         var currentPage = CreatePage(currentPageMaster, pageSequence, pageNumber);
         var currentY = bodyMarginTop;
@@ -3353,6 +3354,7 @@ internal sealed class LayoutEngine
         double intrinsicWidth = 0;
         double intrinsicHeight = 0;
         string format = "";
+        Images.ImageInfo? imageInfo = null;
 
         try
         {
@@ -3370,7 +3372,7 @@ internal sealed class LayoutEngine
                 imageData = File.ReadAllBytes(imagePath);
 
                 // Detect format and dimensions with DPI
-                var imageInfo = DetectImageFormat(imageData);
+                imageInfo = DetectImageFormat(imageData);
                 if (imageInfo == null)
                     return null;
 
@@ -3426,6 +3428,8 @@ internal sealed class LayoutEngine
             ImageData = imageData,
             IntrinsicWidth = intrinsicWidth,
             IntrinsicHeight = intrinsicHeight,
+            PixelWidth = imageInfo?.Width ?? 0,
+            PixelHeight = imageInfo?.Height ?? 0,
             Scaling = graphic.Scaling
         };
 
