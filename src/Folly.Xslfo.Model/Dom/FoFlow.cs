@@ -37,4 +37,9 @@ public sealed class FoFlow : FoElement
     /// Gets the block container children.
     /// </summary>
     public IReadOnlyList<FoBlockContainer> BlockContainers { get; init; } = Array.Empty<FoBlockContainer>();
+
+    /// <summary>
+    /// Gets the float children.
+    /// </summary>
+    public IReadOnlyList<FoFloat> Floats { get; init; } = Array.Empty<FoFloat>();
 }

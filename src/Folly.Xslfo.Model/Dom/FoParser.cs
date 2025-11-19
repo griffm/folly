@@ -489,6 +489,7 @@ internal static class FoParser
         var tableAndCaptions = new List<FoTableAndCaption>();
         var lists = new List<FoListBlock>();
         var blockContainers = new List<FoBlockContainer>();
+        var floats = new List<FoFloat>();
 
         foreach (var child in element.Elements())
         {
@@ -510,6 +511,9 @@ internal static class FoParser
                 case "block-container":
                     blockContainers.Add(ParseBlockContainer(child));
                     break;
+                case "float":
+                    floats.Add(ParseFloat(child));
+                    break;
             }
         }
 
@@ -527,6 +531,7 @@ internal static class FoParser
             TableAndCaptions = tableAndCaptions,
             Lists = lists,
             BlockContainers = blockContainers,
+            Floats = floats,
             TextContent = textContent
         };
     }
