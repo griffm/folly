@@ -1088,11 +1088,15 @@ internal sealed class LayoutEngine
             _currentPageFloats.Add(float_);
         }
 
+        // Track index elements (index-range-begin/end) for index generation
+        TrackIndexElements(foBlock, pageNumber);
+
         // Check for inline page number and link elements
         var hasPageNumber = foBlock.Children.Any(c => c is FoPageNumber);
         var hasBasicLink = foBlock.Children.Any(c => c is FoBasicLink);
         var hasInline = foBlock.Children.Any(c => c is FoInline);
         var hasLeader = foBlock.Children.Any(c => c is FoLeader);
+        var hasIndexKeyReference = foBlock.Children.Any(c => c is FoIndexKeyReference);
         var hasBlockChildren = foBlock.Children.Any(c => c is FoBlock or FoExternalGraphic or FoInstreamForeignObject);
 
         // Handle block-level children (images, nested blocks)
@@ -1295,6 +1299,46 @@ internal sealed class LayoutEngine
                         currentX += textWidth;
                     }
                     inlineIndex++;
+                }
+                else if (child is FoIndexKeyReference indexKeyRef)
+                {
+                    // Generate index content (page numbers for this index key)
+                    var indexText = GenerateIndexContent(indexKeyRef);
+                    if (!string.IsNullOrWhiteSpace(indexText))
+                    {
+                        // Get font properties from index-key-reference
+                        var indexFontSize = indexKeyRef.FontSize;
+                        var indexFontFamily = Fonts.PdfBaseFontMapper.ResolveFont(
+                            indexKeyRef.FontFamily,
+                            indexKeyRef.FontWeight,
+                            indexKeyRef.FontStyle);
+
+                        var indexFontMetrics = new Fonts.FontMetrics
+                        {
+                            FamilyName = indexFontFamily,
+                            Size = indexFontSize
+                        };
+
+                        var textWidth = indexFontMetrics.MeasureWidth(indexText);
+
+                        var indexArea = new InlineArea
+                        {
+                            X = currentX,
+                            Y = 0, // Relative to line
+                            Width = textWidth,
+                            Height = indexFontSize,
+                            Text = indexText,
+                            FontFamily = indexFontFamily,
+                            FontSize = indexFontSize,
+                            FontWeight = indexKeyRef.FontWeight,
+                            FontStyle = indexKeyRef.FontStyle,
+                            Color = indexKeyRef.Color,
+                            BaselineOffset = indexFontMetrics.GetAscent()
+                        };
+
+                        lineArea.AddInline(indexArea);
+                        currentX += textWidth;
+                    }
                 }
             }
 
