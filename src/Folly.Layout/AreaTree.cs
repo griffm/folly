@@ -494,14 +494,26 @@ public sealed class ImageArea : Area
     public byte[]? ImageData { get; set; }
 
     /// <summary>
-    /// Gets or sets the intrinsic width of the image.
+    /// Gets or sets the intrinsic width of the image in points.
     /// </summary>
     public double IntrinsicWidth { get; set; }
 
     /// <summary>
-    /// Gets or sets the intrinsic height of the image.
+    /// Gets or sets the intrinsic height of the image in points.
     /// </summary>
     public double IntrinsicHeight { get; set; }
+
+    /// <summary>
+    /// Gets or sets the pixel width of the image.
+    /// This is the actual number of pixels in the image, required for PDF encoding.
+    /// </summary>
+    public int PixelWidth { get; set; }
+
+    /// <summary>
+    /// Gets or sets the pixel height of the image.
+    /// This is the actual number of pixels in the image, required for PDF encoding.
+    /// </summary>
+    public int PixelHeight { get; set; }
 
     /// <summary>
     /// Gets or sets the scaling method.
