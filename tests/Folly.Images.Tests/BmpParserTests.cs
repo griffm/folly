@@ -101,6 +101,87 @@ public class BmpParserTests
         Assert.Equal("BMP", format);
     }
 
+    [Fact]
+    public void BmpParser_CanParse_EmptyData_ReturnsFalse()
+    {
+        // Arrange
+        var parser = new BmpParser();
+
+        // Act
+        bool canParse = parser.CanParse(Array.Empty<byte>());
+
+        // Assert
+        Assert.False(canParse);
+    }
+
+    [Fact]
+    public void BmpParser_CanParse_NullData_ReturnsFalse()
+    {
+        // Arrange
+        var parser = new BmpParser();
+
+        // Act
+        bool canParse = parser.CanParse(null!);
+
+        // Assert
+        Assert.False(canParse);
+    }
+
+    [Fact]
+    public void BmpParser_Parse_InvalidBmpSignature_ThrowsException()
+    {
+        // Arrange
+        var invalidData = new byte[] { 0xFF, 0xD8, 0xFF }; // JPEG signature
+        var parser = new BmpParser();
+
+        // Act & Assert
+        var exception = Assert.Throws<InvalidDataException>(() => parser.Parse(invalidData));
+        Assert.Contains("Invalid BMP", exception.Message);
+    }
+
+    [Fact]
+    public void BmpParser_FormatName_ReturnsBmp()
+    {
+        // Arrange
+        var parser = new BmpParser();
+
+        // Act
+        string formatName = parser.FormatName;
+
+        // Assert
+        Assert.Equal("BMP", formatName);
+    }
+
+    [Fact]
+    public void BmpParser_Parse_LargerBmp_ReturnsCorrectDimensions()
+    {
+        // Arrange
+        var bmpData = CreateSimpleBmp24(150, 100);
+        var parser = new BmpParser();
+
+        // Act
+        var info = parser.Parse(bmpData);
+
+        // Assert
+        Assert.Equal(150, info.Width);
+        Assert.Equal(100, info.Height);
+    }
+
+    [Fact]
+    public void BmpParser_Parse_Bmp24WithoutDpi_ReturnsZeroDpi()
+    {
+        // Arrange
+        var bmpData = CreateSimpleBmp24(50, 50);
+        var parser = new BmpParser();
+
+        // Act
+        var info = parser.Parse(bmpData);
+
+        // Assert
+        Assert.Equal(0, info.HorizontalDpi);
+        Assert.Equal(0, info.VerticalDpi);
+    }
+
     // Helper method to create a minimal 24-bit BMP for testing
     private static byte[] CreateSimpleBmp24(int width, int height)
     {

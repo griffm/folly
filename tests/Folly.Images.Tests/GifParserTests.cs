@@ -82,6 +82,85 @@ public class GifParserTests
         Assert.Equal("GIF", format);
     }
 
+    [Fact]
+    public void GifParser_CanParse_EmptyData_ReturnsFalse()
+    {
+        // Arrange
+        var parser = new GifParser();
+
+        // Act
+        bool canParse = parser.CanParse(Array.Empty<byte>());
+
+        // Assert
+        Assert.False(canParse);
+    }
+
+    [Fact]
+    public void GifParser_CanParse_NullData_ReturnsFalse()
+    {
+        // Arrange
+        var parser = new GifParser();
+
+        // Act
+        bool canParse = parser.CanParse(null!);
+
+        // Assert
+        Assert.False(canParse);
+    }
+
+    [Fact]
+    public void GifParser_Parse_InvalidGifSignature_ThrowsException()
+    {
+        // Arrange
+        var invalidData = new byte[] { 0xFF, 0xD8, 0xFF }; // JPEG signature
+        var parser = new GifParser();
+
+        // Act & Assert
+        var exception = Assert.Throws<InvalidDataException>(() => parser.Parse(invalidData));
+        Assert.Contains("Invalid GIF", exception.Message);
+    }
+
+    [Fact]
+    public void GifParser_FormatName_ReturnsGif()
+    {
+        // Arrange
+        var parser = new GifParser();
+
+        // Act
+        string formatName = parser.FormatName;
+
+        // Assert
+        Assert.Equal("GIF", formatName);
+    }
+
+    [Fact]
+    public void GifParser_Parse_LargerGif_ReturnsCorrectDimensions()
+    {
+        // Arrange
+        var gifData = CreateSimpleGif89a(100, 50);
+        var parser = new GifParser();
+
+        // Act
+        var info = parser.Parse(gifData);
+
+        // Assert
+        Assert.Equal(100, info.Width);
+        Assert.Equal(50, info.Height);
+    }
+
+    [Fact]
+    public void ImageFormatDetector_Detect_Gif87aSignature_ReturnsGIF()
+    {
+        // Arrange
+        var gifData = CreateSimpleGif87a(2, 2);
+
+        // Act
+        string format = ImageFormatDetector.Detect(gifData);
+
+        // Assert
+        Assert.Equal("GIF", format);
+    }
+
     // Helper method to create a minimal GIF89a for testing
     // Creates a 2x2 image with 4 colors (red, green, blue, white)
     private static byte[] CreateSimpleGif89a(int width, int height)
