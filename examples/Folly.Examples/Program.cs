@@ -214,6 +214,10 @@ GenerateTaggedPdfExample(Path.Combine(outputDir, "42-tagged-pdf.pdf"));
 Console.WriteLine("Generating Example 43: Table Captions...");
 GenerateTableCaptionExample(Path.Combine(outputDir, "43-table-captions.pdf"));
 
+// Example 44: Index Generation
+Console.WriteLine("Generating Example 44: Index Generation...");
+GenerateIndexGenerationExample(Path.Combine(outputDir, "44-index-generation.pdf"));
+
 Console.WriteLine("\n✓ All examples generated successfully!");
 Console.WriteLine($"\nView PDFs in: {outputDir}");
 Console.WriteLine("\nValidate with qpdf:");
@@ -5206,6 +5210,389 @@ static void GenerateTableCaptionExample(string outputPath)
                 This example demonstrates the fo:table-and-caption and fo:table-caption elements.
                 The caption-side property controls whether the caption appears before (top) or after (bottom) the table.
                 Captions can contain multiple blocks for titles, subtitles, and notes.
+              </fo:block>
+            </fo:flow>
+          </fo:page-sequence>
+        </fo:root>
+        """;
+
+    using var doc = FoDocument.Load(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(foXml)));
+    doc.SavePdf(outputPath);
+}
+
+static void GenerateIndexGenerationExample(string outputPath)
+{
+    var foXml = """
+        <?xml version="1.0"?>
+        <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+          <fo:layout-master-set>
+            <fo:simple-page-master master-name="content" page-width="595pt" page-height="842pt">
+              <fo:region-body margin="72pt 72pt 96pt 72pt"/>
+              <fo:region-after extent="48pt"/>
+            </fo:simple-page-master>
+          </fo:layout-master-set>
+
+          <fo:page-sequence master-reference="content">
+            <!-- Page numbering footer -->
+            <fo:static-content flow-name="xsl-region-after">
+              <fo:block text-align="center" font-size="10pt" color="#666666">
+                Page <fo:page-number/>
+              </fo:block>
+            </fo:static-content>
+
+            <fo:flow flow-name="xsl-region-body">
+              <!-- Title -->
+              <fo:block font-size="24pt" font-weight="bold" text-align="center" space-after="36pt" color="#2C3E50">
+                Computer Science Primer
+              </fo:block>
+
+              <fo:block font-size="14pt" font-weight="bold" color="#34495E" space-before="24pt" space-after="12pt">
+                Introduction
+              </fo:block>
+
+              <fo:block font-size="11pt" line-height="1.5" space-after="12pt" text-align="justify">
+                This document demonstrates automatic index generation in XSL-FO. As you read through the
+                content, notice how key terms are marked with index ranges. These ranges track where topics
+                appear in the document, and the index at the end will automatically show page numbers for each term.
+              </fo:block>
+
+              <!-- Chapter 1: Algorithms -->
+              <fo:block font-size="18pt" font-weight="bold" color="#2C3E50" space-before="36pt" space-after="16pt"
+                        border-bottom="2pt solid #3498DB" padding-bottom="6pt">
+                Chapter 1: Algorithms
+              </fo:block>
+
+              <fo:block font-size="11pt" line-height="1.5" space-after="12pt" text-align="justify">
+                <fo:index-range-begin id="algo1" index-key="algorithms"/>
+                An algorithm is a step-by-step procedure for solving a problem or accomplishing a task. In computer
+                science, algorithms are fundamental to programming and computational thinking. They provide a systematic
+                approach to problem-solving that can be implemented in any programming language.
+              </fo:block>
+
+              <fo:block font-size="11pt" line-height="1.5" space-after="12pt" text-align="justify">
+                Algorithms can be classified by their complexity, efficiency, and the type of problem they solve.
+                Some algorithms are designed for sorting data, while others are optimized for searching, graph
+                traversal, or mathematical computations.
+              </fo:block>
+
+              <fo:block font-size="13pt" font-weight="bold" color="#34495E" space-before="18pt" space-after="10pt">
+                Sorting Algorithms
+              </fo:block>
+
+              <fo:block font-size="11pt" line-height="1.5" space-after="12pt" text-align="justify">
+                <fo:index-range-begin id="sort1" index-key="sorting"/>
+                Sorting algorithms arrange elements in a particular order (ascending or descending). Common sorting
+                algorithms include bubble sort, quicksort, mergesort, and heapsort. Each has different time and space
+                complexity characteristics, making them suitable for different scenarios.
+              </fo:block>
+
+              <fo:block font-size="11pt" line-height="1.5" space-after="12pt" text-align="justify">
+                Quicksort, developed by Tony Hoare in 1959, is one of the most efficient sorting algorithms for
+                average cases. It uses a divide-and-conquer strategy to partition arrays and sort them recursively.
+                <fo:index-range-end ref-id="sort1"/>
+              </fo:block>
+
+              <fo:block font-size="13pt" font-weight="bold" color="#34495E" space-before="18pt" space-after="10pt">
+                Search Algorithms
+              </fo:block>
+
+              <fo:block font-size="11pt" line-height="1.5" space-after="12pt" text-align="justify">
+                <fo:index-range-begin id="search1" index-key="searching"/>
+                Searching algorithms locate specific items within a data structure. Binary search is a classic
+                example that works on sorted arrays by repeatedly dividing the search interval in half.
+                <fo:index-range-end ref-id="search1"/>
+                <fo:index-range-end ref-id="algo1"/>
+              </fo:block>
+
+              <!-- Chapter 2: Data Structures -->
+              <fo:block font-size="18pt" font-weight="bold" color="#2C3E50" space-before="36pt" space-after="16pt"
+                        border-bottom="2pt solid #3498DB" padding-bottom="6pt" break-before="page">
+                Chapter 2: Data Structures
+              </fo:block>
+
+              <fo:block font-size="11pt" line-height="1.5" space-after="12pt" text-align="justify">
+                <fo:index-range-begin id="ds1" index-key="data-structures"/>
+                Data structures are specialized formats for organizing, processing, and storing data. They enable
+                efficient access and modification of data, which is crucial for algorithm performance. Choosing the
+                right data structure can dramatically improve program efficiency.
+              </fo:block>
+
+              <fo:block font-size="13pt" font-weight="bold" color="#34495E" space-before="18pt" space-after="10pt">
+                Linear Data Structures
+              </fo:block>
+
+              <fo:block font-size="11pt" line-height="1.5" space-after="12pt" text-align="justify">
+                <fo:index-range-begin id="arrays1" index-key="arrays"/>
+                Arrays store elements of the same type in contiguous memory locations. They provide O(1) random
+                access but have fixed size in many languages.
+                <fo:index-range-end ref-id="arrays1"/>
+              </fo:block>
+
+              <fo:block font-size="11pt" line-height="1.5" space-after="12pt" text-align="justify">
+                <fo:index-range-begin id="lists1" index-key="linked-lists"/>
+                Linked lists consist of nodes where each node contains data and a reference to the next node.
+                They allow efficient insertion and deletion but require O(n) time for random access.
+                <fo:index-range-end ref-id="lists1"/>
+              </fo:block>
+
+              <fo:block font-size="13pt" font-weight="bold" color="#34495E" space-before="18pt" space-after="10pt">
+                Tree Structures
+              </fo:block>
+
+              <fo:block font-size="11pt" line-height="1.5" space-after="12pt" text-align="justify">
+                <fo:index-range-begin id="trees1" index-key="trees"/>
+                Trees are hierarchical data structures with a root node and child nodes forming a parent-child
+                relationship. Binary trees, where each node has at most two children, are particularly common.
+              </fo:block>
+
+              <fo:block font-size="11pt" line-height="1.5" space-after="12pt" text-align="justify">
+                Binary search trees (BSTs) maintain sorted data and support efficient searching, insertion, and
+                deletion operations. Balanced BSTs like AVL trees and red-black trees guarantee O(log n) operations.
+                <fo:index-range-end ref-id="trees1"/>
+                <fo:index-range-end ref-id="ds1"/>
+              </fo:block>
+
+              <!-- Chapter 3: Complexity Analysis -->
+              <fo:block font-size="18pt" font-weight="bold" color="#2C3E50" space-before="36pt" space-after="16pt"
+                        border-bottom="2pt solid #3498DB" padding-bottom="6pt" break-before="page">
+                Chapter 3: Complexity Analysis
+              </fo:block>
+
+              <fo:block font-size="11pt" line-height="1.5" space-after="12pt" text-align="justify">
+                <fo:index-range-begin id="complexity1" index-key="complexity-analysis"/>
+                Complexity analysis evaluates algorithm efficiency in terms of time and space requirements as input
+                size grows. This analysis uses Big O notation to describe worst-case, average-case, and best-case
+                performance.
+              </fo:block>
+
+              <fo:block font-size="13pt" font-weight="bold" color="#34495E" space-before="18pt" space-after="10pt">
+                Time Complexity
+              </fo:block>
+
+              <fo:block font-size="11pt" line-height="1.5" space-after="12pt" text-align="justify">
+                Time complexity measures how execution time grows with input size. Common complexities include:
+              </fo:block>
+
+              <fo:block font-size="10pt" font-family="Courier" background-color="#F8F9FA"
+                        padding="12pt" space-after="12pt" border="1pt solid #DEE2E6">
+                O(1)      - Constant time
+                O(log n)  - Logarithmic time
+                O(n)      - Linear time
+                O(n log n) - Linearithmic time
+                O(n²)     - Quadratic time
+                O(2ⁿ)     - Exponential time
+              </fo:block>
+
+              <fo:block font-size="11pt" line-height="1.5" space-after="12pt" text-align="justify">
+                <fo:index-range-begin id="sort2" index-key="sorting"/>
+                For example, quicksort typically achieves O(n log n) time complexity, making it much faster than
+                bubble sort's O(n²) for large datasets.
+                <fo:index-range-end ref-id="sort2"/>
+              </fo:block>
+
+              <fo:block font-size="13pt" font-weight="bold" color="#34495E" space-before="18pt" space-after="10pt">
+                Space Complexity
+              </fo:block>
+
+              <fo:block font-size="11pt" line-height="1.5" space-after="12pt" text-align="justify">
+                Space complexity measures memory usage relative to input size. Some algorithms trade time for space
+                or vice versa. Dynamic programming often uses additional memory to store intermediate results,
+                trading space for improved time complexity.
+                <fo:index-range-end ref-id="complexity1"/>
+              </fo:block>
+
+              <!-- Chapter 4: Advanced Topics -->
+              <fo:block font-size="18pt" font-weight="bold" color="#2C3E50" space-before="36pt" space-after="16pt"
+                        border-bottom="2pt solid #3498DB" padding-bottom="6pt" break-before="page">
+                Chapter 4: Advanced Topics
+              </fo:block>
+
+              <fo:block font-size="13pt" font-weight="bold" color="#34495E" space-before="18pt" space-after="10pt">
+                Graph Algorithms
+              </fo:block>
+
+              <fo:block font-size="11pt" line-height="1.5" space-after="12pt" text-align="justify">
+                <fo:index-range-begin id="graphs1" index-key="graphs"/>
+                Graphs represent relationships between objects through vertices (nodes) and edges (connections).
+                Graph algorithms solve problems like finding shortest paths, detecting cycles, and determining
+                connectivity.
+              </fo:block>
+
+              <fo:block font-size="11pt" line-height="1.5" space-after="12pt" text-align="justify">
+                <fo:index-range-begin id="search2" index-key="searching"/>
+                Depth-first search (DFS) and breadth-first search (BFS) are fundamental graph traversal algorithms
+                used in many applications, from maze solving to web crawling.
+                <fo:index-range-end ref-id="search2"/>
+                <fo:index-range-end ref-id="graphs1"/>
+              </fo:block>
+
+              <fo:block font-size="13pt" font-weight="bold" color="#34495E" space-before="18pt" space-after="10pt">
+                Dynamic Programming
+              </fo:block>
+
+              <fo:block font-size="11pt" line-height="1.5" space-after="12pt" text-align="justify">
+                <fo:index-range-begin id="dp1" index-key="dynamic-programming"/>
+                Dynamic programming solves complex problems by breaking them into simpler overlapping subproblems.
+                It stores solutions to subproblems to avoid redundant computation. Classic examples include the
+                Fibonacci sequence, knapsack problem, and longest common subsequence.
+                <fo:index-range-end ref-id="dp1"/>
+              </fo:block>
+
+              <fo:block font-size="13pt" font-weight="bold" color="#34495E" space-before="18pt" space-after="10pt">
+                Recursion
+              </fo:block>
+
+              <fo:block font-size="11pt" line-height="1.5" space-after="12pt" text-align="justify">
+                <fo:index-range-begin id="recursion1" index-key="recursion"/>
+                <fo:index-range-begin id="algo2" index-key="algorithms"/>
+                Recursion occurs when a function calls itself to solve smaller instances of the same problem.
+                Recursive algorithms are elegant but require careful base case design to avoid infinite loops.
+                Many tree and graph algorithms naturally use recursion.
+                <fo:index-range-end ref-id="recursion1"/>
+                <fo:index-range-end ref-id="algo2"/>
+              </fo:block>
+
+              <!-- Index Section -->
+              <fo:block font-size="24pt" font-weight="bold" color="#2C3E50" space-before="48pt" space-after="24pt"
+                        text-align="center" border-top="3pt solid #3498DB" padding-top="24pt" break-before="page">
+                Index
+              </fo:block>
+
+              <fo:block font-size="10pt" color="#7F8C8D" space-after="24pt" text-align="center" font-style="italic">
+                Terms are listed alphabetically with page numbers. Sequential pages are merged into ranges (e.g., 1–3).
+              </fo:block>
+
+              <!-- Index entries with different formatting styles -->
+
+              <!-- Algorithms - with merged sequential pages -->
+              <fo:block font-size="11pt" space-after="8pt" margin-left="12pt">
+                <fo:inline font-weight="bold">Algorithms</fo:inline>
+                <fo:inline> — </fo:inline>
+                <fo:index-key-reference ref-index-key="algorithms">
+                  <fo:index-page-citation-list merge-sequential-page-numbers="merge">
+                    <fo:index-page-citation-list-separator>, </fo:index-page-citation-list-separator>
+                    <fo:index-page-citation-range-separator>–</fo:index-page-citation-range-separator>
+                  </fo:index-page-citation-list>
+                </fo:index-key-reference>
+              </fo:block>
+
+              <!-- Arrays - simple list -->
+              <fo:block font-size="11pt" space-after="8pt" margin-left="12pt">
+                <fo:inline font-weight="bold">Arrays</fo:inline>
+                <fo:inline> — </fo:inline>
+                <fo:index-key-reference ref-index-key="arrays">
+                  <fo:index-page-citation-list merge-sequential-page-numbers="no-merge">
+                    <fo:index-page-citation-list-separator>, </fo:index-page-citation-list-separator>
+                  </fo:index-page-citation-list>
+                </fo:index-key-reference>
+              </fo:block>
+
+              <!-- Complexity Analysis - with "see page" prefix -->
+              <fo:block font-size="11pt" space-after="8pt" margin-left="12pt">
+                <fo:inline font-weight="bold">Complexity Analysis</fo:inline>
+                <fo:inline> — </fo:inline>
+                <fo:index-key-reference ref-index-key="complexity-analysis">
+                  <fo:index-page-number-prefix>see page </fo:index-page-number-prefix>
+                  <fo:index-page-citation-list merge-sequential-page-numbers="no-merge">
+                    <fo:index-page-citation-list-separator>, </fo:index-page-citation-list-separator>
+                  </fo:index-page-citation-list>
+                </fo:index-key-reference>
+              </fo:block>
+
+              <!-- Data Structures - with merged pages -->
+              <fo:block font-size="11pt" space-after="8pt" margin-left="12pt">
+                <fo:inline font-weight="bold">Data Structures</fo:inline>
+                <fo:inline> — </fo:inline>
+                <fo:index-key-reference ref-index-key="data-structures">
+                  <fo:index-page-citation-list merge-sequential-page-numbers="merge">
+                    <fo:index-page-citation-list-separator>, </fo:index-page-citation-list-separator>
+                    <fo:index-page-citation-range-separator>–</fo:index-page-citation-range-separator>
+                  </fo:index-page-citation-list>
+                </fo:index-key-reference>
+              </fo:block>
+
+              <!-- Dynamic Programming -->
+              <fo:block font-size="11pt" space-after="8pt" margin-left="12pt">
+                <fo:inline font-weight="bold">Dynamic Programming</fo:inline>
+                <fo:inline> — </fo:inline>
+                <fo:index-key-reference ref-index-key="dynamic-programming">
+                  <fo:index-page-citation-list merge-sequential-page-numbers="no-merge">
+                    <fo:index-page-citation-list-separator>, </fo:index-page-citation-list-separator>
+                  </fo:index-page-citation-list>
+                </fo:index-key-reference>
+              </fo:block>
+
+              <!-- Graphs -->
+              <fo:block font-size="11pt" space-after="8pt" margin-left="12pt">
+                <fo:inline font-weight="bold">Graphs</fo:inline>
+                <fo:inline> — </fo:inline>
+                <fo:index-key-reference ref-index-key="graphs">
+                  <fo:index-page-citation-list merge-sequential-page-numbers="no-merge">
+                    <fo:index-page-citation-list-separator>, </fo:index-page-citation-list-separator>
+                  </fo:index-page-citation-list>
+                </fo:index-key-reference>
+              </fo:block>
+
+              <!-- Linked Lists -->
+              <fo:block font-size="11pt" space-after="8pt" margin-left="12pt">
+                <fo:inline font-weight="bold">Linked Lists</fo:inline>
+                <fo:inline> — </fo:inline>
+                <fo:index-key-reference ref-index-key="linked-lists">
+                  <fo:index-page-citation-list merge-sequential-page-numbers="no-merge">
+                    <fo:index-page-citation-list-separator>, </fo:index-page-citation-list-separator>
+                  </fo:index-page-citation-list>
+                </fo:index-key-reference>
+              </fo:block>
+
+              <!-- Recursion -->
+              <fo:block font-size="11pt" space-after="8pt" margin-left="12pt">
+                <fo:inline font-weight="bold">Recursion</fo:inline>
+                <fo:inline> — </fo:inline>
+                <fo:index-key-reference ref-index-key="recursion">
+                  <fo:index-page-citation-list merge-sequential-page-numbers="no-merge">
+                    <fo:index-page-citation-list-separator>, </fo:index-page-citation-list-separator>
+                  </fo:index-page-citation-list>
+                </fo:index-key-reference>
+              </fo:block>
+
+              <!-- Searching - with custom separator -->
+              <fo:block font-size="11pt" space-after="8pt" margin-left="12pt">
+                <fo:inline font-weight="bold">Searching</fo:inline>
+                <fo:inline> — </fo:inline>
+                <fo:index-key-reference ref-index-key="searching">
+                  <fo:index-page-number-prefix>pp. </fo:index-page-number-prefix>
+                  <fo:index-page-citation-list merge-sequential-page-numbers="no-merge">
+                    <fo:index-page-citation-list-separator>; </fo:index-page-citation-list-separator>
+                  </fo:index-page-citation-list>
+                </fo:index-key-reference>
+              </fo:block>
+
+              <!-- Sorting - with merged pages and custom separator -->
+              <fo:block font-size="11pt" space-after="8pt" margin-left="12pt">
+                <fo:inline font-weight="bold">Sorting</fo:inline>
+                <fo:inline> — </fo:inline>
+                <fo:index-key-reference ref-index-key="sorting">
+                  <fo:index-page-citation-list merge-sequential-page-numbers="merge">
+                    <fo:index-page-citation-list-separator>, </fo:index-page-citation-list-separator>
+                    <fo:index-page-citation-range-separator>–</fo:index-page-citation-range-separator>
+                  </fo:index-page-citation-list>
+                </fo:index-key-reference>
+              </fo:block>
+
+              <!-- Trees -->
+              <fo:block font-size="11pt" space-after="8pt" margin-left="12pt">
+                <fo:inline font-weight="bold">Trees</fo:inline>
+                <fo:inline> — </fo:inline>
+                <fo:index-key-reference ref-index-key="trees">
+                  <fo:index-page-citation-list merge-sequential-page-numbers="no-merge">
+                    <fo:index-page-citation-list-separator>, </fo:index-page-citation-list-separator>
+                  </fo:index-page-citation-list>
+                </fo:index-key-reference>
+              </fo:block>
+
+              <fo:block font-size="10pt" color="#95A5A6" space-before="36pt" padding-top="12pt"
+                        border-top="1pt solid #E0E0E0" text-align="center" font-style="italic">
+                End of Index
               </fo:block>
             </fo:flow>
           </fo:page-sequence>
