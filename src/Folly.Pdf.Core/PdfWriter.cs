@@ -506,10 +506,10 @@ internal sealed class PdfWriter : IDisposable
 
         WriteLine("  /Filter /FlateDecode");
 
-        // Only use PNG predictors if we haven't already unfiltered
-        // We unfilter for: alpha channels, interlaced images, and sub-byte indexed color
-        bool wasUnfiltered = smaskId.HasValue || (palette != null && bitsPerComponent < 8);
-        if (!wasUnfiltered)
+        // Only use PNG predictors if we haven't already unfiltered/expanded
+        // We process (unfilter/expand) for: alpha channels, interlaced images, and sub-byte indexed color
+        bool wasProcessed = smaskId.HasValue || (palette != null && bitsPerComponent == 8 && colorComponents == 1);
+        if (!wasProcessed)
         {
             WriteLine("  /DecodeParms <<");
             WriteLine("    /Predictor 15");
@@ -918,9 +918,10 @@ internal sealed class PdfWriter : IDisposable
             byte[]? alphaData = null;
             byte[] compressedColorData;
 
-            // For sub-byte indexed color (1-bit, 2-bit, 4-bit), we need to decompress and recompress
-            // because PDF predictor doesn't work correctly with packed pixels
-            bool needsUnfiltering = hasAlpha || interlaceMethod == 1 || (colorType == 3 && bitDepth < 8);
+            // For sub-byte indexed color (1-bit, 2-bit, 4-bit), expand to 8-bit indexed for better compatibility
+            // PDF readers handle 8-bit indexed better than packed sub-byte formats
+            bool needsExpansion = (colorType == 3 && bitDepth < 8);
+            bool needsUnfiltering = hasAlpha || interlaceMethod == 1 || needsExpansion;
 
             if (needsUnfiltering)
             {
@@ -936,10 +937,19 @@ internal sealed class PdfWriter : IDisposable
                     compressedColorData = CompressWithDeflate(colorData);
                     alphaData = CompressWithDeflate(separatedAlpha);
                 }
+                else if (needsExpansion)
+                {
+                    // Sub-byte indexed: expand to 8-bit indexed for better PDF compatibility
+                    byte[] expanded8Bit = ExpandSubByteIndexedTo8Bit(unfilteredData, width, height, bitDepth);
+                    compressedColorData = CompressWithDeflate(expanded8Bit);
+                    bitDepth = 8; // Update to 8-bit after expansion
+                }
                 else
                 {
-                    // Interlaced or sub-byte indexed but no alpha - recompress the unfiltered data
-                    compressedColorData = CompressWithDeflate(unfilteredData);
+                    // Interlaced but no alpha and not sub-byte
+                    // Strip filter bytes (set to 0) before recompressing since we won't use PNG predictors
+                    byte[] rawPixelData = StripFilterBytes(unfilteredData, width, height, bitDepth, colorComponents);
+                    compressedColorData = CompressWithDeflate(rawPixelData);
                 }
             }
             else
@@ -950,7 +960,7 @@ internal sealed class PdfWriter : IDisposable
 
             // Return compressed color data (and alpha data if present)
             // PDF readers will decompress with FlateDecode and apply PNG predictor filters (if no alpha)
-            // For alpha images, we've already unfiltered and separated, so no predictor params needed
+            // For alpha images or expanded indexed, we've already processed the data, so no predictor params needed
             return (compressedColorData, bitDepth, colorSpace, colorComponents, palette, transparency, alphaData, width, height);
         }
         catch (NotSupportedException)
@@ -1256,14 +1266,69 @@ internal sealed class PdfWriter : IDisposable
     }
 
     /// <summary>
-    /// Compresses raw image data using Deflate.
+    /// Expands sub-byte indexed color data (1-bit, 2-bit, 4-bit) to 8-bit indexed.
+    /// Input: unfiltered PNG data with filter bytes.
+    /// Output: raw 8-bit indexed pixel data (one byte per pixel, no filter bytes).
+    /// </summary>
+    private byte[] ExpandSubByteIndexedTo8Bit(byte[] unfilteredData, int width, int height, int bitDepth)
+    {
+        int scanlineSize = 1 + ((width * bitDepth + 7) / 8);
+        int pixelsPerByte = 8 / bitDepth;
+        int bitMask = (1 << bitDepth) - 1;
+        byte[] expanded = new byte[width * height];
+        int dstIdx = 0;
+
+        for (int y = 0; y < height; y++)
+        {
+            int scanlineStart = y * scanlineSize + 1; // Skip filter byte
+
+            for (int x = 0; x < width; x++)
+            {
+                int byteIndex = scanlineStart + (x / pixelsPerByte);
+                int pixelInByte = x % pixelsPerByte;
+
+                // Extract bits (MSB first)
+                int shift = (pixelsPerByte - 1 - pixelInByte) * bitDepth;
+                byte paletteIndex = (byte)((unfilteredData[byteIndex] >> shift) & bitMask);
+
+                expanded[dstIdx++] = paletteIndex;
+            }
+        }
+
+        return expanded;
+    }
+
+    /// <summary>
+    /// Strips filter bytes from unfiltered PNG data, returning raw pixel data only.
+    /// PNG unfiltered data has format: [0][pixels...][0][pixels...] per scanline.
+    /// PDF without predictors needs just: [pixels...][pixels...] with no filter bytes.
+    /// </summary>
+    private byte[] StripFilterBytes(byte[] unfilteredData, int width, int height, int bitsPerComponent, int colorComponents)
+    {
+        int scanlineSize = 1 + ((width * bitsPerComponent * colorComponents + 7) / 8);
+        int pixelDataSize = scanlineSize - 1; // Size without filter byte
+        byte[] rawPixelData = new byte[pixelDataSize * height];
+
+        for (int y = 0; y < height; y++)
+        {
+            int srcOffset = y * scanlineSize + 1; // Skip filter byte
+            int dstOffset = y * pixelDataSize;
+            Array.Copy(unfilteredData, srcOffset, rawPixelData, dstOffset, pixelDataSize);
+        }
+
+        return rawPixelData;
+    }
+
+    /// <summary>
+    /// Compresses raw image data using zlib (FlateDecode for PDF).
+    /// PDF FlateDecode expects zlib format (2-byte header + deflate + 4-byte Adler-32).
     /// </summary>
     private byte[] CompressWithDeflate(byte[] data)
     {
         using var outputStream = new MemoryStream();
-        using (var deflateStream = new System.IO.Compression.DeflateStream(outputStream, System.IO.Compression.CompressionLevel.Optimal))
+        using (var zlibStream = new System.IO.Compression.ZLibStream(outputStream, System.IO.Compression.CompressionLevel.Optimal))
         {
-            deflateStream.Write(data, 0, data.Length);
+            zlibStream.Write(data, 0, data.Length);
         }
         return outputStream.ToArray();
     }
