@@ -15,7 +15,7 @@ This directory contains comprehensive documentation for the Folly XSL-FO to PDF 
 
 The `architecture/` directory contains detailed information about internal system design:
 
-- **[Font System](architecture/font-system.md)** - Font parsing, subsetting, and embedding
+- **[Font System](../src/Folly.Fonts/README.md)** - TrueType/OpenType font parsing, subsetting, and embedding
 - **[Layout Engine](architecture/layout-engine.md)** - Text layout, line breaking, and pagination
 - **[SVG Rendering](architecture/svg-support.md)** - SVG parsing and PDF conversion
 - **[PDF Generation](architecture/pdf-generation.md)** - PDF structure and rendering
@@ -23,7 +23,7 @@ The `architecture/` directory contains detailed information about internal syste
 ## Quick Links
 
 - [Main README](../README.md) - Project overview and quick start
-- [Development Roadmap](../PLAN.md) - Feature roadmap and implementation status
+- [Roadmap](../ROADMAP.md) - Current status, upcoming features, and future plans
 - [Agent Guidelines](../CLAUDE.md) - Development environment setup and guidelines
 
 ## For Contributors

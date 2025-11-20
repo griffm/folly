@@ -79,6 +79,19 @@ Fo.Document(doc => doc
 ).SavePdf("output.pdf");
 ```
 
+## Documentation
+
+Folly has comprehensive documentation covering all aspects of the library:
+
+- **[Getting Started Guide](docs/guides/getting-started.md)** - Installation, tutorials, and common tasks
+- **[Architecture Overview](docs/architecture/overview.md)** - System design and component structure
+- **[Performance Guide](docs/guides/performance.md)** - Performance characteristics and optimization strategies
+- **[Limitations](docs/guides/limitations.md)** - Current constraints and workarounds
+- **[Roadmap](ROADMAP.md)** - Current status, upcoming features, and future plans
+- **[Examples](examples/README.md)** - Extensive working examples
+
+For a complete documentation index, see [docs/README.md](docs/README.md).
+
 ## Architecture
 
 Folly is designed as a modular suite of composable libraries:
@@ -131,7 +144,7 @@ dotnet run --project Folly.Examples
 
 This generates extensive working examples showcasing Folly's capabilities:
 
-### XSL-FO Examples (39)
+### Extensive XSL-FO Examples
 - **Hello World** - Basic document with simple text
 - **Multiple Blocks** - Different fonts and sizes
 - **Text Alignment** - Start, center, and end alignment
@@ -170,7 +183,7 @@ This generates extensive working examples showcasing Folly's capabilities:
 - **SVG in XSL-FO (instream-foreign-object)** - Embedding SVG graphics directly in XSL-FO documents for scalable vector content
 - **SVG in XSL-FO (external-graphic)** - Loading SVG files as external graphics with automatic scaling
 
-### SVG Examples (29)
+### Comprehensive SVG Examples
 - **Basic Shapes** - Rectangle, circle, ellipse, line, polyline, polygon, rounded rectangles
 - **Paths** - Straight paths, curved paths, cubic Bezier, elliptical arcs, complex paths
 - **Transforms** - Translate, rotate, scale, combined transforms
@@ -337,7 +350,7 @@ The core rendering engine is fully operational with extensive feature support:
 - CI-integrated: Automated performance regression tests
 - See [PERFORMANCE.md](PERFORMANCE.md) for detailed benchmarks
 
-See [PLAN.md](PLAN.md) for detailed roadmap and upcoming milestones.
+See [ROADMAP.md](ROADMAP.md) for detailed status and upcoming milestones.
 
 ## Contributing
 
