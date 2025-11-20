@@ -226,7 +226,7 @@ Folly/
 
 ## Further Reading
 
-- [Font System Architecture](font-system.md) - Font parsing, subsetting, and embedding
+- [Font System](../../src/Folly.Fonts/README.md) - TrueType/OpenType parsing, subsetting, and embedding
 - [Layout Engine](layout-engine.md) - Text layout and pagination algorithms
 - [SVG Support](svg-support.md) - SVG parsing and PDF conversion
 - [PDF Generation](pdf-generation.md) - PDF structure and rendering details
