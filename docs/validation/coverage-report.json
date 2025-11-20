@@ -1,0 +1,113 @@
+{
+  "timestamp": "2025-11-20T14:53:59.6496964Z",
+  "specificationVersion": "XSL-FO 1.1",
+  "overallCoverage": 46.65,
+  "elements": {
+    "total": 64,
+    "implemented": 28,
+    "percentage": 43.75,
+    "notImplemented": [
+      "color-profile",
+      "single-page-master-reference",
+      "repeatable-page-master-reference",
+      "repeatable-page-master-alternatives",
+      "conditional-page-master-reference",
+      "region-body",
+      "region-before",
+      "region-after",
+      "region-start",
+      "region-end",
+      "title",
+      "table-and-caption",
+      "table-column",
+      "table-caption",
+      "table-header",
+      "table-footer",
+      "table-body",
+      "table-row",
+      "table-cell",
+      "list-block",
+      "list-item",
+      "list-item-body",
+      "list-item-label",
+      "multi-switch",
+      "multi-case",
+      "multi-toggle",
+      "multi-properties",
+      "multi-property-set",
+      "footnote-body",
+      "retrieve-marker",
+      "retrieve-table-marker",
+      "index-page-citation-list",
+      "index-key-reference",
+      "index-range-begin",
+      "index-range-end",
+      "bookmark-tree"
+    ],
+    "categories": {
+      "Document Structure": {
+        "total": 16,
+        "implemented": 6,
+        "percentage": 37.5
+      },
+      "Flow Objects": {
+        "total": 3,
+        "implemented": 2,
+        "percentage": 66.66666666666666
+      },
+      "Block-level": {
+        "total": 2,
+        "implemented": 2,
+        "percentage": 100
+      },
+      "Inline-level": {
+        "total": 11,
+        "implemented": 11,
+        "percentage": 100
+      },
+      "Tables": {
+        "total": 9,
+        "implemented": 1,
+        "percentage": 11.11111111111111
+      },
+      "Lists": {
+        "total": 4,
+        "implemented": 0,
+        "percentage": 0
+      },
+      "Links and Multi": {
+        "total": 6,
+        "implemented": 1,
+        "percentage": 16.666666666666664
+      },
+      "Out-of-Line": {
+        "total": 3,
+        "implemented": 2,
+        "percentage": 66.66666666666666
+      },
+      "Markers": {
+        "total": 4,
+        "implemented": 2,
+        "percentage": 50
+      },
+      "Indexing": {
+        "total": 4,
+        "implemented": 0,
+        "percentage": 0
+      },
+      "Bookmarks": {
+        "total": 2,
+        "implemented": 1,
+        "percentage": 50
+      }
+    }
+  },
+  "tests": {
+    "testFiles": 53,
+    "testMethods": 735
+  },
+  "examples": {
+    "foExamples": 1,
+    "svgExamples": 29
+  }
+}
